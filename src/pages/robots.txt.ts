@@ -1,4 +1,3 @@
-/* eslint-disable */
 import type { APIRoute } from "astro";
 
 const robotsTxt = `

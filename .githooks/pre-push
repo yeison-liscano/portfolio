@@ -1,1 +1,1 @@
-: && m . /lint/hooks/pre-push
+: && portfolio-lint

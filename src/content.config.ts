@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { z, defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { type BuiltinLanguage } from "shiki";

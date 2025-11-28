@@ -1,0 +1,28 @@
+strict: true
+working_dir: .
+language: EN
+
+sast:
+  include:
+    - src/
+    - e2e/
+    - eslint.config.js
+    - cypress.config.ts
+    - tsconfig.json
+    - astro.config.mjs
+  exclude:
+    - node_modules/
+    - dist/
+    - .astro/
+    - public/
+    - src/blog/*.md
+  recursion-limit: 1000
+
+sca:
+  include:
+    - package.json
+    - package-lock.json
+  exclude:
+    - node_modules/
+    - dist/
+  recursion-limit: 1000

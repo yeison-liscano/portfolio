@@ -2,6 +2,14 @@
 /// <reference path="../.astro/types.d.ts" />
 import "../.astro/types";
 
+interface ImportMetaEnv {
+  readonly SITE: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 declare global {
   interface Window {
     theme: {
