@@ -345,4 +345,4 @@ docker-compose ps
 
 #### Divide and conquer
 
-more info [here](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#integrated-package-management)
+more info in the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#integrated-package-management)

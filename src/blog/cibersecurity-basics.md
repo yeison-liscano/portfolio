@@ -13,7 +13,7 @@ In today's interconnected digital landscape, cybersecurity has become a critical
 concern for individuals and organizations alike. Let's explore the most common
 cyber threats and the essential security controls needed to protect digital assets.
 
-### Part 1: Understanding Cyber Threats
+## Part 1: Understanding Cyber Threats
 
 ### Ransomware
 

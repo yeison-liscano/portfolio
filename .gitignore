@@ -17,6 +17,9 @@ pnpm-debug.log*
 .env
 .env.production
 
+.npm/
+.direnv/
+
 # macOS-specific files
 .DS_Store
 
@@ -27,3 +30,4 @@ coverage/
 src/blog/steps-by-step.md
 public/el_problema_de_los_puentes.png
 src/blog/developing-secure-software.md
+src/blog/introduccion-al-pentesting.md

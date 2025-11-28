@@ -3,54 +3,19 @@ concurrency:
   cancel-in-progress: true
   group: ${{ github.actor }}
 jobs:
-  formatBash:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
-      - uses: docker://ghcr.io/fluidattacks/makes:24.09
-        name: /formatBash
-        with:
-          args: sh -c "chown -R root:root /github/workspace && nix-env -if . && m . /formatBash"
-
-  lintBash:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
-      - uses: docker://ghcr.io/fluidattacks/makes:24.09
-        name: /lintBash
-        with:
-          args: sh -c "chown -R root:root /github/workspace && nix-env -if . && m . /lintBash"
-
-  lintFormatNix:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
-      - uses: docker://ghcr.io/fluidattacks/makes:24.09
-        name: /formatNix
-        with:
-          args: sh -c "chown -R root:root /github/workspace && nix-env -if . && m . /lint/lint-format-nix"
-
-  lintMarkdown:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
-      - uses: docker://ghcr.io/fluidattacks/makes:24.09
-        name: /lintMarkdown
-        with:
-          args: sh -c "chown -R root:root /github/workspace && nix-env -if . && m . /lint/markdownlint"
-
-  lintGitCommitMsg:
+  portfolio-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
         with:
           fetch-depth: 0
-      - uses: docker://ghcr.io/fluidattacks/makes:24.09
-        name: /lintGitCommitMsg
+      - uses: cachix/install-nix-action@v27
         with:
-          args: sh -c "chown -R root:root /github/workspace && nix-env -if . && m . /lintGitCommitMsg"
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - run: nix run .#portfolio-lint
 
-  eslintAndPrettier:
+  eslint-prettier:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
@@ -58,9 +23,9 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - run: npm run check
       - run: npm run eslint
       - run: npm run format:check
-      - run: npm run check
       - run: npm run cy:eslint
 
   cypress-run:
