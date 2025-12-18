@@ -186,11 +186,21 @@ const postUrl = `${BASE_URL}blog/${title.toLowerCase().replace(/\s/g, "-")}/`;
     opacity: 0.9;
   }
 
+  [data-theme="light"] .container-like-image {
+    background-color: #1d2433;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
   @media (prefers-color-scheme: light) {
     .code-tag {
       background-color: var(--secondary);
       color: var(--text-color);
       opacity: 0.9;
+    }
+
+    .container-like-image {
+      background-color: #1d2433;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
     }
   }
 
@@ -240,8 +250,12 @@ const postUrl = `${BASE_URL}blog/${title.toLowerCase().replace(/\s/g, "-")}/`;
 
   @media (hover: hover) {
     .preview-container:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
       transform: translateY(-2px);
+    }
+
+    .preview-container:hover .description-container,
+    .preview-container:hover .container-like-image {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
 
     .preview-container:hover .description-container {
@@ -259,11 +273,12 @@ const postUrl = `${BASE_URL}blog/${title.toLowerCase().replace(/\s/g, "-")}/`;
     padding: 16px;
     border-radius: 0 0 12px 12px;
     z-index: 1;
-    background-color: var(--neutral);
+    background-color: var(--code-background);
     min-height: 120px;
     max-height: 200px;
     overflow: hidden;
     box-sizing: border-box;
+    border-top: 1px solid var(--neutral);
   }
 
   .container-like-image button {
@@ -350,11 +365,12 @@ const postUrl = `${BASE_URL}blog/${title.toLowerCase().replace(/\s/g, "-")}/`;
     }
 
     .container-like-image {
-      background-color: var(--neutral);
+      background-color: var(--code-background);
       opacity: unset;
       border-top-left-radius: unset;
       border-top-right-radius: unset;
       padding: 20px;
+      border-top: 1px solid var(--neutral);
     }
 
     .description-container > div > div {
@@ -370,13 +386,15 @@ const postUrl = `${BASE_URL}blog/${title.toLowerCase().replace(/\s/g, "-")}/`;
   @media (min-width: 992px) {
     .preview-container {
       margin-top: 80px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      box-shadow: none;
       border: none;
+      background-color: transparent;
     }
 
     .description-container,
     .container-like-image {
       border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     }
 
     .description-container {
