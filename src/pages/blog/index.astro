@@ -12,17 +12,121 @@ const allPosts = (
 ---
 
 <Base title="Blog | Yeison Liscano" description="Yeison Liscano Blog">
-  {
-    allPosts.map(({ data, id }) => (
-      <PostPreview
-        title={data.title}
-        pubDate={data.pubDate}
-        description={data.description}
-        tags={data.tags}
-        slug={id}
-        readingTime={data?.readingTime}
-        snippet={data.snippet}
-      />
-    ))
-  }
+  <div class="blog-header">
+    <h1>Blog Posts</h1>
+    <p class="blog-subtitle">
+      Thoughts, tutorials, and insights on web development and software
+      engineering
+    </p>
+  </div>
+  <div class="posts-container">
+    {
+      allPosts.map(({ data, id }) => (
+        <PostPreview
+          title={data.title}
+          pubDate={data.pubDate}
+          description={data.description}
+          tags={data.tags}
+          slug={id}
+          readingTime={data?.readingTime}
+          snippet={data.snippet}
+        />
+      ))
+    }
+  </div>
 </Base>
+
+<style>
+  .blog-header {
+    margin-bottom: 32px;
+    margin-top: 0;
+    padding-bottom: 20px;
+    padding-top: 0;
+    border-bottom: 2px solid var(--contrast);
+    opacity: 1;
+    width: 100%;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  @media screen and (max-width: 899px) {
+    .blog-header {
+      margin-top: 0;
+    }
+  }
+
+  h1 {
+    font-size: 2rem;
+    color: var(--text-color);
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+  .blog-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-color);
+    opacity: 1;
+    margin: 0;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .posts-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    align-items: center;
+    gap: 0;
+  }
+
+  .posts-container > :first-child {
+    margin-top: 0;
+  }
+
+  @media screen and (min-width: 720px) {
+    .posts-container {
+      gap: 0;
+    }
+  }
+
+  @media screen and (min-width: 900px) {
+    .blog-header {
+      margin-top: 20px;
+      margin-bottom: 48px;
+      padding-bottom: 24px;
+    }
+  }
+
+  @media screen and (min-width: 720px) {
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+    }
+
+    .blog-header {
+      margin-bottom: 60px;
+      padding-bottom: 32px;
+      border-bottom-width: 3px;
+    }
+
+    .blog-subtitle {
+      font-size: 1.1rem;
+    }
+  }
+
+  @media screen and (min-width: 900px) {
+    h1 {
+      font-size: 4rem;
+      font-weight: 700;
+    }
+
+    .blog-subtitle {
+      font-size: 1.25rem;
+      font-weight: 400;
+    }
+  }
+</style>

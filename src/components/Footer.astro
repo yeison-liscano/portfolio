@@ -1,43 +1,88 @@
 <footer id="footer">
-  <a href="https://www.linkedin.com/in/yeison-andrey-lice/">
-    {"<linkedin\\>"}
-  </a>
-  <a href="https://github.com/yeison-liscano">
-    {"<github\\>"}
-  </a>
-  <p>© 2025, Yeison Liscano</p>
+  <div class="footer-content">
+    <div class="footer-links">
+      <a href="https://www.linkedin.com/in/yeison-andrey-lice/">
+        {"<linkedin\\>"}
+      </a>
+      <a href="https://github.com/yeison-liscano">
+        {"<github\\>"}
+      </a>
+    </div>
+    <p>© 2025, Yeison Liscano</p>
+  </div>
 </footer>
 
 <style>
-  footer {
+  #footer {
+    margin-top: auto;
+    width: 100%;
+    padding: 24px 20px;
+    border-top: 1px solid var(--neutral);
+  }
+
+  .footer-content {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    color: var(--text);
-    width: 100%;
-    gap: 8px;
+    gap: 16px;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
   }
 
   a {
     color: var(--text-color);
     text-decoration: none;
+    transition: color 0.3s ease;
   }
 
   a:hover {
+    color: var(--contrast);
     text-decoration: underline;
   }
 
   p {
     color: var(--contrast);
+    margin: 0;
+    font-size: 0.9rem;
   }
 
   @media screen and (min-width: 720px) {
-    footer {
+    #footer {
+      padding: 40px 40px;
+    }
+
+    .footer-content {
       flex-direction: row;
-      width: calc(100% - 100px);
-      padding-bottom: 20px;
+      max-width: 720px;
+    }
+  }
+
+  @media screen and (min-width: 900px) {
+    #footer {
+      margin-left: 0;
+      padding: 40px 60px;
+    }
+
+    .footer-content {
+      max-width: 100%;
+    }
+  }
+
+  @media (min-width: 1300px) {
+    #footer {
+      padding: 60px 80px;
+    }
+
+    .footer-content {
+      max-width: 1000px;
+      margin: 0 auto;
     }
   }
 </style>
