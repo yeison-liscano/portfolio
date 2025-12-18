@@ -16,33 +16,92 @@ const formattedDate = new Date(pubDate).toLocaleDateString("en-US", {
 });
 ---
 
-<div>
-  <h1>{title}</h1>
-  <slot />
-  {formattedDate}
-  {readingTime}
+<div class="hero-container">
+  <div class="hero-header">
+    <h1>{title}</h1>
+    <div class="hero-meta">
+      <time datetime={pubDate.toDateString()}>{formattedDate}</time>
+      <span class="reading-time">{readingTime}</span>
+    </div>
+  </div>
+  <div class="hero-content">
+    <slot />
+  </div>
 </div>
-<hr />
+<hr class="hero-divider" />
 
 <style>
-  hr {
-    width: 100%;
-    border: 1px solid var(--contrast);
-  }
-
-  div {
+  .hero-container {
     display: flex;
     flex-direction: column;
-    align-items: start;
+    align-items: flex-start;
     width: 100%;
-    padding: 20px;
-    gap: 20px;
+    padding: 0;
+    gap: 24px;
+  }
+
+  .hero-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    line-height: 1.2;
+    color: var(--text-color);
+    margin: 0;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--text-color);
+    opacity: 0.8;
+    font-size: 0.95rem;
+  }
+
+  .reading-time {
+    color: var(--contrast);
+  }
+
+  .hero-content {
+    width: 100%;
+  }
+
+  .hero-divider {
+    width: 100%;
+    border: none;
+    border-top: 2px solid var(--contrast);
+    margin: 0;
+    opacity: 0.3;
   }
 
   @media screen and (min-width: 720px) {
-    div {
-      padding-left: unset;
-      padding-right: unset;
+    h1 {
+      font-size: 3rem;
+    }
+
+    .hero-meta {
+      flex-direction: row;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .hero-container {
+      gap: 28px;
+    }
+  }
+
+  @media screen and (min-width: 900px) {
+    h1 {
+      font-size: 3.5rem;
+    }
+
+    .hero-container {
+      gap: 32px;
     }
   }
 </style>

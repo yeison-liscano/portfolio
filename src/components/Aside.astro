@@ -25,28 +25,32 @@ const { posts } = Astro.props;
 <div id="side-nav" class="hidden-only-on-mobile">
   <div id="menu">
     <nav>
-      <a href={BASE_URL}
-        ><Icon icon="home" size="35px" color="currentcolor" />
-        home</a
-      >
-      <a href={`${BASE_URL}about/`}
-        ><Icon icon="about" size="35px" color="currentcolor" />about</a
-      >
-      <a
-        href={posts === undefined ? `${BASE_URL}blog/` : undefined}
-        id="blog-link"
-        ><Icon icon="article" size="35px" color="currentcolor" />blog</a
-      >
-      <a href="https://www.linkedin.com/in/yeison-liscano/" target="_blank">
-        <Icon icon="linkedin" size="35px" color="currentcolor" />linkedin
-      </a>
-      <a href="https://github.com/yeison-liscano" target="_blank">
-        <Icon icon="github" size="35px" color="currentcolor" />github
-      </a>
+      <div class="nav-group nav-main">
+        <a href={BASE_URL}
+          ><Icon icon="home" size="35px" color="currentcolor" />
+          home</a
+        >
+        <a href={`${BASE_URL}about/`}
+          ><Icon icon="about" size="35px" color="currentcolor" />about</a
+        >
+        <a
+          href={posts === undefined ? `${BASE_URL}blog/` : undefined}
+          id="blog-link"
+          ><Icon icon="article" size="35px" color="currentcolor" />blog</a
+        >
+      </div>
+      <div class="nav-group nav-social">
+        <a href="https://www.linkedin.com/in/yeison-liscano/" target="_blank">
+          <Icon icon="linkedin" size="35px" color="currentcolor" />linkedin
+        </a>
+        <a href="https://github.com/yeison-liscano" target="_blank">
+          <Icon icon="github" size="35px" color="currentcolor" />github
+        </a>
+        <div id="theme-toggle-container">
+          <ThemeToggle />
+        </div>
+      </div>
     </nav>
-    <div id="theme-toggle-container">
-      <ThemeToggle />
-    </div>
   </div>
 </div>
 
@@ -176,20 +180,34 @@ const { posts } = Astro.props;
     opacity: 0.95;
     top: 0;
     right: 0;
-    height: 100%;
-    width: 250px;
+    height: 100vh;
+    width: 280px;
     z-index: 3;
-    box-shadow: -10px 0px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: -10px 0px 20px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
   }
 
   nav {
-    padding-top: 80px;
+    padding-top: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   #theme-toggle-container {
     position: absolute;
-    bottom: 20px;
-    left: 93px;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   #mobile-nav-dropdown {
@@ -206,7 +224,9 @@ const { posts } = Astro.props;
     right: 0px;
     display: flex;
     justify-content: end;
+    padding: 12px 20px;
     z-index: 4;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
 
   #mobile-buttons button {
@@ -272,29 +292,67 @@ const { posts } = Astro.props;
     }
 
     #side-nav {
-      width: 100px;
+      width: 100%;
       position: fixed;
-      z-index: 1;
+      z-index: 100;
       background-color: var(--secondary);
-      padding-top: 20px;
-      padding: 20px;
+      padding: 0;
+      left: 0;
+      top: 0;
+      height: auto;
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      opacity: 0.95;
     }
 
     #side-nav,
     #menu {
       top: 0;
       left: 0;
-      height: 100%;
+      height: auto;
+      width: 100%;
     }
 
     nav {
-      height: 70%;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       justify-content: space-between;
-      width: 100%;
       align-items: center;
-      padding-top: unset;
+      width: 100%;
+      padding: 20px 60px;
+      gap: 0;
+      height: auto;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .nav-group {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-main {
+      gap: 4px;
+    }
+
+    .nav-social {
+      gap: 4px;
+    }
+
+    nav a {
+      flex-direction: row;
+      gap: 8px;
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    nav a:hover {
+      background-color: rgba(255, 255, 255, 0.05);
     }
 
     ul {
@@ -304,13 +362,28 @@ const { posts } = Astro.props;
     }
 
     #theme-toggle-container {
-      position: absolute;
-      bottom: 20px;
-      left: unset;
+      position: static;
+      transform: none;
+      width: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-left: 12px;
+      padding: 0;
     }
 
     #posts-list {
-      right: 100px;
+      left: 0;
+      right: auto;
+      top: 80px;
+      padding-top: 20px;
+      width: 350px;
+    }
+  }
+
+  @media (min-width: 1300px) {
+    nav {
+      padding: 20px 80px;
     }
   }
 </style>

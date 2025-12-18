@@ -25,20 +25,22 @@ const {
   <Head title={`${title} | post`} description={description} />
   <body>
     <Aside posts={allPosts} />
-    <div id="main-content">
-      <Hero
-        pubDate={pubDate}
-        readingTime={readingTime}
-        description={description}
-        title={title}
-      >
-        <TableOfContent headings={headings} />
-      </Hero>
-      <section>
-        <slot />
-      </section>
+    <div id="app-wrapper">
+      <main id="main-content">
+        <Hero
+          pubDate={pubDate}
+          readingTime={readingTime}
+          description={description}
+          title={title}
+        >
+          <TableOfContent headings={headings} />
+        </Hero>
+        <article id="post-article">
+          <slot />
+        </article>
+      </main>
+      <Footer />
     </div>
-    <Footer />
   </body>
 </html>
 
@@ -55,8 +57,6 @@ const {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          console.log("Mobile device detected");
-
           const link = document.querySelector(
             `#article-content a[href="#${entry.target.id}"]`,
           );
@@ -80,39 +80,82 @@ const {
 </script>
 
 <style>
+  #app-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+
   #main-content {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    flex: 1;
+    width: 100%;
+    padding: 20px;
+    padding-top: 80px;
+    margin: 0 auto;
+    gap: 30px;
+    transition: all 0.3s ease;
   }
 
-  section {
-    padding: 10px;
+  #post-article {
+    padding: 20px 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    line-height: 25px;
+    gap: 24px;
+    line-height: 1.8;
+    width: 100%;
   }
 
   @media screen and (min-width: 720px) {
     #main-content {
-      gap: 16px;
-      padding: 20px;
+      padding: 40px 40px;
+      padding-top: 40px;
+      gap: 40px;
+    }
+
+    #post-article {
+      padding: 30px 0;
+      gap: 28px;
     }
   }
 
   @media screen and (min-width: 900px) {
+    #app-wrapper {
+      margin-left: 0;
+      width: 100%;
+      padding-top: 80px;
+    }
+
     #main-content {
-      margin-left: 150px;
-      margin-right: 50px;
+      padding: 40px 60px;
+      max-width: 100%;
+    }
+
+    #post-article {
+      padding: 40px 0;
     }
   }
 
   @media screen and (min-width: 1300px) {
-    #main-content {
-      max-width: 1000px;
+    #app-wrapper {
+      margin-left: 0;
       margin-right: 350px;
-      margin-left: 250px;
+      width: calc(100% - 350px);
+      padding-top: 80px;
+    }
+
+    #main-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 80px;
+    }
+
+    #post-article {
+      padding: 50px 0;
+      gap: 32px;
     }
   }
 </style>

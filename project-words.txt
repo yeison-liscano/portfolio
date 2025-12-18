@@ -1,9 +1,11 @@
 
+
 aarch
 aboutfeeds
 abstractmethod
 aiofiles
 aiohttp
+Alianza
 Andrey
 asgi
 ASGI
@@ -16,8 +18,8 @@ blockquote
 builtins
 BYOD
 bypassability
-CAPEC
 cachix
+CAPEC
 Checksumming
 ciphertext
 clearfix
@@ -33,6 +35,7 @@ direnv
 Dockering
 esbenp
 Escaneos
+exfiltration
 Exploitability
 fastcgi
 fetchzip
@@ -42,6 +45,7 @@ findutils
 fluidattacks
 focusring
 Footprinting
+Francesa
 frontmatter
 functools
 getenv
@@ -67,9 +71,6 @@ Liskov
 lsvirtualenv
 Mapeo
 markdownlint
-stdenv
-exfiltration
-Snakemake
 maxdepth
 mdast
 Menlo
@@ -78,6 +79,7 @@ mindepth
 mitigación
 mitigaciones
 msapplication
+Nacional
 necolas
 NGFW
 nixfmt
@@ -128,9 +130,11 @@ shiki
 SIEM
 simbolik
 Smishing
+Snakemake
 srcs
 srcs
 statix
+stdenv
 stylesheet
 subpackages
 Subscore
@@ -144,6 +148,7 @@ tsconfigs
 tseslint
 tulpn
 typeof
+Universidad
 uvicorn
 uwsgi
 venv
