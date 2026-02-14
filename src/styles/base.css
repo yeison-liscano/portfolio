@@ -8,20 +8,13 @@
 
   --max-width: 720px;
 
+  --font-sans: "Geist Sans", sans-serif;
+  --font-mono: "Geist Mono", monospace;
+  --font-heading: "Space Grotesk Variable", sans-serif;
+
   color: var(--text-color);
   background-color: var(--primary);
-  font-family:
-    __Spline_Sans_Mono_ca083e,
-    __Spline_Sans_Mono_Fallback_ca083e,
-    SFMono-Regular,
-    Menlo,
-    Consolas,
-    Monaco,
-    Liberation Mono,
-    Courier New,
-    monospace,
-    ui-monospace,
-    SF Mono;
+  font-family: var(--font-sans);
   height: 100%;
 
   line-height: 1.5;
@@ -62,6 +55,15 @@ body {
   justify-content: space-between;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
 blockquote {
   border-left: 4px solid var(--contrast);
   padding-left: 1rem;
@@ -70,6 +72,7 @@ blockquote {
 
 code {
   color: var(--contrast);
+  font-family: var(--font-mono);
 }
 
 .astro-code {
