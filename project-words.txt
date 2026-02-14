@@ -1,5 +1,6 @@
 
 
+
 aarch
 aboutfeeds
 abstractmethod
@@ -44,6 +45,7 @@ figcaption
 findutils
 fluidattacks
 focusring
+fontsource
 Footprinting
 Francesa
 frontmatter
@@ -51,6 +53,7 @@ functools
 getenv
 gnugrep
 gnused
+grotesk
 gunicorn
 hashchange
 hlsearch
