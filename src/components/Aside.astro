@@ -12,46 +12,71 @@ interface Props {
 const { posts } = Astro.props;
 ---
 
-<div id="mobile-nav-dropdown">
-  <div id="mobile-buttons">
-    <button id="show-menu">
-      <Icon icon="list" size="35px" color="current" />
-    </button>
-    <button id="hide-menu" class="hidden-only-on-mobile">
-      <Icon icon="x" size="35px" />
-    </button>
-  </div>
-</div>
-<div id="side-nav" class="hidden-only-on-mobile">
-  <div id="menu">
-    <nav>
-      <div class="nav-group nav-main">
-        <a href={BASE_URL}
-          ><Icon icon="home" size="35px" color="currentcolor" />
-          home</a
-        >
-        <a href={`${BASE_URL}about/`}
-          ><Icon icon="about" size="35px" color="currentcolor" />about</a
-        >
-        <a
-          href={posts === undefined ? `${BASE_URL}blog/` : undefined}
-          id="blog-link"
-          ><Icon icon="article" size="35px" color="currentcolor" />blog</a
-        >
-      </div>
-      <div class="nav-group nav-social">
-        <a href="https://www.linkedin.com/in/yeison-liscano/" target="_blank">
-          <Icon icon="linkedin" size="35px" color="currentcolor" />linkedin
-        </a>
-        <a href="https://github.com/yeison-liscano" target="_blank">
-          <Icon icon="github" size="35px" color="currentcolor" />github
-        </a>
-        <div id="theme-toggle-container">
-          <ThemeToggle />
-        </div>
-      </div>
+<header id="site-header">
+  <div class="nav-container">
+    <!-- Logo -->
+    <a href={BASE_URL} class="logo" aria-label="Home">YL</a>
+
+    <!-- Desktop Navigation -->
+    <nav id="desktop-nav">
+      <a href={BASE_URL} class="nav-link">home</a>
+      <a href={`${BASE_URL}about/`} class="nav-link">about</a>
+      <a
+        href={posts === undefined ? `${BASE_URL}blog/` : undefined}
+        id="blog-link"
+        class="nav-link">blog</a
+      >
     </nav>
+
+    <!-- Right side: social icons, theme toggle, hamburger -->
+    <div class="nav-right">
+      <a
+        href="https://www.linkedin.com/in/yeison-liscano/"
+        target="_blank"
+        class="nav-icon-link"
+        aria-label="LinkedIn"
+      >
+        <Icon icon="linkedin" size="20px" color="currentcolor" />
+      </a>
+      <a
+        href="https://github.com/yeison-liscano"
+        target="_blank"
+        class="nav-icon-link"
+        aria-label="GitHub"
+      >
+        <Icon icon="github" size="20px" color="currentcolor" />
+      </a>
+      <ThemeToggle />
+      <button id="show-menu" class="menu-btn" aria-label="Open menu">
+        <Icon icon="list" size="24px" color="current" />
+      </button>
+    </div>
   </div>
+</header>
+
+<!-- Mobile overlay -->
+<div id="mobile-overlay"></div>
+
+<!-- Mobile slide-in nav -->
+<div id="side-nav">
+  <button id="hide-menu" class="close-btn" aria-label="Close menu">
+    <Icon icon="x" size="24px" />
+  </button>
+  <nav id="mobile-nav">
+    <a href={BASE_URL} class="mobile-nav-link">home</a>
+    <a href={`${BASE_URL}about/`} class="mobile-nav-link">about</a>
+    <a href={`${BASE_URL}blog/`} class="mobile-nav-link">blog</a>
+    <a
+      href="https://www.linkedin.com/in/yeison-liscano/"
+      target="_blank"
+      class="mobile-nav-link">linkedin</a
+    >
+    <a
+      href="https://github.com/yeison-liscano"
+      target="_blank"
+      class="mobile-nav-link">github</a
+    >
+  </nav>
 </div>
 
 {
@@ -70,320 +95,386 @@ const { posts } = Astro.props;
 }
 
 <script>
-  const addInteractivity = (navbarElement: HTMLElement, isDesktop: boolean) => {
-    const links = navbarElement.querySelectorAll("a");
-    links.forEach((link) => {
-      if (link.href === window.location.href) {
-        link.classList.add("active");
-      }
-      if (!isDesktop && link.id === "blog-link") {
-        const baseUrl = window.location.origin;
-        link.setAttribute("href", `${baseUrl}/portfolio/blog/`);
-      }
-    });
+  // Scroll effect
+  const header = document.getElementById("site-header");
+  const handleScroll = () => {
+    if (window.scrollY > 50) {
+      header?.classList.add("scrolled");
+    } else {
+      header?.classList.remove("scrolled");
+    }
+  };
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  handleScroll();
+
+  // Active link highlighting
+  const allLinks = document.querySelectorAll<HTMLAnchorElement>(
+    ".nav-link, .mobile-nav-link",
+  );
+  allLinks.forEach((link) => {
+    if (link.href === window.location.href) {
+      link.classList.add("active");
+    }
+  });
+
+  // Mobile menu open/close
+  const showMenu = document.getElementById("show-menu");
+  const hideMenu = document.getElementById("hide-menu");
+  const sideNav = document.getElementById("side-nav");
+  const overlay = document.getElementById("mobile-overlay");
+
+  const openMenu = () => {
+    sideNav?.classList.add("open");
+    overlay?.classList.add("visible");
+    document.body.style.overflow = "hidden";
   };
 
-  const wrapperFN1 = () => {
-    const isDesktop = window.innerWidth > 900;
-    const navbarElement = document.getElementById("side-nav");
-    if (navbarElement !== null) {
-      const showMenu = document.getElementById("show-menu");
-      const items = navbarElement.innerHTML;
+  const closeMenu = () => {
+    sideNav?.classList.remove("open");
+    overlay?.classList.remove("visible");
+    document.body.style.overflow = "";
+  };
 
-      showMenu?.addEventListener("click", () => {
-        navbarElement.classList.remove("menu-hidden");
-        navbarElement.innerHTML = items;
-        const hideMenu = document.getElementById("hide-menu");
-        hideMenu?.addEventListener("click", () => {
-          navbarElement.classList.add("menu-hidden");
-          navbarElement.innerHTML = "";
-        });
-        addInteractivity(navbarElement, isDesktop);
-      });
-      addInteractivity(navbarElement, isDesktop);
-    }
+  showMenu?.addEventListener("click", openMenu);
+  hideMenu?.addEventListener("click", closeMenu);
+  overlay?.addEventListener("click", closeMenu);
 
-    const showMenu = document.getElementById("show-menu");
+  // Blog posts dropdown (desktop only)
+  const blogLink = document.getElementById("blog-link");
+  const postsList = document.getElementById("posts-list");
 
-    showMenu?.addEventListener("click", () => {
-      const hideMenu = document.getElementById("hide-menu");
-      hideMenu?.classList.remove("hidden-only-on-mobile");
-      const sideNav = document.getElementById("side-nav");
-      sideNav?.classList.remove("hidden-only-on-mobile");
-      showMenu?.classList.add("hidden-only-on-mobile");
-    });
-
-    const hideMenu = document.getElementById("hide-menu");
-
-    hideMenu?.addEventListener("click", () => {
-      const showMenu = document.getElementById("show-menu");
-      showMenu?.classList.remove("hidden-only-on-mobile");
-      const sideNav = document.getElementById("side-nav");
-      sideNav?.classList.add("hidden-only-on-mobile");
-      hideMenu?.classList.add("hidden-only-on-mobile");
-    });
-
-    // Handle blog link click
-    const blogLink = document.getElementById("blog-link");
-    const postsList = document.getElementById("posts-list");
-
-    if (blogLink && postsList && isDesktop) {
-      blogLink.addEventListener("click", (e) => {
+  if (blogLink && postsList) {
+    blogLink.addEventListener("click", (e) => {
+      if (window.innerWidth >= 900) {
         e.preventDefault();
         postsList.classList.toggle("hidden");
-      });
-    }
-  };
+      }
+    });
 
-  wrapperFN1();
-
-  const onMount = () => {
-    const themeToggle = document.getElementById("theme-toggle");
-    if (themeToggle) {
-      themeToggle.addEventListener("click", window.theme.toggle);
-    }
-  };
-
-  document.getElementById("show-menu")?.addEventListener("click", onMount);
+    document.addEventListener("click", (e) => {
+      if (
+        !blogLink.contains(e.target as Node) &&
+        !postsList.contains(e.target as Node)
+      ) {
+        postsList.classList.add("hidden");
+      }
+    });
+  }
 </script>
 
 <style>
-  a {
+  /* ===== HEADER ===== */
+  #site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background-color: color-mix(in srgb, var(--primary) 80%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition:
+      background-color 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  #site-header.scrolled {
+    background-color: color-mix(in srgb, var(--primary) 95%, transparent);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  /* ===== NAV CONTAINER ===== */
+  .nav-container {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    border-radius: 4px;
-    padding: 8px;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 64px;
+  }
+
+  /* ===== LOGO ===== */
+  .logo {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--contrast);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+  }
+
+  .logo:visited {
+    color: var(--contrast);
+  }
+
+  /* ===== DESKTOP NAV (hidden on mobile) ===== */
+  #desktop-nav {
+    display: none;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .nav-link {
+    position: relative;
+    padding: 6px 12px;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background-color: var(--contrast);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: var(--contrast);
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    transform: scaleX(1);
+  }
+
+  .nav-link.active {
+    color: var(--contrast);
+  }
+
+  .nav-link:visited {
     color: var(--text-color);
   }
 
-  .hidden-only-on-mobile {
-    display: none;
-  }
-
-  .hidden {
-    display: none;
-  }
-
-  a.active {
+  .nav-link.active:visited,
+  .nav-link:hover:visited {
     color: var(--contrast);
   }
 
-  a:hover {
-    color: var(--contrast);
-    transition: background-color 0.3s;
+  /* ===== RIGHT SIDE ===== */
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
+  .nav-icon-link {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--text-color);
+    border-radius: 6px;
+    text-decoration: none;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .nav-icon-link:visited {
+    color: var(--text-color);
+  }
+
+  .nav-icon-link:hover {
+    color: var(--contrast);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  /* ===== HAMBURGER BUTTON ===== */
+  .menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: color 0.2s ease;
+  }
+
+  .menu-btn:hover {
+    color: var(--contrast);
+  }
+
+  /* ===== MOBILE OVERLAY ===== */
+  #mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  #mobile-overlay.visible {
+    display: block;
+    opacity: 1;
+  }
+
+  /* ===== MOBILE SIDE NAV ===== */
   #side-nav {
     position: fixed;
-    backdrop-filter: blur(10px);
-    opacity: 0.95;
     top: 0;
     right: 0;
     height: 100vh;
     width: 280px;
-    z-index: 3;
-    box-shadow: -10px 0px 20px rgba(0, 0, 0, 0.15);
+    background-color: var(--primary);
+    z-index: 300;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    box-shadow: -4px 0 30px rgba(0, 0, 0, 0.3);
     overflow-y: auto;
   }
 
-  nav {
-    padding-top: 100px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  #side-nav.open {
+    transform: translateX(0);
   }
 
-  .nav-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  #theme-toggle-container {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
-  #mobile-nav-dropdown {
-    margin-top: 20px;
-  }
-
-  #mobile-buttons {
-    color: var(--text-color);
-    backdrop-filter: blur(10px);
-    opacity: 0.95;
-    width: 100%;
-    position: fixed;
-    top: 0px;
-    right: 0px;
-    display: flex;
-    justify-content: end;
-    padding: 12px 20px;
-    z-index: 4;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-
-  #mobile-buttons button {
-    background-color: transparent;
-    backdrop-filter: blur(10px);
-    opacity: 0.95;
-    color: var(--text-color);
-    padding: 4px;
+  .close-btn {
+    align-self: flex-end;
+    background: transparent;
     border: none;
-    border-radius: 4px;
+    color: var(--text-color);
     cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    margin-bottom: 24px;
+    transition: color 0.2s ease;
+  }
+
+  .close-btn:hover {
+    color: var(--contrast);
+  }
+
+  #mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mobile-nav-link {
+    display: block;
+    padding: 12px 16px;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 1.05rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .mobile-nav-link:visited {
+    color: var(--text-color);
+  }
+
+  .mobile-nav-link:hover,
+  .mobile-nav-link.active {
+    color: var(--contrast);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  /* ===== BLOG POSTS DROPDOWN ===== */
+  .hidden {
+    display: none !important;
   }
 
   #posts-list {
     position: fixed;
-    top: 0;
-    left: 100px;
-    height: 100%;
-    width: 300px;
+    top: 64px;
+    left: 0;
+    width: 320px;
+    max-height: calc(100vh - 64px);
     background-color: var(--primary);
-    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: none;
+    padding: 16px;
     overflow-y: auto;
-    z-index: 2;
-    backdrop-filter: blur(10px);
-    opacity: 0.95;
+    z-index: 99;
+    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   #posts-list h2 {
     color: var(--text-color);
-    margin-bottom: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    opacity: 0.6;
   }
 
   #posts-list ul {
     list-style: none;
     padding: 0;
     margin: 0;
-  }
-
-  #posts-list li {
-    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   #posts-list a {
+    display: block;
+    padding: 8px 12px;
     color: var(--text-color);
     text-decoration: none;
-    display: block;
-    padding: 8px;
+    font-size: 0.9rem;
     border-radius: 4px;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  #posts-list a:visited {
+    color: var(--text-color);
   }
 
   #posts-list a:hover {
-    background-color: var(--contrast);
-    color: var(--secondary);
+    color: var(--contrast);
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
+  /* ===== DESKTOP BREAKPOINT ===== */
   @media screen and (min-width: 900px) {
-    .hidden-only-on-mobile {
-      display: block;
+    .nav-container {
+      padding: 0 60px;
     }
 
-    #mobile-nav-dropdown {
+    #desktop-nav {
+      display: flex;
+    }
+
+    .nav-icon-link {
+      display: flex;
+    }
+
+    .menu-btn {
       display: none;
     }
-
-    #side-nav {
-      width: 100%;
-      position: fixed;
-      z-index: 100;
-      background-color: var(--secondary);
-      padding: 0;
-      left: 0;
-      top: 0;
-      height: auto;
-      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(10px);
-      opacity: 0.95;
-    }
-
-    #side-nav,
-    #menu {
-      top: 0;
-      left: 0;
-      height: auto;
-      width: 100%;
-    }
-
-    nav {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      padding: 20px 60px;
-      gap: 0;
-      height: auto;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .nav-group {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-main {
-      gap: 4px;
-    }
-
-    .nav-social {
-      gap: 4px;
-    }
-
-    nav a {
-      flex-direction: row;
-      gap: 8px;
-      padding: 10px 16px;
-      font-size: 0.95rem;
-      transition: all 0.2s ease;
-      border-radius: 6px;
-      white-space: nowrap;
-    }
-
-    nav a:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    ul {
-      list-style-type: none;
-      padding: unset;
-      margin: unset;
-    }
-
-    #theme-toggle-container {
-      position: static;
-      transform: none;
-      width: auto;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-left: 12px;
-      padding: 0;
-    }
-
-    #posts-list {
-      left: 0;
-      right: auto;
-      top: 80px;
-      padding-top: 20px;
-      width: 350px;
-    }
   }
 
-  @media (min-width: 1300px) {
-    nav {
-      padding: 20px 80px;
+  @media screen and (min-width: 1300px) {
+    .nav-container {
+      padding: 0 80px;
     }
   }
 </style>
