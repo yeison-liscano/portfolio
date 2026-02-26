@@ -4,27 +4,23 @@ const { BASE_URL } = import.meta.env;
 
 <section class="hero-section">
   <div class="hero-intro">
-    <span id="greeting"> Hi, my name is </span>
+    <span id="greeting">Hi, my name is</span>
     <h2><a href={BASE_URL + "about/"}>Yeison Liscano</a></h2>
-    <h3>Full Stack Developer</h3>
+    <h3>Security Engineer</h3>
   </div>
+
   <div class="hero-description">
     <p>
-      I'm enjoy programming because it requires <span>creativity</span> and <span
-        >attention to detail.
-      </span><br />
-      Having such as bunch ways to solve a problem and having to select the simplest.
-      <br />
-      Looking always for <span>simplicity</span> and <span>efficiency</span>!
+      I build secure solutions with <span>AWS</span>, <span>Python</span>,
+      <span>TypeScript</span>, and <span>React</span>. Currently focused on
+      <span>AI-driven products</span> — MCP servers, PydanticAI agents, and integrating
+      AI into the development lifecycle.
     </p>
   </div>
+
   <div class="hero-actions">
-    <button>
-      <a href={BASE_URL + "about/"}> Let's know more about me </a>
-    </button>
-    <button>
-      <a href={BASE_URL + "blog/"}>Read Last Post</a>
-    </button>
+    <a href={BASE_URL + "about/"} class="btn btn-primary">About me</a>
+    <a href={BASE_URL + "blog/"} class="btn btn-secondary">Read the blog</a>
   </div>
 </section>
 
@@ -35,129 +31,151 @@ const { BASE_URL } = import.meta.env;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    gap: 32px;
+    gap: 36px;
     padding: 40px 0;
   }
 
   .hero-intro {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    width: 100%;
+    gap: 10px;
   }
 
-  .hero-description {
-    max-width: 700px;
-  }
-
-  .hero-actions {
-    display: flex;
-    gap: 20px;
-    flex-direction: column;
-    width: 100%;
-    margin-top: 8px;
+  #greeting {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    opacity: 0.65;
+    display: block;
+    letter-spacing: 0.01em;
   }
 
   h2 {
     font-size: 2.5rem;
     color: var(--text-color);
     margin: 0;
-    line-height: 1.2;
-  }
-
-  h3 {
-    font-size: 2rem;
-    color: var(--text-color);
-    margin: 0;
-    font-weight: 400;
-  }
-
-  strong {
-    color: var(--contrast);
-    box-shadow: 0 0px 1px var(--contrast);
+    line-height: 1.15;
   }
 
   h2 a {
     color: var(--text-color);
     text-decoration: none;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease;
   }
 
   h2 a:hover {
     color: var(--contrast);
-    text-decoration: underline;
   }
 
-  span {
-    color: var(--contrast);
-  }
-
-  #greeting {
+  h3 {
     font-size: 1.5rem;
-    display: block;
-    margin-bottom: 4px;
+    color: var(--contrast);
+    margin: 0;
+    font-weight: 500;
+    opacity: 0.85;
+  }
+
+  .hero-description {
+    max-width: 620px;
   }
 
   p {
     color: var(--text-color);
-    line-height: 1.8;
-    font-size: 1.1rem;
-    margin: 0;
-  }
-
-  button {
-    padding: 16px 24px;
-    background-color: var(--text-color);
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
+    line-height: 1.85;
     font-size: 1rem;
-    transition: all 0.3s ease;
-    width: 100%;
+    margin: 0;
+    opacity: 0.85;
   }
 
-  button:hover {
-    background-color: var(--contrast);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  span {
+    color: var(--contrast);
+    opacity: 1;
   }
 
-  button a {
-    color: var(--primary);
-    text-decoration: none;
+  /* ===== BUTTONS ===== */
+  .hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 28px;
+    border-radius: 6px;
+    font-size: 0.9rem;
     font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+    letter-spacing: 0.01em;
+    width: 100%;
+    text-align: center;
+  }
+
+  .btn-primary {
+    background-color: var(--contrast);
+    color: var(--primary);
+    border: 1px solid var(--contrast);
+  }
+
+  .btn-primary:hover {
+    background-color: transparent;
+    color: var(--contrast);
+    box-shadow: 0 0 20px rgba(255, 204, 102, 0.15);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--contrast);
+    color: var(--contrast);
+    transform: translateY(-1px);
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media screen and (min-width: 600px) {
+    .hero-actions {
+      flex-direction: row;
+    }
+
+    .btn {
+      width: auto;
+      min-width: 160px;
+    }
   }
 
   @media screen and (min-width: 720px) {
     .hero-section {
-      gap: 40px;
+      gap: 44px;
       padding: 60px 0;
     }
 
     h2 {
-      font-size: 3.5rem;
+      font-size: 3.25rem;
     }
 
     h3 {
-      font-size: 2.5rem;
-    }
-
-    #greeting {
       font-size: 1.75rem;
     }
 
-    p {
+    #greeting {
       font-size: 1.2rem;
     }
 
-    .hero-actions {
-      flex-direction: row;
-      width: auto;
-    }
-
-    button {
-      width: auto;
-      min-width: 200px;
+    p {
+      font-size: 1.1rem;
     }
   }
 
@@ -168,11 +186,11 @@ const { BASE_URL } = import.meta.env;
     }
 
     h2 {
-      font-size: 4rem;
+      font-size: 3.75rem;
     }
 
     h3 {
-      font-size: 3rem;
+      font-size: 2rem;
     }
   }
 </style>
