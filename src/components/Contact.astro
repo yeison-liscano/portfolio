@@ -1,0 +1,120 @@
+---
+import Icon from "components/Icon.astro";
+---
+
+<section class="contact-section">
+  <div class="contact-header">
+    <p class="eyebrow">Contact</p>
+    <h2>Let's connect</h2>
+    <p class="tagline">
+      Open to interesting conversations, collaborations, and new opportunities.
+    </p>
+  </div>
+  <div class="contact-links">
+    <a
+      href="https://www.linkedin.com/in/yeison-liscano/"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="contact-item"
+    >
+      <Icon icon="linkedin" size="20px" color="currentcolor" />
+      <span>LinkedIn</span>
+    </a>
+    <a
+      href="https://github.com/yeison-liscano"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="contact-item"
+    >
+      <Icon icon="github" size="20px" color="currentcolor" />
+      <span>GitHub</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .contact-section {
+    width: 100%;
+    padding: 64px 0 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .contact-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .eyebrow {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--contrast);
+    opacity: 0.85;
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .tagline {
+    font-size: 1rem;
+    color: var(--text-color);
+    opacity: 0.65;
+    margin: 0;
+    max-width: 480px;
+    line-height: 1.7;
+  }
+
+  .contact-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .contact-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .contact-item:visited {
+    color: var(--text-color);
+  }
+
+  .contact-item:hover {
+    color: var(--contrast);
+    border-color: rgba(255, 204, 102, 0.35);
+    background-color: rgba(255, 204, 102, 0.04);
+  }
+
+  @media screen and (min-width: 720px) {
+    h2 {
+      font-size: 2.5rem;
+    }
+
+    .tagline {
+      font-size: 1.05rem;
+    }
+  }
+</style>

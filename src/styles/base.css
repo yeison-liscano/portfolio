@@ -34,7 +34,7 @@
     --primary: #eef7ff;
     --secondary: #cde8e5;
     --neutral: #7ab2b2;
-    --contrast: #4d869c;
+    --contrast: #b38a00;
     --text-color: #1d2d50;
     --code-background: #f0f0f0;
   }
@@ -98,5 +98,24 @@ ul {
 @media screen and (min-width: 720px) {
   body {
     align-items: end;
+  }
+}
+
+/* ===== ENTRANCE ANIMATION ===== */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate {
+    animation: fade-up 0.5s ease both;
+    animation-delay: var(--delay, 0ms);
   }
 }

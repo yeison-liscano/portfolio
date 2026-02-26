@@ -1,27 +1,14 @@
 ---
 import BaseLayout from "layouts/Base.astro";
-
-const skills = [
-  "React",
-  "TypeScript",
-  "JavaScript",
-  "Astro",
-  "Python",
-  "FastAPI",
-  "Flask",
-  "Node.js",
-  "GraphQL",
-  "AWS",
-  "MCP",
-];
+import AboutSections from "components/AboutSections.astro";
 ---
 
 <BaseLayout title="About | Yeison Liscano" description="About Yeison Liscano">
   <div class="about-header">
-    <p class="eyebrow">Security Engineer</p>
-    <h1>About Me</h1>
-    <div class="accent-line"></div>
-    <section class="intro-section">
+    <p class="eyebrow animate" style="--delay: 0ms">Security Engineer</p>
+    <h1 class="animate" style="--delay: 80ms">About Me</h1>
+    <div class="accent-line animate" style="--delay: 160ms"></div>
+    <section class="intro-section animate" style="--delay: 240ms">
       <p>
         I am a security developer building solutions with <strong>AWS</strong>,
         <strong>Python</strong>, <strong>TypeScript</strong>, and
@@ -37,78 +24,10 @@ const skills = [
     </section>
   </div>
 
-  <main class="about-main">
-    <section class="row-section">
-      <h2 class="section-title">Background</h2>
-      <div class="content">
-        <p>
-          I started with <strong>Python</strong>, going deep into data science
-          on Coursera before pivoting to web development. I got
-          <strong>certified as a Full-Stack Developer</strong> from Coding Dojo,
-          where I built web applications with Python and explored the basics of Machine
-          and Deep Learning. I kept growing through LinkedIn Learning, Coursera,
-          and Platzi — picking up <strong>React</strong>,
-          <strong>Node.js</strong>, <strong>TypeScript</strong>,
-          <strong>FastAPI</strong>, and <strong>AWS</strong> along the way.
-        </p>
-        <p>
-          I currently study <strong>Computer Science</strong> at the Universidad
-          Nacional de Colombia. I live in Medellin — my native language is
-          <strong>Spanish</strong>, I have a
-          <strong>B2 level in English</strong>, and a
-          <strong>B1 French certification</strong> from the Alianza Francesa of Medellin.
-        </p>
-      </div>
-    </section>
-
-    <section class="row-section">
-      <h2 class="section-title">Experience</h2>
-      <div class="content">
-        <div class="edu-card">
-          <div class="edu-info">
-            <p class="edu-degree">Security Engineer</p>
-            <p class="edu-institution">Fluid Attacks</p>
-          </div>
-          <span class="edu-year">2023 &ndash; Present</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="row-section">
-      <h2 class="section-title">Education</h2>
-      <div class="content">
-        <div class="edu-card">
-          <div class="edu-info">
-            <p class="edu-degree">Computer Science</p>
-            <p class="edu-institution">
-              National University of Colombia &mdash; Medellin
-            </p>
-          </div>
-          <span class="edu-year">2024 &ndash; Present</span>
-        </div>
-        <div class="edu-card">
-          <div class="edu-info">
-            <p class="edu-degree">Full-Stack Developer</p>
-            <p class="edu-institution">Coding Dojo &mdash; Virtual</p>
-          </div>
-          <span class="edu-year">2022 &ndash; 2023</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="row-section">
-      <h2 class="section-title">Skills</h2>
-      <div class="content">
-        <div class="skills-grid">
-          {skills.map((skill) => <span class="skill-tag">{skill}</span>)}
-        </div>
-      </div>
-    </section>
-  </main>
+  <AboutSections />
 </BaseLayout>
 
 <style>
-  /* ===== HEADER ===== */
   .about-header {
     margin-bottom: 64px;
   }
@@ -141,9 +60,6 @@ const skills = [
 
   .intro-section {
     max-width: 720px;
-  }
-
-  .intro-section {
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -156,154 +72,14 @@ const skills = [
     opacity: 0.9;
   }
 
-  /* ===== MAIN ===== */
-  .about-main {
-    width: 100%;
-    max-width: 1000px;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ===== ROW SECTIONS ===== */
-  .row-section {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 40px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-  }
-
-  .section-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--contrast);
-    margin: 0;
-    letter-spacing: 0.02em;
-    flex-shrink: 0;
-  }
-
-  /* ===== CONTENT ===== */
-  .content {
-    color: var(--text-color);
-    line-height: 1.8;
-    opacity: 0.9;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .content p {
-    margin: 0;
-  }
-
-  .content strong {
+  .intro-section strong {
     color: var(--contrast);
     font-weight: 600;
-    opacity: 1;
   }
 
-  /* ===== EDUCATION CARDS ===== */
-  .edu-card {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 8px;
-    background-color: rgba(255, 255, 255, 0.02);
-    transition: border-color 0.2s ease;
-  }
-
-  .edu-card:hover {
-    border-color: rgba(255, 204, 102, 0.25);
-  }
-
-  .edu-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .edu-degree {
-    font-weight: 600;
-    color: var(--text-color);
-    font-size: 0.95rem;
-    margin: 0;
-  }
-
-  .edu-institution {
-    font-size: 0.875rem;
-    color: var(--text-color);
-    opacity: 0.6;
-    margin: 0;
-  }
-
-  .edu-year {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--contrast);
-    background-color: rgba(255, 204, 102, 0.1);
-    border: 1px solid rgba(255, 204, 102, 0.2);
-    padding: 2px 10px;
-    border-radius: 999px;
-    align-self: flex-start;
-    letter-spacing: 0.02em;
-  }
-
-  /* ===== SKILL TAGS ===== */
-  .skills-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .skill-tag {
-    font-size: 0.825rem;
-    font-weight: 500;
-    color: var(--text-color);
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 5px 14px;
-    border-radius: 999px;
-    transition:
-      color 0.2s ease,
-      border-color 0.2s ease,
-      background-color 0.2s ease;
-    cursor: default;
-  }
-
-  .skill-tag:hover {
-    color: var(--contrast);
-    border-color: rgba(255, 204, 102, 0.3);
-    background-color: rgba(255, 204, 102, 0.06);
-  }
-
-  /* ===== RESPONSIVE ===== */
   @media screen and (min-width: 768px) {
     h1 {
       font-size: 2.9rem;
-    }
-
-    .row-section {
-      display: grid;
-      grid-template-columns: 200px 1fr;
-      gap: 40px;
-      align-items: start;
-    }
-
-    .section-title {
-      padding-top: 2px;
-    }
-
-    .edu-card {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .edu-year {
-      align-self: auto;
-      flex-shrink: 0;
     }
   }
 
@@ -314,15 +90,6 @@ const skills = [
 
     .intro-section p {
       font-size: 1.2rem;
-    }
-
-    .row-section {
-      grid-template-columns: 220px 1fr;
-      padding: 48px 0;
-    }
-
-    .section-title {
-      font-size: 1rem;
     }
   }
 </style>
