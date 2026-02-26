@@ -1,192 +1,328 @@
 ---
 import BaseLayout from "layouts/Base.astro";
+
+const skills = [
+  "React",
+  "TypeScript",
+  "JavaScript",
+  "Astro",
+  "Python",
+  "FastAPI",
+  "Flask",
+  "Node.js",
+  "GraphQL",
+  "AWS",
+  "MCP",
+];
 ---
 
 <BaseLayout title="About | Yeison Liscano" description="About Yeison Liscano">
   <div class="about-header">
+    <p class="eyebrow">Security Engineer</p>
     <h1>About Me</h1>
+    <div class="accent-line"></div>
     <section class="intro-section">
       <p>
-        I am a passionate software engineer dedicated to innovation in web
-        development and solving complex technological challenges. With expertise
-        spanning full-stack development, data science, machine learning, and
-        cloud services, I leverage technologies like
-        <strong>React</strong>, <strong>Node.js</strong>, <strong>Python</strong
-        >, <strong>GraphQL</strong>,
-        <strong>AWS</strong>, and <strong>Azure</strong> to deliver robust and scalable
-        solutions
+        I am a security developer building solutions with <strong>AWS</strong>,
+        <strong>Python</strong>, <strong>TypeScript</strong>, and
+        <strong>React</strong>. My focus goes beyond functionality — security is
+        a first-class concern in everything I build.
+      </p>
+      <p>
+        Currently focused on <strong>AI-driven products</strong>: working with
+        <strong>MCP servers</strong>, <strong>PydanticAI agents</strong>,
+        integrating AI into web applications, and exploring how AI fits into the
+        development lifecycle.
       </p>
     </section>
   </div>
+
   <main class="about-main">
-    <section class="tow-cols">
+    <section class="row-section">
       <h2 class="section-title">Background</h2>
       <div class="content">
         <p>
-          I study <strong>computer science</strong> at the Universidad Nacional de
-          Colombia. After having learning programming with Python, I deep into data
-          science on Coursera, on the same platform I learned web fundamentals. I
-          got <strong>certified as Full-Stack Developer</strong> from Coding Dojo,
-          where I learned to build web applications using the Python, and the basics
-          of Machine and Deep learning. I keep learning at LinkedIn Learning, where
-          I learned more about Neural Networks, programming concepts, and the basics
-          of computers and AWS. Now I not only study at the university but also I
-          continue learning at Coursera and Platzi. By the way at Platzi I learn
-          about React, Node.js, Typescript, FastAPI, and Azure (I got a certificate
-          of Azure Fundamentals).
+          I started with <strong>Python</strong>, going deep into data science
+          on Coursera before pivoting to web development. I got
+          <strong>certified as a Full-Stack Developer</strong> from Coding Dojo,
+          where I built web applications with Python and explored the basics of Machine
+          and Deep Learning. I kept growing through LinkedIn Learning, Coursera,
+          and Platzi — picking up <strong>React</strong>,
+          <strong>Node.js</strong>, <strong>TypeScript</strong>,
+          <strong>FastAPI</strong>, and <strong>AWS</strong> along the way.
         </p>
-        <br />
         <p>
-          I live in Medellin. My native language is <strong>Spanish</strong>.
-          Thanks to having studied at the university and the Colombo Americano I
-          have a <strong>B2 level in English</strong>. And I got a <strong
-            >B1 French certification</strong
-          > from the Alianza Francesa of Medellin.
+          I currently study <strong>Computer Science</strong> at the Universidad
+          Nacional de Colombia. I live in Medellin — my native language is
+          <strong>Spanish</strong>, I have a
+          <strong>B2 level in English</strong>, and a
+          <strong>B1 French certification</strong> from the Alianza Francesa of Medellin.
         </p>
       </div>
     </section>
-    <section class="tow-cols">
+
+    <section class="row-section">
+      <h2 class="section-title">Experience</h2>
+      <div class="content">
+        <div class="edu-card">
+          <div class="edu-info">
+            <p class="edu-degree">Security Engineer</p>
+            <p class="edu-institution">Fluid Attacks</p>
+          </div>
+          <span class="edu-year">2023 &ndash; Present</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="row-section">
       <h2 class="section-title">Education</h2>
       <div class="content">
-        <p><strong>Computer Science - 2024-Present</strong></p>
-        <p>National University of Colombia - Medellin</p>
-      </div>
-      <div class="content mt">
-        <strong>Full-Stack Developer - 2022-2023</strong>
-        <p>Coding Dojo - Virtually</p>
+        <div class="edu-card">
+          <div class="edu-info">
+            <p class="edu-degree">Computer Science</p>
+            <p class="edu-institution">
+              National University of Colombia &mdash; Medellin
+            </p>
+          </div>
+          <span class="edu-year">2024 &ndash; Present</span>
+        </div>
+        <div class="edu-card">
+          <div class="edu-info">
+            <p class="edu-degree">Full-Stack Developer</p>
+            <p class="edu-institution">Coding Dojo &mdash; Virtual</p>
+          </div>
+          <span class="edu-year">2022 &ndash; 2023</span>
+        </div>
       </div>
     </section>
-    <section class="tow-cols">
+
+    <section class="row-section">
       <h2 class="section-title">Skills</h2>
       <div class="content">
-        <p>
-          React | Typescript | JavaScript | Astro | Python | Django | Flask |
-          AWS | Gatsby | Graphql | Node.js
-        </p>
+        <div class="skills-grid">
+          {skills.map((skill) => <span class="skill-tag">{skill}</span>)}
+        </div>
       </div>
     </section>
   </main>
 </BaseLayout>
 
 <style>
+  /* ===== HEADER ===== */
   .about-header {
-    margin-bottom: 48px;
-    margin-top: 0;
+    margin-bottom: 64px;
   }
 
-  @media screen and (max-width: 899px) {
-    .about-header {
-      margin-top: 0;
-    }
+  .eyebrow {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--contrast);
+    margin-bottom: 12px;
+    opacity: 0.85;
   }
 
   h1 {
-    font-size: 3rem;
-    margin-bottom: 24px;
+    font-size: 2.4rem;
+    font-weight: 700;
     color: var(--text-color);
-    line-height: 1.2;
+    line-height: 1.15;
+    margin-bottom: 20px;
+  }
+
+  .accent-line {
+    width: 48px;
+    height: 3px;
+    background-color: var(--contrast);
+    border-radius: 2px;
+    margin-bottom: 32px;
   }
 
   .intro-section {
-    max-width: 800px;
+    max-width: 720px;
+  }
+
+  .intro-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .intro-section p {
-    font-size: 1.15rem;
-    line-height: 1.8;
+    font-size: 1.1rem;
+    line-height: 1.85;
     color: var(--text-color);
+    opacity: 0.9;
   }
 
+  /* ===== MAIN ===== */
   .about-main {
+    width: 100%;
     max-width: 1000px;
     display: flex;
     flex-direction: column;
-    gap: 48px;
   }
 
-  .tow-cols {
+  /* ===== ROW SECTIONS ===== */
+  .row-section {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    padding: 40px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
   }
 
   .section-title {
-    font-size: 1.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: var(--contrast);
     margin: 0;
-    font-weight: 600;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
   }
 
+  /* ===== CONTENT ===== */
   .content {
     color: var(--text-color);
     line-height: 1.8;
+    opacity: 0.9;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .content p {
-    margin: 0 0 12px 0;
+    margin: 0;
   }
 
   .content strong {
     color: var(--contrast);
+    font-weight: 600;
+    opacity: 1;
   }
 
-  .mt {
-    margin-top: 24px;
+  /* ===== EDUCATION CARDS ===== */
+  .edu-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.02);
+    transition: border-color 0.2s ease;
   }
 
+  .edu-card:hover {
+    border-color: rgba(255, 204, 102, 0.25);
+  }
+
+  .edu-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .edu-degree {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .edu-institution {
+    font-size: 0.875rem;
+    color: var(--text-color);
+    opacity: 0.6;
+    margin: 0;
+  }
+
+  .edu-year {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--contrast);
+    background-color: rgba(255, 204, 102, 0.1);
+    border: 1px solid rgba(255, 204, 102, 0.2);
+    padding: 2px 10px;
+    border-radius: 999px;
+    align-self: flex-start;
+    letter-spacing: 0.02em;
+  }
+
+  /* ===== SKILL TAGS ===== */
+  .skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .skill-tag {
+    font-size: 0.825rem;
+    font-weight: 500;
+    color: var(--text-color);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 5px 14px;
+    border-radius: 999px;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+    cursor: default;
+  }
+
+  .skill-tag:hover {
+    color: var(--contrast);
+    border-color: rgba(255, 204, 102, 0.3);
+    background-color: rgba(255, 204, 102, 0.06);
+  }
+
+  /* ===== RESPONSIVE ===== */
   @media screen and (min-width: 768px) {
     h1 {
-      font-size: 3.5rem;
+      font-size: 2.9rem;
     }
 
-    .about-header {
-      margin-bottom: 60px;
-    }
-
-    .about-main {
-      gap: 56px;
-    }
-
-    .tow-cols {
+    .row-section {
       display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 32px;
+      grid-template-columns: 200px 1fr;
+      gap: 40px;
       align-items: start;
     }
 
     .section-title {
-      grid-column: 1 / 4;
-      font-size: 1.5rem;
-      padding-right: 16px;
-      max-width: 100%;
+      padding-top: 2px;
     }
 
-    .content {
-      grid-column: 4 / 13;
+    .edu-card {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
     }
-  }
 
-  @media screen and (min-width: 900px) {
-    .section-title {
-      font-size: 1.75rem;
-    }
-  }
-
-  @media screen and (min-width: 1100px) {
-    .section-title {
-      font-size: 2rem;
+    .edu-year {
+      align-self: auto;
+      flex-shrink: 0;
     }
   }
 
   @media screen and (min-width: 900px) {
     h1 {
-      font-size: 4rem;
+      font-size: 3.25rem;
     }
 
     .intro-section p {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
+    }
+
+    .row-section {
+      grid-template-columns: 220px 1fr;
+      padding: 48px 0;
+    }
+
+    .section-title {
+      font-size: 1rem;
     }
   }
 </style>
