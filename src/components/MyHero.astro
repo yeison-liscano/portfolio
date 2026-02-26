@@ -3,13 +3,13 @@ const { BASE_URL } = import.meta.env;
 ---
 
 <section class="hero-section">
-  <div class="hero-intro">
+  <div class="hero-intro animate" style="--delay: 0ms">
     <span id="greeting">Hi, my name is</span>
     <h2><a href={BASE_URL + "about/"}>Yeison Liscano</a></h2>
     <h3>Security Engineer</h3>
   </div>
 
-  <div class="hero-description">
+  <div class="hero-description animate" style="--delay: 120ms">
     <p>
       I build secure solutions with <span>AWS</span>, <span>Python</span>,
       <span>TypeScript</span>, and <span>React</span>. Currently focused on
@@ -18,7 +18,7 @@ const { BASE_URL } = import.meta.env;
     </p>
   </div>
 
-  <div class="hero-actions">
+  <div class="hero-actions animate" style="--delay: 220ms">
     <a href={BASE_URL + "about/"} class="btn btn-primary">About me</a>
     <a href={BASE_URL + "blog/"} class="btn btn-secondary">Read the blog</a>
   </div>

@@ -1,35 +1,89 @@
 ---
 import Base from "layouts/Base.astro";
+const { BASE_URL } = import.meta.env;
 ---
 
-<Base title="Not Found" description="Not Found Yeison Liscano">
-  <div>
-    <h1>404</h1>
-    <p><strong>Uh-oh!</strong></p>
-    <p>We can't find that page.</p>
-    <a href="/portfolio/"> Go Back Home </a>
+<Base title="404 — Not Found" description="Page not found">
+  <div class="error-page">
+    <span class="error-code animate" style="--delay: 0ms">404</span>
+    <h1 class="animate" style="--delay: 80ms">Page not found</h1>
+    <p class="animate" style="--delay: 160ms">
+      The page you're looking for doesn't exist or has been moved.
+    </p>
+    <a href={BASE_URL} class="btn animate" style="--delay: 240ms">
+      Go back home
+    </a>
   </div>
 </Base>
 
 <style>
-  body {
-    height: 100%;
-    width: 100%;
-    overflow-y: hidden;
-  }
-  div {
+  .error-page {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     justify-content: center;
-    align-items: center;
-    height: 100vh;
+    min-height: 70vh;
     gap: 16px;
   }
-  a {
+
+  .error-code {
+    font-family: var(--font-heading);
+    font-size: 7rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--contrast);
+    opacity: 0.2;
+    letter-spacing: -4px;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
     color: var(--text-color);
-    background-color: var(--neutral);
+    margin: 0;
+  }
+
+  p {
+    font-size: 1rem;
+    color: var(--text-color);
+    opacity: 0.65;
+    margin: 0;
+    line-height: 1.7;
+  }
+
+  .btn {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    padding: 11px 28px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
     text-decoration: none;
-    padding: 16px;
-    border-radius: 8px;
+    background-color: transparent;
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .btn:visited {
+    color: var(--text-color);
+  }
+
+  .btn:hover {
+    color: var(--contrast);
+    border-color: rgba(255, 204, 102, 0.35);
+  }
+
+  @media screen and (min-width: 720px) {
+    .error-code {
+      font-size: 10rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+    }
   }
 </style>
