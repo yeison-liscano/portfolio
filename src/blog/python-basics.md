@@ -8,14 +8,17 @@ description: "Python is a great language for beginners and experts alike.
 tags: ["python"]
 snippet:
   language: "python"
-  code: "def outer():\n  x =
-  'local'\n  def inner():\n     nonlocal x\n     x =
-   'nonlocal'\n inner()\n
-
-if __name__ == '__main__':\n   outer()"
+  code: "def outer():\n
+    x = 'local'\n
+    def inner():\n
+        nonlocal x\n
+        x = 'nonlocal'\n
+    inner()\n\n
+if __name__ == '__main__':\n
+    outer()"
 ---
 
-The simplicity the Python makes the language a great option for almost everyone
+The simplicity of Python makes the language a great option for almost everyone
 aiming to use programming in any field. This is the reason Python is widely
 used in the industry, from web development, data science, machine learning,
 automation, scientific computing, and more. Having a huge community, and a vast
@@ -65,7 +68,7 @@ the initialization code for that package in this file.
 from . import module1, module2, module3 ...
 ```
 
-Doing this will allows us to use namespaced modules, such as
+Doing this will allow us to use namespaced modules, such as
 `package.module1`, `package.module2`, etc.
 
 ## Scope
@@ -150,7 +153,7 @@ inner: nonlocal
 outer: nonlocal
 ```
 
-note that the `nonlocal` keyword is used to declare that `x` is not a local
+Note that the `nonlocal` keyword is used to declare that `x` is not a local
 variable. Hence, when we assign a value to `x` inside the nested function,
 that change is reflected in the local variable in the enclosing function.
 
@@ -197,15 +200,15 @@ that change is reflected when we use the value of `x` in the main block.
 
 ### Built-in Scope
 
-This are the names in the pre-defined built-in modules. These are always
+These are the names in the pre-defined built-in modules. These are always
 available in your Python programs.
 You can see the list of built-in names by typing `dir(__builtins__)`
 in the Python interpreter.
 
 ## Splat Operator `*` and Double Splat Operator `**`
 
-Splat operator is a kid of unpacking operator (destructuring js).
-It can be used to allows an iterable to be unpacked into positional arguments
+Splat operator is a kind of unpacking operator (destructuring in JS).
+It can be used to allow an iterable to be unpacked into positional arguments
 in a function call. It can also be used to unpack an iterable into a list or
 dictionary. The splat operator is represented by `*` and the double splat
 operator is represented by `**`.
