@@ -5,16 +5,19 @@ description: "Python Great Features"
 tags: ["python"]
 snippet:
   language: "python"
-  code: "def stateful_function():\n
+  code: "def stateful_function(func):\n
     cache = {}\n
-    def wrapper_function(*args, **kwargs):\n    key = str(args) +
-    st(kwargs)\n    if key not in cache:\n       cache[key] =
-    func(*args, **kwargs)\n     return cache[key]\n\n
-    return wrapper_function\n
-
+    def wrapper_function(*args, **kwargs):\n
+        key = str(args) + str(kwargs)\n
+        if key not in cache:\n
+            cache[key] = func(*args, **kwargs)\n
+        return cache[key]\n\n
+    return wrapper_function\n\n
 @stateful_function\n
-def fibonacci(n):\n    if n < 2:\n      return n\n    return fibonacci(n-1) +
-fibonacci(n-2)
+def fibonacci(n):\n
+    if n < 2:\n
+        return n\n
+    return fibonacci(n-1) + fibonacci(n-2)
 "
 ---
 
@@ -28,8 +31,8 @@ object before using it. Instead you care about what methods and properties
 the object has (API). If it has the methods and properties you need,
 you can use it.
 
-Abstract Base Classes (ABCs) and Protocols enable us keeping the flexibility of
-duck typing, but also having some kind of type checking
+Abstract Base Classes (ABCs) and Protocols enable us to keep the flexibility of
+duck typing, but also have some kind of type checking.
 
 ### Abstract Base Classes (ABCs)
 
@@ -71,7 +74,7 @@ class Dog:
     def speak(self) -> str:
         return 'Woof!'
 
-def speak(pet: Animal) -> int:
+def speak(pet: Animal) -> str:
     return pet.speak()
 
 speak(Dog())  # Passes static type check
@@ -88,7 +91,7 @@ def add(x: int, y: int) -> int:
     return x + y
 ```
 
-I will use type hints in the I will provide in this post.
+I will use type hints in the examples I provide in this post.
 
 ## Functional Features
 
@@ -100,11 +103,11 @@ function between calls.
 A closure is a function object that remembers values in enclosing scopes. Note
 that a closure returns a function that remembers the values of the variables
 in the enclosing scope even after the execution has moved out of that scope.
-It means variables in the enclosing scope are keep in memory even after the
+It means variables in the enclosing scope are kept in memory even after the
 function has finished executing.
 
 ```python
-from collections import Callable
+from collections.abc import Callable
 
 def get_token() -> Callable[[], str]:
     _token: str | None = None
@@ -143,6 +146,7 @@ from aiohttp import (
     ClientSession,
 )
 import asyncio
+import base64
 from collections.abc import (
     Callable,
     Awaitable,
@@ -153,12 +157,12 @@ import os
 def _get_access_token() -> Callable[[ClientSession], Awaitable[str]]:
     current_token: str | None = None
 
-    async def _access_token(session: ClientSession) -> dict[str, str]:
+    async def _access_token(session: ClientSession) -> str:
         nonlocal current_token
 
         if current_token:
             print('Using cached token')
-            current_token
+            return current_token
 
         print('Fetching new token')
         PUBLIC_KEY = os.getenv("PUBLIC_KEY")
@@ -184,7 +188,7 @@ def _get_access_token() -> Callable[[ClientSession], Awaitable[str]]:
     return _access_token
 
 
-_get_access_token = _get_headers()
+_get_access_token = _get_access_token()
 
 async def main() -> None:
     async with ClientSession("https://api.example.com/") as session:
@@ -218,6 +222,10 @@ request.
 from aiohttp import (
     ClientSession,
 )
+from collections.abc import (
+    Awaitable,
+)
+from functools import wraps
 from typing import (
     Callable,
     ParamSpec,
@@ -238,7 +246,7 @@ def add_headers(
     @wraps(func)
     async def decorated(
         session: ClientSession, /, *args: P.args, **kwargs: P.kwargs
-    ) -> R:
+    ) -> T:
         token = await _get_access_token(session)
         headers = {
             "Content-Type": "application/json",
@@ -259,7 +267,7 @@ async def get_user(
     *,
     headers: dict[str, str] | None = None
 ) -> str:
-    async with session.get(f"users/{id}", headers=headers) as resp:
+    async with session.get(f"users/{user_id}", headers=headers) as resp:
         return await resp.json()
 
 async with ClientSession("https://api.example.com/") as session:
@@ -314,7 +322,7 @@ Docstring
 ```
 
 ```python
-def stateful_function():
+def stateful_function(func):
     cache = {}
     def wrapper_function(*args, **kwargs):
         key = str(args) + str(kwargs)

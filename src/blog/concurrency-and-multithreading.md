@@ -31,8 +31,9 @@ to complete before starting another.
 
 Multithreading is a specific form of concurrency where a single process can have
 multiple threads (or sub-processes) executing concurrently. Unlike processes,
-which are independent and cannot communicate directly, threads share the same
-memory space and can interact with each other more efficiently.
+which don't share memory by default and communicate through explicit IPC
+mechanisms (pipes, shared memory, sockets), threads share the same memory space
+and can interact with each other more efficiently.
 
 ## Why is Concurrency Important?
 
@@ -81,29 +82,40 @@ multithreading allows you to **overlap** them with other tasks.
 
 ### 1. **In JavaScript/Node.js**
 
-In Node.js, since it's single-threaded by default, you need to use libraries or
-frameworks like `Express` or `Koa` that are built on top of underlying modules
-(e.g., `http`) to handle concurrency at a higher level.
+Node.js handles concurrency natively through its **event loop** and non-blocking
+async I/O. The event loop allows Node.js to perform I/O operations without
+blocking the main thread, delegating them to the system kernel or a thread pool
+(libuv) when possible.
 
 For example:
 
-- Use Express.js for building web applications.
-- Use async/await patterns to handle multiple asynchronous operations
-  concurrently.
+- Use Promises and async/await patterns to handle multiple asynchronous
+  operations concurrently.
+- Use `Worker Threads` for CPU-bound tasks that would otherwise block the
+  event loop.
+- Use frameworks like `Express` or `Koa` for building web applications on top
+  of Node.js's concurrency model.
 
 ### 2. **In Python**
 
-Python is also single-threaded by default, but you can use multithreading or
-multiprocessing to achieve concurrency. However, due to Python's Global
-Interpreter Lock (GIL), some operations are not thread-safe unless properly
-managed.
+Python supports multithreading and multiprocessing to achieve concurrency.
+However, due to CPython's Global Interpreter Lock (GIL), only one thread can
+execute Python bytecode at a time. This means multithreading is effective for
+I/O-bound tasks but offers limited performance gains for CPU-bound tasks.
 
 For example:
 
-- Use the `threading` module for basic multithreading.
-- Use `multiprocessing` if you need to run CPU-bound tasks concurrently.
-- Use async/await patterns to handle multiple asynchronous operations
-  concurrently.
+- Use the `threading` module for basic multithreading (best for I/O-bound tasks).
+- Use `multiprocessing` if you need to run CPU-bound tasks concurrently,
+  bypassing the GIL by using separate processes.
+- Use `asyncio` with async/await patterns to handle multiple asynchronous
+  operations concurrently.
+
+Starting with Python 3.13, an experimental **free-threaded mode** (no-GIL) was
+introduced via the `--disable-gil` build flag (PEP 703). In Python 3.14, this
+free-threaded build has become more stable and is available as an optional build
+configuration. This allows true parallel execution of threads, significantly
+improving performance for CPU-bound multithreaded workloads.
 
 ## Practical Examples of Concurrency
 
@@ -133,21 +145,24 @@ training times significantly.
 
 ## Common Challenges in Concurrency
 
-1. **Deadlocks**: If multiple threads are trying to access the same resource at
-   the same time, it can lead to deadlocks.
-2. **Infinite Loops**: Poorly designed concurrency logic can cause infinite
-   loops if there's no way for threads to exit gracefully.
-3. **Context Switching**: In multithreaded environments, switching between
-   threads (context switching) can introduce overhead, especially in languages
-   that are not thread-safe by design.
+1. **Race Conditions**: When multiple threads access shared data concurrently
+   and at least one modifies it, the outcome depends on the timing of execution,
+   leading to unpredictable results.
+2. **Deadlocks**: When two or more threads are each waiting for a resource held
+   by the other, none of them can proceed.
+3. **Starvation**: A thread is perpetually denied access to resources because
+   other threads are continuously prioritized over it.
+4. **Context Switching**: In multithreaded environments, switching between
+   threads (context switching) introduces overhead at the OS level due to
+   saving/restoring thread state and CPU cache invalidation.
 
 ## Key Takeaways
 
 - Concurrency is about handling multiple tasks at the same time.
 - Multithreading is a specific implementation of concurrency where a single
   process has multiple threads.
-- In JavaScript/Node.js, you need to rely on frameworks and libraries to achieve
-  concurrency.
+- In JavaScript/Node.js, concurrency is handled natively through the event loop
+  and async I/O.
 - In Python, you can use `threading` or `multiprocessing` for basic concurrency.
 
 ### Resources to Get Started
