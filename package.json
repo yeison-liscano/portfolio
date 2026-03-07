@@ -29,6 +29,7 @@
     "@fontsource/geist-sans": "^5.2.5",
     "astro": "5.15.2",
     "markdown-it": "14.1.0",
+    "pyodide": "^0.29.3",
     "rehype-external-links": "^3.0.0",
     "remark-toc": "^9.0.0",
     "sanitize-html": "2.13.1",

@@ -1,0 +1,277 @@
+---
+/**
+ * PyodideRunner - Adds interactive "Run" buttons to Python code blocks.
+ * Loads Pyodide from CDN on first run, then executes code in-browser.
+ */
+---
+
+<script>
+  const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.4/full/";
+  let pyodideInstance: any = null;
+  let pyodideLoadPromise: Promise<any> | null = null;
+
+  async function loadPyodideRuntime() {
+    if (pyodideInstance) return pyodideInstance;
+    if (pyodideLoadPromise) return pyodideLoadPromise;
+
+    pyodideLoadPromise = new Promise(async (resolve, reject) => {
+      try {
+        // Load Pyodide script from CDN
+        if (!(window as any).loadPyodide) {
+          const script = document.createElement("script");
+          script.src = `${PYODIDE_CDN}pyodide.js`;
+          script.async = true;
+          await new Promise<void>((res, rej) => {
+            script.onload = () => res();
+            script.onerror = () => rej(new Error("Failed to load Pyodide"));
+            document.head.appendChild(script);
+          });
+        }
+
+        pyodideInstance = await (window as any).loadPyodide({
+          indexURL: PYODIDE_CDN,
+        });
+        resolve(pyodideInstance);
+      } catch (err) {
+        pyodideLoadPromise = null;
+        reject(err);
+      }
+    });
+
+    return pyodideLoadPromise;
+  }
+
+  function extractCode(preElement: HTMLPreElement): string {
+    const codeEl = preElement.querySelector("code");
+    if (!codeEl) return "";
+    // Get text content from all .line spans
+    const lines = codeEl.querySelectorAll(".line");
+    if (lines.length > 0) {
+      return Array.from(lines)
+        .map((line) => line.textContent || "")
+        .join("\n");
+    }
+    return codeEl.textContent || "";
+  }
+
+  async function runCode(
+    code: string,
+    outputEl: HTMLElement,
+    btnEl: HTMLButtonElement,
+  ) {
+    const originalText = btnEl.textContent;
+    outputEl.classList.remove("hidden");
+
+    try {
+      // Show loading state
+      if (!pyodideInstance) {
+        btnEl.textContent = "Loading Pyodide...";
+        btnEl.disabled = true;
+        outputEl.textContent = "Loading Python runtime...";
+      } else {
+        btnEl.textContent = "Running...";
+        btnEl.disabled = true;
+        outputEl.textContent = "";
+      }
+
+      const pyodide = await loadPyodideRuntime();
+
+      btnEl.textContent = "Running...";
+      outputEl.textContent = "";
+
+      // Capture stdout and stderr
+      pyodide.runPython(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+sys.stderr = StringIO()
+`);
+
+      try {
+        const result = await pyodide.runPythonAsync(code);
+        const stdout = pyodide.runPython("sys.stdout.getvalue()");
+        const stderr = pyodide.runPython("sys.stderr.getvalue()");
+
+        let output = "";
+        if (stdout) output += stdout;
+        if (stderr) output += stderr;
+        if (result !== undefined && result !== null && !stdout && !stderr) {
+          output += String(result);
+        }
+
+        outputEl.textContent = output || "(No output)";
+        outputEl.classList.toggle("error", !!stderr && !stdout);
+      } catch (pyErr: any) {
+        outputEl.textContent = pyErr.message || String(pyErr);
+        outputEl.classList.add("error");
+      } finally {
+        // Reset stdout/stderr
+        pyodide.runPython(`
+sys.stdout = sys.__stdout__
+sys.stderr = sys.__stderr__
+`);
+      }
+    } catch (loadErr: any) {
+      outputEl.textContent = `Failed to load Pyodide: ${loadErr.message}`;
+      outputEl.classList.add("error");
+    } finally {
+      btnEl.textContent = originalText;
+      btnEl.disabled = false;
+    }
+  }
+
+  function buildPydanticRunUrl(code: string): string {
+    const files = [{ name: "main.py", content: code, activeIndex: 1 }];
+    const url = new URL("https://pydantic.run/new");
+    url.searchParams.append("files", JSON.stringify(files));
+    return url.toString();
+  }
+
+  function initPyodideRunner() {
+    const pythonBlocks = document.querySelectorAll(
+      '#post-article pre.astro-code[data-language="python"]',
+    );
+
+    pythonBlocks.forEach((pre) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "pyodide-wrapper";
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "pyodide-toolbar";
+
+      const langLabel = document.createElement("span");
+      langLabel.className = "pyodide-lang";
+      langLabel.textContent = "Python";
+
+      const btnGroup = document.createElement("div");
+      btnGroup.className = "pyodide-btn-group";
+
+      const runBtn = document.createElement("button");
+      runBtn.className = "pyodide-run-btn";
+      runBtn.textContent = "Run";
+      runBtn.type = "button";
+
+      const sandboxBtn = document.createElement("a");
+      sandboxBtn.className = "pyodide-sandbox-btn";
+      sandboxBtn.textContent = "pydantic.run";
+      sandboxBtn.target = "_blank";
+      sandboxBtn.rel = "noopener noreferrer";
+
+      const output = document.createElement("pre");
+      output.className = "pyodide-output hidden";
+
+      btnGroup.appendChild(runBtn);
+      btnGroup.appendChild(sandboxBtn);
+      toolbar.appendChild(langLabel);
+      toolbar.appendChild(btnGroup);
+
+      pre.parentNode?.insertBefore(wrapper, pre);
+      wrapper.appendChild(toolbar);
+      wrapper.appendChild(pre);
+      wrapper.appendChild(output);
+
+      const code = extractCode(pre as HTMLPreElement);
+      sandboxBtn.href = buildPydanticRunUrl(code);
+
+      runBtn.addEventListener("click", () => {
+        runCode(code, output, runBtn);
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initPyodideRunner);
+</script>
+
+<style is:global>
+  .pyodide-wrapper {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--neutral);
+  }
+
+  .pyodide-wrapper .astro-code {
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .pyodide-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background-color: var(--neutral);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .pyodide-lang {
+    color: var(--text-color);
+    opacity: 0.7;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .pyodide-btn-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .pyodide-run-btn,
+  .pyodide-sandbox-btn {
+    background-color: var(--contrast);
+    color: var(--primary);
+    border: none;
+    padding: 4px 16px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    text-decoration: none;
+    line-height: 1.4;
+  }
+
+  .pyodide-sandbox-btn {
+    background-color: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    opacity: 0.7;
+  }
+
+  .pyodide-run-btn:hover,
+  .pyodide-sandbox-btn:hover {
+    opacity: 0.85;
+  }
+
+  .pyodide-run-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+
+  .pyodide-output {
+    padding: 12px 20px;
+    margin: 0;
+    background-color: #0d1117;
+    color: #58d68d;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    border-top: 1px solid var(--neutral);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .pyodide-output.hidden {
+    display: none;
+  }
+
+  .pyodide-output.error {
+    color: #e74c3c;
+  }
+</style>
