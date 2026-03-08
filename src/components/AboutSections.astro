@@ -1,16 +1,19 @@
 ---
 const skills = [
-  "React",
-  "TypeScript",
-  "JavaScript",
-  "Astro",
   "Python",
-  "FastAPI",
-  "Flask",
-  "Node.js",
+  "TypeScript",
+  "React",
   "GraphQL",
   "AWS",
+  "Terraform",
+  "Docker",
+  "Nix",
   "MCP",
+  "PydanticAI",
+  "AWS Bedrock",
+  "Snowflake",
+  "DynamoDB",
+  "Astro",
 ];
 ---
 
@@ -43,8 +46,13 @@ const skills = [
     <div class="content">
       <div class="edu-card">
         <div class="edu-info">
-          <p class="edu-degree">Security Engineer</p>
+          <p class="edu-degree">AI & Security Engineer</p>
           <p class="edu-institution">Fluid Attacks</p>
+          <p class="edu-description">
+            Architected a production AI agent platform using MCP, LLMs, and
+            PydanticAI. Built and maintained GraphQL APIs, React frontends, ETL
+            pipelines, and AWS cloud infrastructure.
+          </p>
         </div>
         <span class="edu-year">2023 &ndash; Present</span>
       </div>
@@ -161,6 +169,14 @@ const skills = [
     color: var(--text-color);
     opacity: 0.6;
     margin: 0;
+  }
+
+  .edu-description {
+    font-size: 0.85rem;
+    color: var(--text-color);
+    opacity: 0.7;
+    margin: 4px 0 0 0;
+    line-height: 1.6;
   }
 
   .edu-year {
