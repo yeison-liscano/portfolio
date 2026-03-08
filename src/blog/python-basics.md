@@ -48,6 +48,9 @@ just like any other script. So if we want to have some code that we only
 want to run when the module is run directly, we can use this construct.
 
 ```python
+def main():
+    print("Running as script!")
+
 # execute only if run as a script
 if __name__ == "__main__":
     main()
@@ -65,7 +68,9 @@ the initialization code for that package in this file.
 
 ```python
 # __init__.py
-from . import module1, module2, module3 ...
+# In a package directory, you would use relative imports:
+# from . import module1, module2, module3
+print("Package initialized!")
 ```
 
 Doing this will allow us to use namespaced modules, such as
@@ -116,19 +121,22 @@ print(x)
 
 ```python
 def my_func():
-    x = 10
-    print(x)
+    x_ = 10
+    print(x_)
 
 my_func()
-print(x)
+try:
+    print(x_)
+except NameError as e:
+    print(e)
 ```
 
 ```bash
 10
 Traceback (most recent call last):
   File "scope.py", line 7, in <module>
-    print(x)
-NameError: name 'x' is not defined
+    print(x_)
+NameError: name 'x_' is not defined
 ```
 
 ### Example Enclosing Scope
@@ -220,7 +228,7 @@ def add(x, y):
     return x + y
 
 numbers = [3, 5]
-add(*numbers) # 8
+print(add(*numbers)) # 8
 ```
 
 ### Double Splat Operator

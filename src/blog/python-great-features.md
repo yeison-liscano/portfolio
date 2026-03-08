@@ -52,6 +52,9 @@ class Animal(ABC):
 class Dog(Animal):
     def speak(self):
         return 'Woof!'
+
+dog = Dog("Rex")
+print(dog.speak())
 ```
 
 ### Protocols
@@ -77,7 +80,7 @@ class Dog:
 def speak(pet: Animal) -> str:
     return pet.speak()
 
-speak(Dog())  # Passes static type check
+print(speak(Dog()))  # Passes static type check
 ```
 
 ## Type Hints
@@ -89,6 +92,8 @@ for type errors.
 ```python
 def add(x: int, y: int) -> int:
     return x + y
+
+print(add(3, 5))
 ```
 
 I will use type hints in the examples I provide in this post.
@@ -108,6 +113,9 @@ function has finished executing.
 
 ```python
 from collections.abc import Callable
+
+def request_token() -> str:
+    return "my-secret-token"
 
 def get_token() -> Callable[[], str]:
     _token: str | None = None
@@ -142,9 +150,6 @@ The following example shows how to use a closure to keep the state of a function
 between calls, so we don't have to request a new token every time we need it.
 
 ```python
-from aiohttp import (
-    ClientSession,
-)
 import asyncio
 import base64
 from collections.abc import (
@@ -152,6 +157,29 @@ from collections.abc import (
     Awaitable,
 )
 import os
+
+# Mock for browser execution (aiohttp requires server environment)
+class _MockResponse:
+    async def json(self):
+        return {"token": "mock-jwt-token"}
+    async def __aenter__(self):
+        return self
+    async def __aexit__(self, *a):
+        pass
+
+class ClientSession:
+    def __init__(self, base_url=""):
+        pass
+    def post(self, url, **kw):
+        return _MockResponse()
+    async def __aenter__(self):
+        return self
+    async def __aexit__(self, *a):
+        pass
+
+COMMON_HEADERS = {"Content-Type": "application/json"}
+os.environ["PUBLIC_KEY"] = "test_public_key"
+os.environ["SECRET_KEY"] = "test_secret_key"
 
 
 def _get_access_token() -> Callable[[ClientSession], Awaitable[str]]:
@@ -197,7 +225,7 @@ async def main() -> None:
         token = await _get_access_token(session)
         token = await _get_access_token(session)
 
-asyncio.run(main())
+await main()
 ```
 
 ```bash
@@ -219,22 +247,40 @@ used to get the access token without having to open a new session for each
 request.
 
 ```python
-from aiohttp import (
-    ClientSession,
-)
 from collections.abc import (
     Awaitable,
 )
 from functools import wraps
 from typing import (
     Callable,
+    Concatenate,
     ParamSpec,
     TypeVar,
 )
-from typing_extensions import (
-    Concatenate,
-)
 
+# Mock for browser execution (aiohttp requires server environment)
+class _MockResponse:
+    def __init__(self, data):
+        self._data = data
+    async def json(self):
+        return self._data
+    async def __aenter__(self):
+        return self
+    async def __aexit__(self, *a):
+        pass
+
+class ClientSession:
+    def __init__(self, base_url=""):
+        pass
+    def get(self, url, **kw):
+        return _MockResponse({"id": 1, "name": "Alice"})
+    async def __aenter__(self):
+        return self
+    async def __aexit__(self, *a):
+        pass
+
+async def _get_access_token(session):
+    return "mock-token"
 
 T = TypeVar('T')
 P = ParamSpec('P')
@@ -272,6 +318,7 @@ async def get_user(
 
 async with ClientSession("https://api.example.com/") as session:
     user = await get_user(session, 1) # headers will be added by the decorator
+    print(user)
 ```
 
 #### wraps
@@ -336,6 +383,8 @@ def fibonacci(n):
     if n < 2:
         return n
     return fibonacci(n-1) + fibonacci(n-2)
+
+print(fibonacci(10))
 ```
 
 #### cache
@@ -362,6 +411,8 @@ def fibonacci(n):
 @timer
 def fibonacci_timer(n):
     return fibonacci(n)
+
+print(fibonacci_timer(10))
 ```
 
 This is kinda like a cache (`memoization`), so that the function doesn't have
@@ -383,6 +434,10 @@ It’s because they do not store all the values in memory, they generate the
 values on the fly, that allows processing of large amounts of data efficiently.
 
 ```python
+# Create a sample file for demonstration
+with open('file.txt', 'w') as f:
+    f.write('Hello from a large file!\n' * 10)
+
 def read_large_file(filename):
     with open(filename) as file:
         while True:
@@ -481,6 +536,8 @@ exception raised within the `with` block is not suppressed and execution
 proceeds normally.
 
 ```python
+import threading
+
 lock = threading.Lock()
 
 class LockedContext:

@@ -41,6 +41,14 @@ def simple_wsgi_app(environ, start_response):
     start_response(status, headers)
 
     return [b"Hello from WSGI!"]
+
+# Test the WSGI app
+def mock_start_response(status, headers):
+    print(f"Status: {status}")
+    print(f"Headers: {headers}")
+
+response = simple_wsgi_app({}, mock_start_response)
+print(response[0].decode())
 ```
 
 ```bash
@@ -77,6 +85,15 @@ async def simple_asgi_app(scope, receive, send):
         'type': 'http.response.body',
         'body': b"Hello from ASGI!",
     })
+
+# Test the ASGI app
+responses = []
+async def mock_send(message):
+    responses.append(message)
+
+await simple_asgi_app({'type': 'http'}, None, mock_send)
+print(f"Status: {responses[0]['status']}")
+print(responses[1]['body'].decode())
 ```
 
 ```bash
