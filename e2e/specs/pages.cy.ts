@@ -9,8 +9,8 @@ describe("Web site", (): void => {
     cy.contains("Education");
 
     cy.contains("blog").click();
-    cy.contains("Read Post");
-    cy.get("#main-content").children().first().contains("Read Post").click();
+    cy.contains("Article");
+    cy.get(".preview-container").first().find("h2 a").click();
     cy.contains("Table of contents");
 
     cy.get("html").should("have.attr", "data-theme", "light");

@@ -1,7 +1,7 @@
 ---
 title: Concurrency and Multithreading
 pubDate: 2024-11-04
-description: "Concurrency and Multithreading"
+description: "Understanding concurrency, parallelism, and multithreading. How threads share memory, why concurrency matters for performance, and practical patterns with async Python."
 tags: ["programming"]
 snippet:
   language: "python"
