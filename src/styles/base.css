@@ -26,7 +26,7 @@
   --neutral: #dce0e8;
   --contrast: #af63f7;
   --text-color: #000000;
-  --code-background: #1d2433;
+  --code-background: #f6f8fa;
 }
 
 @media (prefers-color-scheme: light) {
@@ -80,6 +80,21 @@ code {
   padding: 20px;
   border-radius: 4px;
   background-color: var(--code-background) !important;
+}
+
+/* Dark mode — swap to shiki dark colors (only dual-theme blocks) */
+:root:not([data-theme="light"]) .astro-code-themes,
+:root:not([data-theme="light"]) .astro-code-themes span {
+  color: var(--shiki-dark) !important;
+}
+
+:root:not([data-theme="light"]) .astro-code-themes {
+  background-color: var(--code-background) !important;
+}
+
+/* Light mode — inline colors from Shiki are already the light theme */
+[data-theme="light"] .astro-code-themes {
+  background-color: #f6f8fa !important;
 }
 
 a {

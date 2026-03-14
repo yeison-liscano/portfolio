@@ -22,7 +22,10 @@ export default defineConfig({
     ],
     syntaxHighlight: "shiki",
     shikiConfig: {
-      theme: "tokyo-night",
+      themes: {
+        light: "github-light",
+        dark: "tokyo-night",
+      },
       wrap: true,
     },
   },
