@@ -21,19 +21,19 @@
     "cy:run:firefox": "cypress run --browser firefox"
   },
   "dependencies": {
-    "@astrojs/check": "0.9.4",
-    "@astrojs/rss": "4.0.8",
-    "@astrojs/sitemap": "3.2.0",
+    "@astrojs/check": "^0.9.7",
+    "@astrojs/rss": "^4.0.17",
+    "@astrojs/sitemap": "^3.7.1",
     "@fontsource-variable/space-grotesk": "^5.2.10",
     "@fontsource/geist-mono": "^5.2.7",
     "@fontsource/geist-sans": "^5.2.5",
-    "astro": "5.15.2",
+    "astro": "^6.0.4",
     "markdown-it": "14.1.0",
     "pyodide": "^0.29.3",
     "rehype-external-links": "^3.0.0",
     "remark-toc": "^9.0.0",
     "sanitize-html": "2.13.1",
-    "shiki": "^3.2.1"
+    "shiki": "^4.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

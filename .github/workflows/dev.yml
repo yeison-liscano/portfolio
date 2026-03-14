@@ -32,6 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
+      - uses: actions/setup-node@aca7b64a59c0063db8564e0ffdadd3887f1cbae5
+        with:
+          node-version: 22
       - uses: cypress-io/github-action@40cfd368ca72ba2bcbe95f70ddcc66136ca3183d
         with:
           build: npm run build
