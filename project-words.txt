@@ -21,6 +21,8 @@ bypassability
 cachix
 CAPEC
 Checksumming
+Comandos
+Curso
 ciphertext
 clearfix
 commitlint
@@ -174,4 +176,9 @@ WSGI
 xvfb
 xvzf
 YALC
+oneline
+reflog
+worktree
+worktrees
+Worktrees
 Yeison

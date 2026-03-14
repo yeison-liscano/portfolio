@@ -51,41 +51,68 @@ const { headings } = Astro.props;
 </aside>
 
 <script>
-  // Active link highlighting
-  const updateActiveLink = () => {
-    const headings = document.getElementById("article-content");
-    if (headings !== null) {
-      const links = headings.querySelectorAll("a");
-      links.forEach((link) => {
-        if (window.location.hash === link.hash) {
-          link.parentElement?.classList.add("active");
-        } else {
-          link.parentElement?.classList.remove("active");
-        }
-      });
-    }
-  };
+  const tocList = document.getElementById("article-content");
+  const tocLinks = tocList?.querySelectorAll("a") ?? [];
+  const isDesktop = () => window.innerWidth >= 1300;
 
-  window.addEventListener("hashchange", updateActiveLink);
-  window.addEventListener("load", updateActiveLink);
+  // Scroll-based active heading tracking
+  const headingEls = Array.from(tocLinks)
+    .map((link) => {
+      const id = link.getAttribute("href")?.slice(1);
+      return id ? document.getElementById(id) : null;
+    })
+    .filter(Boolean) as HTMLElement[];
+
+  function updateActiveHeading() {
+    if (!tocList) return;
+    let activeId = "";
+
+    for (const heading of headingEls) {
+      if (heading.getBoundingClientRect().top <= 120) {
+        activeId = heading.id;
+      }
+    }
+
+    tocList.querySelectorAll("li").forEach((li) => {
+      const link = li.querySelector("a");
+      const href = link?.getAttribute("href")?.slice(1);
+      if (href === activeId) {
+        li.classList.add("active");
+        if (isDesktop()) {
+          li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      } else {
+        li.classList.remove("active");
+      }
+    });
+  }
+
+  let ticking = false;
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        updateActiveHeading();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  window.addEventListener("load", updateActiveHeading);
 
   // Mobile collapsible toggle
   const toggle = document.getElementById("toc-toggle");
-  const list = document.getElementById("article-content");
-
-  const isDesktop = () => window.innerWidth >= 1300;
 
   toggle?.addEventListener("click", () => {
     if (isDesktop()) return;
-    const isOpen = list?.classList.toggle("open");
+    const isOpen = tocList?.classList.toggle("open");
     toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
 
-  // Close when a link is clicked on mobile
-  list?.querySelectorAll("a").forEach((link) => {
+  tocLinks.forEach((link) => {
     link.addEventListener("click", () => {
       if (!isDesktop()) {
-        list.classList.remove("open");
+        tocList?.classList.remove("open");
         toggle?.setAttribute("aria-expanded", "false");
       }
     });
@@ -219,31 +246,39 @@ const { headings } = Astro.props;
   @media (min-width: 1300px) {
     aside {
       position: fixed;
-      backdrop-filter: blur(10px);
-      padding: 24px;
-      right: 20px;
+      right: 24px;
       top: 100px;
-      width: 320px;
-      opacity: 0.95;
-      border-radius: 8px;
-      bottom: 100px;
-      overflow-y: auto;
-      background-color: var(--secondary);
-      box-shadow: -4px 0px 20px rgba(0, 0, 0, 0.1);
+      width: 280px;
       max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      padding: 20px 0;
+      background: transparent;
       border: none;
+      border-radius: 0;
+      box-shadow: none;
       margin-bottom: 0;
+      scrollbar-width: none;
+    }
+
+    aside::-webkit-scrollbar {
+      display: none;
     }
 
     .toc-header {
       background: none;
-      padding: 0;
+      padding: 0 16px 12px;
       cursor: default;
-      margin-bottom: 16px;
+      margin-bottom: 0;
+      border-bottom: 1px solid var(--neutral);
     }
 
     h4 {
-      font-size: 1.1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-color);
+      opacity: 0.5;
     }
 
     .toc-btn {
@@ -254,14 +289,53 @@ const { headings } = Astro.props;
     ul {
       max-height: none;
       overflow: visible;
-      padding: 0;
+      padding: 8px 0;
       transition: none;
+      border-left: 2px solid var(--neutral);
+      margin-left: 16px;
     }
 
     li {
-      padding: 10px 8px;
-      border-radius: 4px;
-      transition: all 0.2s ease;
+      padding: 6px 16px;
+      border-radius: 0;
+      margin-left: -2px;
+      border-left: 2px solid transparent;
+      transition: border-color 0.2s ease;
+    }
+
+    li:hover {
+      background-color: transparent;
+      border-left-color: var(--text-color);
+    }
+
+    li:hover a {
+      color: var(--text-color);
+    }
+
+    li.active {
+      background-color: transparent;
+      border-left-color: var(--contrast);
+    }
+
+    li.active a {
+      color: var(--contrast);
+      font-weight: 600;
+    }
+
+    a {
+      font-size: 0.8rem;
+      opacity: 0.65;
+      transition:
+        opacity 0.2s ease,
+        color 0.2s ease;
+    }
+
+    li:hover a {
+      opacity: 1;
+    }
+
+    li.active a {
+      opacity: 1;
     }
   }
 </style>

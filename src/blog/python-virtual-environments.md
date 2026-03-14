@@ -1,7 +1,7 @@
 ---
 title: Python Virtual Environments
 pubDate: 2024-11-04
-description: "Python Virtual Environments"
+description: "How to isolate project dependencies with virtual environments. Creating, activating, freezing requirements, and packaging Python projects with Docker."
 tags: ["python"]
 snippet:
   language: "docker"
