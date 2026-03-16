@@ -12,7 +12,6 @@
     "editor.rulers": [80]
   },
   "cSpell.language": "en,fr",
-  "prettier.documentSelectors": ["**/*.astro"],
   "[astro]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },

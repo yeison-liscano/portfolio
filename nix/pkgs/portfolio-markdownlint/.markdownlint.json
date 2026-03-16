@@ -25,15 +25,7 @@
   "MD012": {
     "maximum": 1
   },
-  "MD013": {
-    "line_length": 80,
-    "heading_line_length": 80,
-    "code_blocks": false,
-    "tables": false,
-    "headings": true,
-    "strict": false,
-    "stern": false
-  },
+  "MD013": false,
   "MD014": true,
   "MD018": true,
   "MD019": true,
@@ -44,6 +36,9 @@
     "lines_below": 1
   },
   "MD023": true,
+  "MD025": {
+    "front_matter_title": ""
+  },
   "MD026": {
     "punctuation": ".,;:"
   },

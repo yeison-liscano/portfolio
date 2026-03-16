@@ -8,10 +8,10 @@ tags: [WSGI, ASGI, Python web development, web protocols, FastAPI, Flask,
 web servers, async programming, web sockets, HTTP/2]
 snippet:
   language: "python"
-  code: "def app(environ, start_response):\n
-    start_response('200 OK', [('Content-Type', 'text/plain')])\n
-    return [b'Hello, World!']
-  "
+  code: |
+    def app(environ, start_response):
+        start_response("200 OK", [("Content-Type", "text/plain")])
+        return [b"Hello, World!"]
 ---
 
 Python web applications require protocols to communicate between web servers
