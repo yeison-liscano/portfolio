@@ -5,7 +5,11 @@ description: "A practical reference for the git commands I use the most. From st
 tags: ["git", "terminal"]
 snippet:
   language: "bash"
-  code: "git log --oneline --graph --all\ngit stash\ngit rebase -i HEAD~3\ngit bisect start"
+  code: |
+    git log --oneline --graph --all
+    git stash
+    git rebase -i HEAD~3
+    git bisect start
 ---
 
 Git is one of those tools you use every day, but most people only scratch the

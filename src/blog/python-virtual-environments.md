@@ -5,14 +5,13 @@ description: "How to isolate project dependencies with virtual environments. Cre
 tags: ["python"]
 snippet:
   language: "docker"
-  code: "
-FROM python:3.7\n
-WORKDIR ['/app']\n
-COPY ['requirements.txt', '/app']\n
-RUN ['pip', 'install', '--no-cache-dir', 'upgrade', '-r', 'requirements.txt']\n
-COPY ['/app', '/app']\n
-CMD ['uvicorn', 'app:app', '--host', '0.0.0.0', '--port', '80'
-"
+  code: |
+    FROM python:3.7
+    WORKDIR /app
+    COPY requirements.txt /app
+    RUN pip install --no-cache-dir --upgrade -r requirements.txt
+    COPY /app /app
+    CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
 ---
 
 Virtual environments are used to create an isolated environment for Python

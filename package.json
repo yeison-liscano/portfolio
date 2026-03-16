@@ -15,7 +15,7 @@
     "cy:eslint::fix": "eslint 'e2e/specs/*.ts' --config e2e/eslint.config.js --fix",
     "format:check": "prettier --check .",
     "format::write": "prettier --write .",
-    "format:markdown": "prettier --write 'src/blog/*.md'",
+    "format:markdown": "prettier --write --ignore-path .prettierignore \"src/blog/**/*.md\"",
     "test": "vitest --config vitest.config.js --watch=false --coverage",
     "cy:run:chrome": "cypress run --browser chrome",
     "cy:run:firefox": "cypress run --browser firefox"

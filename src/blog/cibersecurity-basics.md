@@ -1,9 +1,9 @@
 ---
 title: Cybersecurity Basics
-pubDate: 2024-11-04
+pubDate: 2026-03-22
 description: "Cybersecurity Basics"
 tags: ["cybersecurity"]
-isDraft: true
+isDraft: false
 snippet:
   language: "bash"
   code: "nmap -sV -sC -p- 10.10.10.10"
@@ -18,8 +18,8 @@ cyber threats and the essential security controls needed to protect digital asse
 ### Ransomware
 
 Ransomware is malicious software that encrypts a victim's files, making them
-inaccessible until a ransom is paid. Notable examples include WannaCry and
-CryptoLocker. These attacks have evolved from targeting individuals to disrupting
+inaccessible until a ransom is paid. Notable examples include [WannaCry](https://en.wikipedia.org/wiki/WannaCry_ransomware_attack) and
+[CryptoLocker](https://en.wikipedia.org/wiki/CryptoLocker). These attacks have evolved from targeting individuals to disrupting
 critical infrastructure and large organizations.
 
 ### Malware
@@ -205,6 +205,4 @@ solutions with human awareness. By understanding both common threats and essenti
 security controls, organizations can significantly improve their security posture
 and reduce the risk of successful attacks.
 
-Remember that cybersecurity is not a one-time implementation but an ongoing process
-requiring regular assessment, updates, and training to address the constantly
-evolving threat landscape.
+Cybersecurity is not a one-time implementation but an ongoing process.
