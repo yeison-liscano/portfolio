@@ -6,7 +6,8 @@ en 2024."
 tags: ["reading", "learning"]
 snippet:
   language: "markdown"
-  code: "> La simplicité est la sophistication ultime. - Leonardo da Vinci\n"
+  code: |
+    > La simplicité est la sophistication ultime. - Leonardo da Vinci
 ---
 
 La solution la plus simple est généralement la meilleure. C'est pourquoi je

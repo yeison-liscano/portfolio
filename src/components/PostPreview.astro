@@ -235,6 +235,16 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
     padding: 0 !important;
   }
 
+  .container-like-image .astro-code,
+  .container-like-image .astro-code pre,
+  .container-like-image .astro-code code,
+  .container-like-image .astro-code .line {
+    white-space: pre !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    tab-size: 2;
+  }
+
   /* ===== TABLET (≥720px) ===== */
   @media (min-width: 720px) {
     .preview-container {

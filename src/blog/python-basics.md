@@ -8,14 +8,18 @@ description: "Python is a great language for beginners and experts alike.
 tags: ["python"]
 snippet:
   language: "python"
-  code: "def outer():\n
-    x = 'local'\n
-    def inner():\n
-        nonlocal x\n
-        x = 'nonlocal'\n
-    inner()\n\n
-if __name__ == '__main__':\n
-    outer()"
+  code: |
+    def outer():
+        x = "local"
+
+        def inner():
+            nonlocal x
+            x = "nonlocal"
+
+        inner()
+
+    if __name__ == "__main__":
+        outer()
 ---
 
 The simplicity of Python makes the language a great option for almost everyone

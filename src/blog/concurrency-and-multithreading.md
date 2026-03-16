@@ -5,10 +5,13 @@ description: "Understanding concurrency, parallelism, and multithreading. How th
 tags: ["programming"]
 snippet:
   language: "python"
-  code: "async def fetch(url: str) -> str:\n
-    async with aiohttp.ClientSession() as session:\n
-    async with session.get(url) as response:\n
-    return await response.text()\n"
+  code: |
+    async def fetch(url: str) -> str:
+      async with(
+        aiohttp.ClientSession() as session,
+        session.get(url) as response
+      ):
+        return await response.text()
 ---
 
 Concurrency is the ability of a system or program to execute multiple tasks or
