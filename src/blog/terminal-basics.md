@@ -5,15 +5,14 @@ description: "A beginner-friendly guide to the command line. What shells, termin
 tags: ["terminal"]
 snippet:
   language: "bash"
-  code: "
-    mkdir dir_name\n
-    cd dir_name\n
-    touch file_name\n
-    echo 'foo' > file_name\n
-    ls\n
-    cat file_name\n
-    rm file_name\n
-  "
+  code: |
+    mkdir dir_name
+    cd dir_name
+    touch file_name
+    echo 'foo' > file_name
+    ls
+    cat file_name
+    rm file_name
 ---
 
 ## what is a command?
