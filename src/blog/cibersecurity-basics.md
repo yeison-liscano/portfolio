@@ -18,8 +18,10 @@ cyber threats and the essential security controls needed to protect digital asse
 ### Ransomware
 
 Ransomware is malicious software that encrypts a victim's files, making them
-inaccessible until a ransom is paid. Notable examples include [WannaCry](https://en.wikipedia.org/wiki/WannaCry_ransomware_attack) and
-[CryptoLocker](https://en.wikipedia.org/wiki/CryptoLocker). These attacks have evolved from targeting individuals to disrupting
+inaccessible until a ransom is paid. Notable examples include
+[WannaCry](https://en.wikipedia.org/wiki/WannaCry_ransomware_attack) and
+[CryptoLocker](https://en.wikipedia.org/wiki/CryptoLocker).
+These attacks have evolved from targeting individuals to disrupting
 critical infrastructure and large organizations.
 
 ### Malware

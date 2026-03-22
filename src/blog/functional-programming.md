@@ -1,95 +1,190 @@
 ---
 title: Functional Programming
 pubDate: 2024-11-04
-description: "Functional Programming"
-tags: ["programming"]
-isDraft: true
+description: "A practical introduction to functional programming in Python: pure
+  functions, immutability, composition, and common patterns."
+tags: ["programming", "python", "functional programming"]
+isDraft: false
 snippet:
   language: "python"
-  code: "def map_reduce(data: list) -> int:\n    return reduce(lambda x, y: x + y, map(lambda x: x * 2, data))"
+  code: |
+    from functools import reduce
+    numbers = [1, 2, 3, 4]
+    result = reduce(lambda acc, x: acc + x * 2, numbers, 0)
 ---
 
-Let's start by recalling what functional programming (FP) is all about. It's a
-style of programming (parading) where we use functions to break down problems
-into smaller parts. Instead of using data structures like objects or arrays,
-we rely more on functions and their interactions. So, for example, we might use
-higher-order functions that take other functions as arguments.
+Functional programming (FP) is a style that models programs as transformations
+of data. Instead of mutating state step by step, we build small functions and
+combine them to express intent.
 
-Functional programming emphasizes the use of functions and transformations over
-data structures. In functional programming, functions are first-class citizens,
-which means they can be passed around as arguments, returned from other
-functions, and assigned to variables. This allows for a more declarative and
-concise style of programming.
+Python is multi-paradigm, so we can use FP ideas without writing purely
+functional code all the time. In practice, this gives us readable pipelines,
+testable logic, and fewer side effects.
 
-## Key Concepts of Functional Programming
+## Why Use FP Concepts
+
+FP principles are useful because they improve predictability.
+
+- Pure functions are easier to test.
+- Immutable data reduces accidental bugs.
+- Composition helps build reusable logic.
+- Stateless functions are easier to parallelize.
+
+## Core Concepts
 
 ### Pure Functions
 
-A pure function is a function that always returns the same output for the same
-input and has no side effects. This means that a pure function does not modify
-any external state or data. Pure functions are deterministic, which means they
-always produce the same output given the same input.
+A pure function returns the same output for the same input and does not change
+external state.
+
+```python
+def celsius_to_fahrenheit(celsius: float) -> float:
+  return celsius * 9 / 5 + 32
+```
+
+No global state is modified, so the function is deterministic.
 
 ### Immutability
 
-Immutability is the concept of not changing the state of an object once it has
-been created. In functional programming, data is treated as immutable, which
-means that once a value is assigned to a variable, it cannot be changed. Instead
-of modifying existing data, we create new data structures by applying
-transformations to the original data.
+Immutability means creating new values instead of mutating existing ones.
+
+```python
+def add_item(items: tuple[str, ...], item: str) -> tuple[str, ...]:
+  return items + (item,)
+```
+
+Using immutable structures makes data flow easier to reason about.
 
 ### Higher-Order Functions
 
-Higher-order functions are functions that take other functions as arguments or
-return functions as results. This allows us to create abstractions and compose
-functions together to solve complex problems. Higher-order functions are a key
-feature of functional programming and enable us to write more modular and
-reusable code.
+Higher-order functions receive functions as arguments or return functions.
 
-### Recursion
+```python
+def apply_twice(fn, value):
+  return fn(fn(value))
 
-Recursion is a technique in which a function calls itself to solve a problem.
-Recursion is a powerful tool in functional programming and allows us to write
-elegant and concise code. By breaking down a problem into smaller sub-problems
-and solving them recursively, we can solve complex problems with simple and
-elegant solutions.
+
+print(apply_twice(lambda x: x + 3, 10))  # 16
+```
+
+This pattern lets us abstract behavior, not just data.
 
 ### Referential Transparency
 
-Referential transparency is the property of a function that allows us to replace
-a function call with its result without changing the behavior of the program.
-This property enables us to reason about our code more easily and makes it
-easier to test and debug.
+If an expression can be replaced by its value without changing behavior, it is
+referentially transparent. This simplifies debugging and refactoring.
+
+For example, replacing `double(5)` with `10` is always safe if `double` is pure.
 
 ### Function Composition
 
-Function composition is the process of combining two or more functions to create
-a new function. By composing functions together, we can create complex
-transformations and abstractions from simpler functions. Function composition is
-a powerful technique in functional programming and allows us to build modular
-and reusable code.
+Composition means combining small functions into larger ones.
 
-## Currying
+```python
+def compose(f, g):
+  return lambda x: f(g(x))
 
-Currying is a technique in which a function that takes multiple arguments is
-transformed into a sequence of functions, each taking a single argument. Currying
-allows us to create new functions by partially applying arguments to an existing
-function. This enables us to create more flexible and reusable functions and
-simplify the process of function composition.
 
-## Monads
+strip_and_lower = compose(str.lower, str.strip)
+print(strip_and_lower("  Hello  "))  # hello
+```
 
-Monads are a design pattern in functional programming that provides a way to
-structure and sequence computations. Monads encapsulate values and operations
-on those values, allowing us to chain together computations in a predictable and
-composable way. Monads are a powerful abstraction that enables us to write
-complex programs in a clear and concise manner.
+## Useful FP Tools in Python
 
-## Language Features of Functional Programming in Python
+Python includes many features that support FP style.
 
-Python is a multi-paradigm programming language that supports functional
+### map, filter, and reduce
 
-## Functional Programming (FP) in Python: Key Concepts and Language Features
+```python
+from functools import reduce
 
-[HaskellWiki](https://wiki.haskell.org/index.php?title=Functional_programming)
-[haskell.org](https://www.haskell.org/)
+numbers = [1, 2, 3, 4, 5]
+
+doubled = list(map(lambda x: x * 2, numbers))
+evens = list(filter(lambda x: x % 2 == 0, doubled))
+total = reduce(lambda acc, x: acc + x, evens, 0)
+
+print(doubled)  # [2, 4, 6, 8, 10]
+print(evens)    # [2, 4, 6, 8, 10]
+print(total)    # 30
+```
+
+List comprehensions are often more readable than `map` and `filter`, but both
+approaches are valid.
+
+### partial for Function Specialization
+
+```python
+from functools import partial
+
+
+def power(base: int, exponent: int) -> int:
+  return base ** exponent
+
+
+square = partial(power, exponent=2)
+cube = partial(power, exponent=3)
+
+print(square(5))  # 25
+print(cube(3))    # 27
+```
+
+This is close to currying and helps create reusable function variants.
+
+## Practical Pipeline Example
+
+Suppose we receive transactions and want the sum of valid positive amounts.
+
+```python
+from typing import Iterable
+
+
+def parse_amounts(lines: Iterable[str]) -> list[float]:
+  return [float(line) for line in lines if line.strip()]
+
+
+def only_positive(values: Iterable[float]) -> list[float]:
+  return [v for v in values if v > 0]
+
+
+def total(values: Iterable[float]) -> float:
+  return sum(values)
+
+
+raw = ["100", "-40", "", "18.5", "-2", "7.5"]
+result = total(only_positive(parse_amounts(raw)))
+print(result)  # 126.0
+```
+
+Each step is small, focused, and easy to test in isolation.
+
+## Recursion and Python
+
+Recursion is common in FP, but Python does not optimize tail recursion.
+For large inputs, iterative solutions are often safer.
+
+Use recursion when it improves clarity, but keep Python's recursion limit in
+mind.
+
+## Common Pitfalls
+
+- Overusing lambdas and making code harder to read.
+- Forcing `reduce` when `sum` or a loop is clearer.
+- Mixing pure and impure logic in the same function.
+- Ignoring readability in the name of style purity.
+
+FP is most valuable when it improves maintainability, not when it is applied as
+a strict rule.
+
+## Final Thoughts
+
+Functional programming in Python is about disciplined data transformation.
+You can gradually adopt it by writing pure helper functions, limiting mutation,
+and composing operations into clear pipelines.
+
+Used well, FP makes code easier to test, reason about, and evolve.
+
+## References
+
+- [HaskellWiki: Functional programming](https://wiki.haskell.org/index.php?title=Functional_programming)
+- [Haskell Language](https://www.haskell.org/)
