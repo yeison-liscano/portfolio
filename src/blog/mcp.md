@@ -9,14 +9,13 @@ snippet:
   code: "from http_mcp import Server"
 ---
 
-# MCP
-
 Model context protocol have become the standard to grant AI agent access to
 external resources. It defines methods and the format to use in RCPJson messages
 to access, and trigger the execution of a function (a.k.a tool) or instructions
 (a.k.a prompts).
 
-I have working on mcp implementation and here I will share the challenges I faced.
+I have working on mcp implementation and here I will share the challenges I
+faced.
 
 ## First versions of protocol were stateful
 
