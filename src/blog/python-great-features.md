@@ -1,7 +1,10 @@
 ---
 title: Python Great Features
 pubDate: 2024-11-04
-description: "Exploring duck typing, Abstract Base Classes, Protocols, and caching decorators. The features that make Python flexible and expressive beyond the basics."
+description:
+  "Exploring duck typing, Abstract Base Classes, Protocols, and caching
+  decorators. The features that make Python flexible and expressive beyond the
+  basics."
 tags: ["python"]
 snippet:
   language: "python"
@@ -26,13 +29,12 @@ snippet:
 
 ## Duck Typing, ABCs, and Protocols
 
-> If it looks like a duck, swims like a duck, and quacks like a duck,
-> then it probably is a duck.
+> If it looks like a duck, swims like a duck, and quacks like a duck, then it
+> probably is a duck.
 
 The idea behind duck typing is that you don't need to check the type of an
-object before using it. Instead you care about what methods and properties
-the object has (API). If it has the methods and properties you need,
-you can use it.
+object before using it. Instead you care about what methods and properties the
+object has (API). If it has the methods and properties you need, you can use it.
 
 Abstract Base Classes (ABCs) and Protocols enable us to keep the flexibility of
 duck typing, but also have some kind of type checking.
@@ -64,8 +66,8 @@ print(dog.speak())
 
 > The term protocols is used for some types supporting structural subtyping.
 >
-> A structural type defines a set of values not by their **class**,
-> but by their properties (e.g. attributes, methods, dictionary key/value types)
+> A structural type defines a set of values not by their **class**, but by their
+> properties (e.g. attributes, methods, dictionary key/value types)
 
 Protocols are a way to define a set of methods that a class must implement in
 order to be considered an instance of that protocol.
@@ -89,8 +91,8 @@ print(speak(Dog()))  # Passes static type check
 ## Type Hints
 
 Type hints are a way to add type information to your code. They are not enforced
-by Python, but they can be used by tools like **MyPy** to check your code
-for type errors.
+by Python, but they can be used by tools like **MyPy** to check your code for
+type errors.
 
 ```python
 def add(x: int, y: int) -> int:
@@ -109,9 +111,9 @@ Functions are stateless by default. Closures are a way to keep the state of a
 function between calls.
 
 A closure is a function object that remembers values in enclosing scopes. Note
-that a closure returns a function that remembers the values of the variables
-in the enclosing scope even after the execution has moved out of that scope.
-It means variables in the enclosing scope are kept in memory even after the
+that a closure returns a function that remembers the values of the variables in
+the enclosing scope even after the execution has moved out of that scope. It
+means variables in the enclosing scope are kept in memory even after the
 function has finished executing.
 
 ```python
@@ -240,14 +242,13 @@ Using cached token
 
 ### Decorators (Higher order functions)
 
-Decorators are a way to wrap a function and add extra functionalities to
-such a function.
+Decorators are a way to wrap a function and add extra functionalities to such a
+function.
 
-In the following example we define a decorator that adds an access token to
-the headers of a request. Note that the decorator receives a function that
-receives a `ClientSession` instance as first argument, that instance will be
-used to get the access token without having to open a new session for each
-request.
+In the following example we define a decorator that adds an access token to the
+headers of a request. Note that the decorator receives a function that receives
+a `ClientSession` instance as first argument, that instance will be used to get
+the access token without having to open a new session for each request.
 
 ```python
 from collections.abc import (
@@ -418,8 +419,8 @@ def fibonacci_timer(n):
 print(fibonacci_timer(10))
 ```
 
-This is kinda like a cache (`memoization`), so that the function doesn't have
-to be called again if the arguments are the same.
+This is kinda like a cache (`memoization`), so that the function doesn't have to
+be called again if the arguments are the same.
 
 ## Working with Files
 
@@ -429,8 +430,8 @@ Generators are a special class of functions that simplify the task of writing
 iterators. Generators are a simple and powerful tool for creating iterators.
 They are written like regular functions but use the `yield` statement whenever
 they want to return data. Each time `next()` is called on it, the generator
-resumes where it left off
-(it remembers all the data values and which statement was last executed).
+resumes where it left off (it remembers all the data values and which statement
+was last executed).
 
 Generators are iterators, a kind of iterable you can only iterate over once.
 It’s because they do not store all the values in memory, they generate the
@@ -481,11 +482,10 @@ for i in fibonacci(10):
 
 Context managers are used to allocate and release resources precisely when you
 want to. They are very useful when you are working with external resources like
-files, network connections, etc. Context managers are normally implemented
-using a class that implements the special methods `__enter__()`
-and `__exit__()`. The `__enter__()` method is invoked when the `with` statement
-is encountered. The `__exit__()` method is invoked at the end of the `with`
-block.
+files, network connections, etc. Context managers are normally implemented using
+a class that implements the special methods `__enter__()` and `__exit__()`. The
+`__enter__()` method is invoked when the `with` statement is encountered. The
+`__exit__()` method is invoked at the end of the `with` block.
 
 ```python
 class OpenFile:

@@ -104,8 +104,8 @@ sensitive paths.
 
 ## Space Optimization Example
 
-Some dynamic programming transitions only depend on a few previous states.
-In that case, you can store only those values.
+Some dynamic programming transitions only depend on a few previous states. In
+that case, you can store only those values.
 
 ```python
 def fibonacci(n: int) -> int:
@@ -123,8 +123,8 @@ This reduces space from $O(n)$ to $O(1)$.
 
 ## Another Classic Problem: Minimum Coin Change
 
-Problem: given coin values and a target amount, find the minimum number of
-coins needed to make that amount.
+Problem: given coin values and a target amount, find the minimum number of coins
+needed to make that amount.
 
 State definition:
 
@@ -171,6 +171,6 @@ If the answer is yes to all three, dynamic programming is likely a good fit.
 
 ## Final Thoughts
 
-Dynamic programming is not one algorithm, but a way of thinking.
-Once you practice state design and transitions, many hard problems become
-manageable and systematic to solve.
+Dynamic programming is not one algorithm, but a way of thinking. Once you
+practice state design and transitions, many hard problems become manageable and
+systematic to solve.

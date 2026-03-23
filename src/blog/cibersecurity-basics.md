@@ -3,7 +3,7 @@ title: Cybersecurity Basics
 pubDate: 2026-03-22
 description: "Cybersecurity Basics"
 tags: ["cybersecurity"]
-isDraft: false
+isDraft: true
 snippet:
   language: "bash"
   code: "nmap -sV -sC -p- 10.10.10.10"
@@ -11,7 +11,8 @@ snippet:
 
 In today's interconnected digital landscape, cybersecurity has become a critical
 concern for individuals and organizations alike. Let's explore the most common
-cyber threats and the essential security controls needed to protect digital assets.
+cyber threats and the essential security controls needed to protect digital
+assets.
 
 ## Part 1: Understanding Cyber Threats
 
@@ -20,9 +21,9 @@ cyber threats and the essential security controls needed to protect digital asse
 Ransomware is malicious software that encrypts a victim's files, making them
 inaccessible until a ransom is paid. Notable examples include
 [WannaCry](https://en.wikipedia.org/wiki/WannaCry_ransomware_attack) and
-[CryptoLocker](https://en.wikipedia.org/wiki/CryptoLocker).
-These attacks have evolved from targeting individuals to disrupting
-critical infrastructure and large organizations.
+[CryptoLocker](https://en.wikipedia.org/wiki/CryptoLocker). These attacks have
+evolved from targeting individuals to disrupting critical infrastructure and
+large organizations.
 
 ### Malware
 
@@ -37,16 +38,16 @@ or gain unauthorized access:
 
 ### Social Engineering
 
-Social engineering exploits human psychology rather than technical vulnerabilities.
-Attackers manipulate people into breaking security protocols, revealing sensitive
-information, or installing malware. These attacks leverage trust and often create
-a sense of urgency to bypass rational decision-making.
+Social engineering exploits human psychology rather than technical
+vulnerabilities. Attackers manipulate people into breaking security protocols,
+revealing sensitive information, or installing malware. These attacks leverage
+trust and often create a sense of urgency to bypass rational decision-making.
 
 ### Phishing
 
-Phishing attacks use fraudulent communications that appear to come from reputable
-sources. They typically seek to steal sensitive data like login credentials and
-credit card details. Variants include:
+Phishing attacks use fraudulent communications that appear to come from
+reputable sources. They typically seek to steal sensitive data like login
+credentials and credit card details. Variants include:
 
 - **Spear phishing**: Targeted attacks customized for specific individuals
 - **Whaling**: Phishing attempts targeting high-profile executives
@@ -55,17 +56,17 @@ credit card details. Variants include:
 
 ### Denial of Service (DoS) and Distributed DoS (DDoS)
 
-These attacks overwhelm systems, servers, or networks with traffic to disrupt services.
-DDoS attacks launch from multiple compromised devices, making them particularly
-difficult to mitigate. Modern attacks can exceed terabits per second, enough to take
-down major online platforms.
+These attacks overwhelm systems, servers, or networks with traffic to disrupt
+services. DDoS attacks launch from multiple compromised devices, making them
+particularly difficult to mitigate. Modern attacks can exceed terabits per
+second, enough to take down major online platforms.
 
 ### Man-in-the-Middle (MitM) Attacks
 
-In MitM attacks, cybercriminals intercept communication between two parties to steal
-data or impersonate one party. Common vectors include unsecured public Wi-Fi networks
-and compromised routers. These attacks can be particularly devastating when targeting
-financial transactions or sensitive communications.
+In MitM attacks, cybercriminals intercept communication between two parties to
+steal data or impersonate one party. Common vectors include unsecured public
+Wi-Fi networks and compromised routers. These attacks can be particularly
+devastating when targeting financial transactions or sensitive communications.
 
 ## Part 2: Essential Security Controls
 
@@ -88,7 +89,8 @@ authorized to use:
 - **Authentication**: Verifying user identity (passwords, biometrics, tokens)
 - **Authorization**: Determining user access permissions
 - **Accounting**: Tracking user activities and resource usage
-- **Principle of least privilege**: Users receive only the minimum permissions necessary
+- **Principle of least privilege**: Users receive only the minimum permissions
+  necessary
 
 ### Intrusion Prevention/Detection Systems (IPS/IDS)
 
@@ -99,14 +101,15 @@ authorized to use:
 
 ### Security Information and Event Management (SIEM)
 
-SIEM systems collect and analyze security data from multiple sources,
-enabling real-time monitoring, threat detection, and incident response. Modern SIEM
-solutions incorporate AI and machine learning to identify complex attack patterns.
+SIEM systems collect and analyze security data from multiple sources, enabling
+real-time monitoring, threat detection, and incident response. Modern SIEM
+solutions incorporate AI and machine learning to identify complex attack
+patterns.
 
 ### Data Backup and Recovery
 
-Regular data backups are crucial for recovering from ransomware and other attacks.
-The 3-2-1 backup strategy recommends:
+Regular data backups are crucial for recovering from ransomware and other
+attacks. The 3-2-1 backup strategy recommends:
 
 - 3 copies of data
 - 2 different media types
@@ -114,8 +117,8 @@ The 3-2-1 backup strategy recommends:
 
 ### Cryptography and Encryption
 
-Encryption converts readable data into encoded ciphertext that can only be decrypted
-with the correct key:
+Encryption converts readable data into encoded ciphertext that can only be
+decrypted with the correct key:
 
 - **Symmetric encryption**: Uses the same key for encryption and decryption
 - **Asymmetric encryption**: Uses public and private key pairs
@@ -124,9 +127,9 @@ with the correct key:
 
 ### Virtual Private Networks (VPNs)
 
-VPNs create secure, encrypted connections over less secure networks like the internet.
-They protect data in transit and can mask user location and IP address, enhancing
-privacy and security.
+VPNs create secure, encrypted connections over less secure networks like the
+internet. They protect data in transit and can mask user location and IP
+address, enhancing privacy and security.
 
 ### Endpoint Protection
 
@@ -140,7 +143,8 @@ Endpoint security solutions protect devices connecting to a network:
 
 ### Business Continuity Planning (BCP)
 
-BCP ensures critical business functions continue during and after a security incident:
+BCP ensures critical business functions continue during and after a security
+incident:
 
 - **Risk assessment and business impact analysis**
 - **Recovery strategies and procedures**
@@ -150,8 +154,8 @@ BCP ensures critical business functions continue during and after a security inc
 #### Business Impact Analysis (BIA)
 
 BIA is a process that identifies the critical business processes and assets that
-are most important to the organization. It helps to determine the potential impact
-of a security incident and to develop a plan for responding to it.
+are most important to the organization. It helps to determine the potential
+impact of a security incident and to develop a plan for responding to it.
 
 - Main functions of the business.
 - ROT and RPO.
@@ -202,9 +206,9 @@ addresses associated risks:
 
 ## Conclusion
 
-Effective cybersecurity requires a multi-layered approach combining technological
-solutions with human awareness. By understanding both common threats and essential
-security controls, organizations can significantly improve their security posture
-and reduce the risk of successful attacks.
+Effective cybersecurity requires a multi-layered approach combining
+technological solutions with human awareness. By understanding both common
+threats and essential security controls, organizations can significantly improve
+their security posture and reduce the risk of successful attacks.
 
 Cybersecurity is not a one-time implementation but an ongoing process.

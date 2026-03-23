@@ -1,7 +1,9 @@
 ---
 title: Python Virtual Environments
 pubDate: 2024-11-04
-description: "How to isolate project dependencies with virtual environments. Creating, activating, freezing requirements, and packaging Python projects with Docker."
+description:
+  "How to isolate project dependencies with virtual environments. Creating,
+  activating, freezing requirements, and packaging Python projects with Docker."
 tags: ["python"]
 snippet:
   language: "docker"
@@ -15,16 +17,15 @@ snippet:
 ---
 
 Virtual environments are used to create an isolated environment for Python
-projects. This means that each project can have its own dependencies,
-regardless of what dependencies every other project has.
-First of all let's review how to install, update, and uninstall packages
-in a virtual environment with pip.
-Note: The command specified below are for linux (ubuntu) and MAC OS.
+projects. This means that each project can have its own dependencies, regardless
+of what dependencies every other project has. First of all let's review how to
+install, update, and uninstall packages in a virtual environment with pip. Note:
+The command specified below are for linux (ubuntu) and MAC OS.
 
-> Contains a specific Python interpreter and software libraries and
-> binaries which are needed to support a project (library or application).
-> These are by default isolated from software in other virtual environments
-> and Python interpreters and libraries installed in the operating system.
+> Contains a specific Python interpreter and software libraries and binaries
+> which are needed to support a project (library or application). These are by
+> default isolated from software in other virtual environments and Python
+> interpreters and libraries installed in the operating system.
 > [Python docs](https://docs.python.org/3/library/venv.html)
 
 ## Freezing packages (PIP)
@@ -58,13 +59,13 @@ pip3 install --upgrade {package_name}
 
 ## Creating a virtual environment
 
-To create a virtual environment, you could use the `venv` module that
-comes with Python, this is the recommended way to create virtual environments.
+To create a virtual environment, you could use the `venv` module that comes with
+Python, this is the recommended way to create virtual environments.
 
 ### venv (built-in module in python 3.3+)
 
-Extracted from [python venv docs](https://docs.python.org/3/library/venv.html)
-A virtual environment is (amongst other things):
+Extracted from [python venv docs](https://docs.python.org/3/library/venv.html) A
+virtual environment is (amongst other things):
 
 Used to contain a specific Python interpreter and software libraries and
 binaries which are needed to support a project (library or application). These
@@ -72,8 +73,8 @@ are by default isolated from software in other virtual environments and Python
 interpreters and libraries installed in the operating system.
 
 Contained in a directory, conventionally named .venv or venv in the project
-directory, or under a container directory for lots of virtual environments,
-such as ~/.virtualenvs.
+directory, or under a container directory for lots of virtual environments, such
+as ~/.virtualenvs.
 
 Not checked into source control systems such as Git.
 
@@ -112,8 +113,8 @@ that Pipenv seeks to solve are multi-faceted:
 
 - Gives you insight into your dependency graph (e.g. $ pipenv graph).
 
-- Streamline development workflow by supporting local customizations with
-  .env files.
+- Streamline development workflow by supporting local customizations with .env
+  files.
 
 ```bash
 pip3 install pipenv
@@ -164,13 +165,13 @@ deactivate
 rm -rf {env_name} # remove the virtual environment
 ```
 
-To delete a virtual environment, just delete its folder.
-(In this case, it would be rm -rf venv.)
+To delete a virtual environment, just delete its folder. (In this case, it would
+be rm -rf venv.)
 
 ## Isolating the versions of Python
 
-Different projects may require different versions of Python.
-To isolate the versions of Python, you can use `pyenv` or `pyenv-virtualenv`.
+Different projects may require different versions of Python. To isolate the
+versions of Python, you can use `pyenv` or `pyenv-virtualenv`.
 
 ### pyenv (does not work on windows)
 
@@ -201,8 +202,8 @@ pyenv local {env_name}
 ### Anaconda
 
 Anaconda is a free and open-source distribution of the Python and R programming
-languages for scientific computing, that aims to simplify package management
-and deployment.
+languages for scientific computing, that aims to simplify package management and
+deployment.
 
 ```bash
 wget -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
@@ -241,9 +242,9 @@ conda env export --from-history --file environment.yml
 
 ### Mamba
 
-Mamba is a fast, drop-in replacement for the conda package manager.
-It is a C++ implementation of the conda package manager, that uses
-multi-threading and a sophisticated dependency solver to achieve maximum performance.
+Mamba is a fast, drop-in replacement for the conda package manager. It is a C++
+implementation of the conda package manager, that uses multi-threading and a
+sophisticated dependency solver to achieve maximum performance.
 
 ```bash
 conda install -c conda-forge mamba
@@ -260,9 +261,9 @@ mamba env create -f environment.yml # create an environment from a yml file
 
 ### Docker
 
-Docker is a containerization platform that allows you to create and run containers.
-Docker containers are isolated environments that run on a single host.
-To install docker on ubuntu, follow
+Docker is a containerization platform that allows you to create and run
+containers. Docker containers are isolated environments that run on a single
+host. To install docker on ubuntu, follow
 [this](https://docs.docker.com/engine/install/ubuntu/) tutorial.
 
 <!-- ```bash
@@ -344,4 +345,5 @@ docker-compose ps
 
 #### Divide and conquer
 
-more info in the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#integrated-package-management)
+more info in the
+[Snakemake documentation](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#integrated-package-management)
