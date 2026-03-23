@@ -1,7 +1,9 @@
 ---
 title: Terminal Basics
 pubDate: 2024-11-04
-description: "A beginner-friendly guide to the command line. What shells, terminals, and commands are, plus essential operations for navigating and managing files."
+description:
+  "A beginner-friendly guide to the command line. What shells, terminals, and
+  commands are, plus essential operations for navigating and managing files."
 tags: ["terminal"]
 snippet:
   language: "bash"
@@ -18,8 +20,8 @@ snippet:
 ## what is a command?
 
 A command is a program that you can run from the terminal, it is also a utility
-of the shell, a shell function, or an alias. A command can receive arguments
-and options.
+of the shell, a shell function, or an alias. A command can receive arguments and
+options.
 
 ## what is a command line (shell)?
 
@@ -92,8 +94,8 @@ A terminal is a program that allows you to interact with the shell.
 - `mv -i` : prompt before overwriting existing files
 - `mv -f` : force overwrite existing files
 - `mv <dir1> <path>`: move dir1 to specified path
-- `mv {path}/* mv {path}/.* {path}/`: move all files and even hidden ones
-  to specified path.
+- `mv {path}/* mv {path}/.* {path}/`: move all files and even hidden ones to
+  specified path.
 
 ### mkdir
 
@@ -117,33 +119,33 @@ A terminal is a program that allows you to interact with the shell.
 - `less -N <file_name>`: print file_name contents in less with line numbers.
 - `less -S <file_name>`: print file_name contents in less without wrapping
   lines.
-- `less -F <file_name>`: print file_name contents in less without wrapping
-  lines and with line numbers.
+- `less -F <file_name>`: print file_name contents in less without wrapping lines
+  and with line numbers.
 - `less -R <file_name>`: print file_name contents in less with color.
 - `less -X <file_name>`: print file_name contents in less without the status
   bar.
-- `less -Q <file_name>`: print file_name contents in less without the status
-  bar and without the prompt.
-- `less -K <file_name>`: print file_name contents in less without the status
-  bar and without the prompt and without the search bar.
-- `less -M <file_name>`: print file_name contents in less without the status
-  bar and without the prompt and without the search bar and without the mouse.
+- `less -Q <file_name>`: print file_name contents in less without the status bar
+  and without the prompt.
+- `less -K <file_name>`: print file_name contents in less without the status bar
+  and without the prompt and without the search bar.
+- `less -M <file_name>`: print file_name contents in less without the status bar
+  and without the prompt and without the search bar and without the mouse.
 - `less -i <file_name>`: print file_name contents in less without case
   sensitivity.
 - `less -I <file_name>`: print file_name contents in less without case
-  sensitivity and without the status bar and without the prompt and
-  without the search bar and without the mouse.
-- `less -I -N <file_name>`: print file_name contents in less without case
-  sensitivity and with line numbers and without the status bar and without
-  the prompt and without the search bar and without the mouse.
-- `less -I -N -S <file_name>`: print file_name contents in less without
-  case sensitivity and with line numbers and without wrapping lines
-  and without the status bar and without the prompt and without the
+  sensitivity and without the status bar and without the prompt and without the
   search bar and without the mouse.
-- `less -I -N -S -F <file_name>`: print file_name contents in less without
-  case sensitivity and with line numbers and without wrapping lines and with
-  line numbers and without the status bar and without the prompt and without
-  the search bar and without the mouse.
+- `less -I -N <file_name>`: print file_name contents in less without case
+  sensitivity and with line numbers and without the status bar and without the
+  prompt and without the search bar and without the mouse.
+- `less -I -N -S <file_name>`: print file_name contents in less without case
+  sensitivity and with line numbers and without wrapping lines and without the
+  status bar and without the prompt and without the search bar and without the
+  mouse.
+- `less -I -N -S -F <file_name>`: print file_name contents in less without case
+  sensitivity and with line numbers and without wrapping lines and with line
+  numbers and without the status bar and without the prompt and without the
+  search bar and without the mouse.
 
 ### less
 
@@ -166,7 +168,8 @@ A terminal is a program that allows you to interact with the shell.
 
 ### xdg-open / open
 
-- `xdg-open file_name`: open file with default application and creates a process.
+- `xdg-open file_name`: open file with default application and creates a
+  process.
 
 ### nautilus
 
@@ -210,12 +213,12 @@ Allows us to match patterns in filenames.
 - `ls data*.txt`: list files with .txt extension starting with data.
 - `?`: matches any single character.
 - `??`: matches any two characters and so on.
-- `ls data?.txt`: list files with .txt extension starting with data
-  and a single character.
+- `ls data?.txt`: list files with .txt extension starting with data and a single
+  character.
 - `[abc]`: matches a, b, or c.
 - `[!abc]`: matches anything but a, b, or c.
-- `ls [[:upper:]]*`: list files starting with an uppercase letter in
-  a deep of 2 directories.
+- `ls [[:upper:]]*`: list files starting with an uppercase letter in a deep of 2
+  directories.
 - `ls -d [[:upper:]]*`: list directories starting with an uppercase letter.
 - `ls -d [[:lower:]]*`: list directories starting with a lowercase letter.
 - `ls [ad]*`: list files starting with a or d followed by any number of
@@ -225,9 +228,8 @@ Allows us to match patterns in filenames.
 
 ### redirection
 
-A redirection is a way to redirect the output of a command to a file or
-another command.
-file descriptor (0-1-2).
+A redirection is a way to redirect the output of a command to a file or another
+command. file descriptor (0-1-2).
 
 - _standard input (stdin)_ : 0
 - _standard output (stdout)_ : 1
@@ -246,24 +248,23 @@ command.
 
 - `echo "foo" | grep "foo"`: print "foo" and grep for "foo".
 - `cat file1 file2 | grep "foo"`: print file1 and file2 and grep for "foo".
-- `ls -lh | tee file_name | less`: list files in long format with human
-  readable sizes, write to file, and print one page at a time.
-- `ls -lh folder | sort | tee file_name | less`: list files in long
-  format with human readable sizes, sort, write to file, and print one page
-  at a time.
+- `ls -lh | tee file_name | less`: list files in long format with human readable
+  sizes, write to file, and print one page at a time.
+- `ls -lh folder | sort | tee file_name | less`: list files in long format with
+  human readable sizes, sort, write to file, and print one page at a time.
 - `cowsay "foo" | lolcat`: print "foo" with cowsay and lolcat.
 - `echo "foo" | cowsay | lolcat`: print "foo" with cowsay and lolcat.
 
 ### control operators
 
-A control operator is a way to control the execution of a command. The
-execution is run in a subshell. (synchronous ";")
+A control operator is a way to control the execution of a command. The execution
+is run in a subshell. (synchronous ";")
 
 - `ls; echo "foo"`: list files and print "foo".
 - `ls; mkdir dir; cal`: list files, create directory, and print calendar.
   (asynchronous "&" creates a background process).
-- `ls & echo "foo"`: list files and print "foo" in the background.
-  (conditionals "&&" and "||").
+- `ls & echo "foo"`: list files and print "foo" in the background. (conditionals
+  "&&" and "||").
 - `ls && echo "foo"`: list files and print "foo" if ls succeeds.
 - `ls || echo "foo"`: list files and print "foo" if ls fails.
 
@@ -271,11 +272,8 @@ execution is run in a subshell. (synchronous ";")
 
 A permission is a way to control access to a file or directory.
 
-- : a normal file.
-  d : a directory.
-  l : a symbolic link.
-  b : a block device. A block device is a device that is accessed
-  in fixed-size blocks.
+- : a normal file. d : a directory. l : a symbolic link. b : a block device. A
+  block device is a device that is accessed in fixed-size blocks.
 
 ### Kind of permissions
 
@@ -291,30 +289,27 @@ A permission is a way to control access to a file or directory.
 
 ### simbolik mode
 
-u : user
-g : group
-o : other
-a : all
-chmod u=rwx,g=rwx,o=rwx file : set permissions to 777
+u : user g : group o : other a : all chmod u=rwx,g=rwx,o=rwx file : set
+permissions to 777
 
 - root user: a root user has full access to the system.
 - `chmod` : change file permissions (change mode)(octal).
-- `chmod 755 file_name`: set permissions to 775.
-  (owner: rwx, group: rx, other: rx).
-- `chmod u=rwx,g=rwx,o=rwx file_name`: set permissions to 777.
-  (owner: rwx, group: rwx, other: rwx).
-- `chmod u-rwx,g-rwx,o-rwx file_name`: set permissions to 000.
-  (owner: ---, group: ---, other: ---).
-- `chmod g+w file_name`: add write permission to group.
-  (owner: rwx, group: rwx, other: rx).
+- `chmod 755 file_name`: set permissions to 775. (owner: rwx, group: rx, other:
+  rx).
+- `chmod u=rwx,g=rwx,o=rwx file_name`: set permissions to 777. (owner: rwx,
+  group: rwx, other: rwx).
+- `chmod u-rwx,g-rwx,o-rwx file_name`: set permissions to 000. (owner: ---,
+  group: ---, other: ---).
+- `chmod g+w file_name`: add write permission to group. (owner: rwx, group: rwx,
+  other: rx).
 - `whoami`: print current user.
 - `id`: print current user and group.
 - `su root`: switch to root user.
 - `su user`: switch to user.
 - in ubuntu: `sudo su` :switch to root user.
 - `passwd`: change password.
-- `chown -R $(whoami):$(whoami) folder_name`: change owner and
-  group of PersonalProjects to current user.
+- `chown -R $(whoami):$(whoami) folder_name`: change owner and group of
+  PersonalProjects to current user.
 
 ### change password
 
@@ -339,111 +334,101 @@ passwd : change password
 - `chmod u-r file_name`: remove read permission to file_name for user.
 - `chmod u+w file_name`: add write permission to file_name for user.
 - `chmod u-w file_name`: remove write permission to file_name for user.
-- `chmod u+x,g+x,o+x file_name`: add execute permission to file_name
-  for user, group and others.
-- `chmod u-x,g-x,o-x file_name`: remove execute permission to file_name
-  for user, group and others.
-- `chmod u+r,g+r,o+r file_name`: add read permission to file_name for
+- `chmod u+x,g+x,o+x file_name`: add execute permission to file_name for user,
+  group and others.
+- `chmod u-x,g-x,o-x file_name`: remove execute permission to file_name for
   user, group and others.
-- `chmod u-r,g-r,o-r file_name`: remove read permission to file_name for
-  user, group and others.
-- `chmod u+w,g+w,o+w file_name`: add write permission to file_name for
-  user, group and others.
-- `chmod u-w,g-w,o-w file_name`: remove write permission to file_name
-  for user, group and others.
-- `chmod u+x,g+x,o+x,u-r,g-r,o-r,u-w,g-w,o-w file_name`: add execute
-  permission to file_name for user, group and others and remove read
-  and write permission to file_name for user, group and others.
-- `chmod u+x,g+x,o+x,u-r,g-r,o-r,u-w,g-w,o-w file_name`: add execute
-  permission to file_name for user, group and others and remove read
-  and write permission to file_name for user, group and others.
-- `chmod u+x,g+x,o+x,u-r,g-r,o-r,u-w,g-w,o-w file_name`: add execute
-  permission to file_name for user, group and others and remove read
-  and write permission to file_name for user, group and others.
+- `chmod u+r,g+r,o+r file_name`: add read permission to file_name for user,
+  group and others.
+- `chmod u-r,g-r,o-r file_name`: remove read permission to file_name for user,
+  group and others.
+- `chmod u+w,g+w,o+w file_name`: add write permission to file_name for user,
+  group and others.
+- `chmod u-w,g-w,o-w file_name`: remove write permission to file_name for user,
+  group and others.
+- `chmod u+x,g+x,o+x,u-r,g-r,o-r,u-w,g-w,o-w file_name`: add execute permission
+  to file_name for user, group and others and remove read and write permission
+  to file_name for user, group and others.
+- `chmod u+x,g+x,o+x,u-r,g-r,o-r,u-w,g-w,o-w file_name`: add execute permission
+  to file_name for user, group and others and remove read and write permission
+  to file_name for user, group and others.
+- `chmod u+x,g+x,o+x,u-r,g-r,o-r,u-w,g-w,o-w file_name`: add execute permission
+  to file_name for user, group and others and remove read and write permission
+  to file_name for user, group and others.
 
 ### environment variables
 
-A environment variable is a way to store information that can be accessed
-by programs.
-`ln` simbolik link (direct access to file) -s (simbolik).
+A environment variable is a way to store information that can be accessed by
+programs. `ln` simbolik link (direct access to file) -s (simbolik).
 
-- `ln -s /home/user/dir link_name`: create symbolic link to dir named
-  link_name.
+- `ln -s /home/user/dir link_name`: create symbolic link to dir named link_name.
 - `printenv`: print environment variables
 - `echo $VARIABLE_NAME`: print VARIABLE_NAME environment variable
 - `echo $PATH`: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:
-  /sbin:/bin:/usr/games:/usr/local/games:/snap/bin -->
-  _the directories where the shell looks for commands_
-- `echo $HOME`: print HOME environment variable -- /home/user
-  -- the home directory of the current user
+  /sbin:/bin:/usr/games:/usr/local/games:/snap/bin --> _the directories where
+  the shell looks for commands_
+- `echo $HOME`: print HOME environment variable -- /home/user -- the home
+  directory of the current user
 - `echo $USER` : print USER environment variable -- user -- the current user
 - `echo $SHELL` : print SHELL environment variable -- /bin/bash -- the shell
   program
 
 ### how to modify environment variables?
 
-export PATH=$PATH:/home/user/bin : add /home/user/bin to PATH
-environment variable
+export PATH=$PATH:/home/user/bin : add /home/user/bin to PATH environment
+variable
 
 - look for the file `.bashrc` (bash) in the home directory of the user.
-- open the file `.bashrc` with a text editor to who is using bash.
-  In mac `.zshrc`.
-  That's could vary depending on the shell you are using.
+- open the file `.bashrc` with a text editor to who is using bash. In mac
+  `.zshrc`. That's could vary depending on the shell you are using.
 - add the line export PATH=$PATH:/home/user/bin to the file .bashrc.
-- to add a environment variable, add the line `VARIABLE_NAME='value'`
-  to the file .bashrc.
-- to add an alias, add the line `alias alias_name='command'` to the
+- to add a environment variable, add the line `VARIABLE_NAME='value'` to the
   file .bashrc.
-- to add bins to the path, add the line `export PATH=$PATH:/home/user/bin`
-  to the file .bashrc.
+- to add an alias, add the line `alias alias_name='command'` to the file
+  .bashrc.
+- to add bins to the path, add the line `export PATH=$PATH:/home/user/bin` to
+  the file .bashrc.
 - save the file .bashrc.
 
 ### Searching command
 
 A search command is a way to search for a command.
 
-- `which <command>` : print command path. If the command is not found,
-  nothing is printed.
+- `which <command>` : print command path. If the command is not found, nothing
+  is printed.
 - `which code`: /usr/bin/code --> _the path to the command code_
-- `find path -name "file_name"`: search for file_name in path.
-  **segment by name (wildcards and find):**
-- `find path -name *.txt`: search for files with .txt extension
-  in current directory.
-  **segment by type:**
-- `find path -type f -name *.txt` : search for files with .txt extension
-  in the specified path.
-- `find ./ -type f -name *.log`: search for files with .log extension in
-  current directory.
-- `find ./ -type d -name dir`: search for directories with name dir in
-  current directory.
+- `find path -name "file_name"`: search for file_name in path. **segment by name
+  (wildcards and find):**
+- `find path -name *.txt`: search for files with .txt extension in current
+  directory. **segment by type:**
+- `find path -type f -name *.txt` : search for files with .txt extension in the
+  specified path.
+- `find ./ -type f -name *.log`: search for files with .log extension in current
+  directory.
+- `find ./ -type d -name dir`: search for directories with name dir in current
+  directory.
 - `find ./ -type d -empty`: search for empty directories in current directory.
-- `find ./ -type d -maxdepth 2`: search for directories in current
-  directory with a maximum depth of 2
+- `find ./ -type d -maxdepth 2`: search for directories in current directory
+  with a maximum depth of 2
 - `find ./ -type d -mindepth 2`: search for directories in current directory
-  with a minimum depth of 2
-  **segment by size:**
-- `find ./ -type f -size +100k`: search for files in current directory
-  with a size greater than 100k.
-- `find ./ -size +100M`: search for files larger than 100M in
-  current directory.
-- `find ./ | less`: search for files in current directory and
-  print the results in less.
-  **segment by date:**
-- `find ./ -type f -mtime +1`: search for files in current
-  directory that were modified more than 1 day ago.
-  **segment by permission:**
-- `find ./ -type f -perm 777`: search for files in current
-  directory with permissions 777.
-- `find ./ -type f -perm -777`: search for files in current
-  directory with permissions 777 or less.
-- `find ./ -type f -perm /777`: search for files in current
-  directory with permissions 777 or more.
-  **segment by owner:**
-- `find ./ -type f -user user`: search for files in current
-  directory with owner user.
-- `find ./ -type f -group group`: search for files in
-  current directory with group group.
-  **segment by content:**
+  with a minimum depth of 2 **segment by size:**
+- `find ./ -type f -size +100k`: search for files in current directory with a
+  size greater than 100k.
+- `find ./ -size +100M`: search for files larger than 100M in current directory.
+- `find ./ | less`: search for files in current directory and print the results
+  in less. **segment by date:**
+- `find ./ -type f -mtime +1`: search for files in current directory that were
+  modified more than 1 day ago. **segment by permission:**
+- `find ./ -type f -perm 777`: search for files in current directory with
+  permissions 777.
+- `find ./ -type f -perm -777`: search for files in current directory with
+  permissions 777 or less.
+- `find ./ -type f -perm /777`: search for files in current directory with
+  permissions 777 or more. **segment by owner:**
+- `find ./ -type f -user user`: search for files in current directory with owner
+  user.
+- `find ./ -type f -group group`: search for files in current directory with
+  group group. **segment by content:**
 - `find ./ -type f -exec grep -l 'text' {} \;`: search for files in current
   directory with the text text and print the file name.
 - `find ./ -type f -exec grep -l 'text' {} \; | xargs rm`: search for files in
@@ -476,9 +461,10 @@ A directory is a way to manage directories.
 - `ls -lXr`: list directory contents in long format sorted by extension in
   reverse.
 - `ls -lU`: list directory contents in long format sorted by creation time.
-- `ls -lUr`: list directory contents in long format sorted by creation time
-  in reverse.
-- `ls -lF`: list directory contents in long format with a slash after directories.
+- `ls -lUr`: list directory contents in long format sorted by creation time in
+  reverse.
+- `ls -lF`: list directory contents in long format with a slash after
+  directories.
 
 ### whereis
 
@@ -495,13 +481,12 @@ ln -s : create symbolic links
 
 ## find
 
-find . -name "_.txt" : find files with .txt extension
-find . -name "_.txt" -exec grep "foo" {} \; : find files
-with .txt extension and grep for "foo"
-find . -name "_.txt" -exec grep "foo" {} \; -print : find files with .txt
-extension and grep for "foo", print results
-find . -name "_.txt" -exec grep "foo" {} \; -print -exec rm {} \; : find
-files with .txt extension and grep for "foo", print results, remove files -->
+find . -name "_.txt" : find files with .txt extension find . -name "_.txt" -exec
+grep "foo" {} \; : find files with .txt extension and grep for "foo" find .
+-name "_.txt" -exec grep "foo" {} \; -print : find files with .txt extension and
+grep for "foo", print results find . -name "_.txt" -exec grep "foo" {} \; -print
+-exec rm {} \; : find files with .txt extension and grep for "foo", print
+results, remove files -->
 
 ### grep
 
@@ -514,14 +499,14 @@ A grep is a way to search for a pattern in a file.
 - `grep -l <regex> <file_name>` : search for
 - `grep -c <regex> <file_name>`: count matches.
 - `grep -n <regex> <file_name>`: print line numbers.
-- `grep -A 2 regex> <file_name>`: search for regex in files, print 2 lines
-  after match
+- `grep -A 2 regex> <file_name>`: search for regex in files, print 2 lines after
+  match
 - `grep -B 2 <regex> <file_name>`: search for regex in files, print 2 lines
   before match
 - `grep -C 2 <regex> <file_name>`: search for regex in files, print 2 lines
   before and after match
-- `wc <regex> <file_name>`: (word counts) count lines, words, and characters
-  in files. --> number of lines, letters, bits.
+- `wc <regex> <file_name>`: (word counts) count lines, words, and characters in
+  files. --> number of lines, letters, bits.
 - `wc -l <file_name>`: count lines in file_name.
 - `wc -w <file_name>`: count words in file_name.
 - `wc -c <file_name>`: count characters in file_name.
@@ -585,16 +570,13 @@ A process is a way to manage processes.
 
 A background process is a way to run a process in the background.
 
-`sleep 1000 &` : sleep for 1000 seconds in the background
-`jobs` : print background processes
-`fg` : bring the most recent background process to the foreground
-`fg 1` : bring the first background process to the foreground
-`bg` : run the most recent background process in the background
-`bg 1` : run the first background process in the background
-`cat > mi_nota.txt &` : write to mi_nota.txt in the background
-`ctrl + z` : stop the current process
-`kill %1` : kill the first background process
-`kill %` : kill all background processes
+`sleep 1000 &` : sleep for 1000 seconds in the background `jobs` : print
+background processes `fg` : bring the most recent background process to the
+foreground `fg 1` : bring the first background process to the foreground `bg` :
+run the most recent background process in the background `bg 1` : run the first
+background process in the background `cat > mi_nota.txt &` : write to
+mi_nota.txt in the background `ctrl + z` : stop the current process `kill %1` :
+kill the first background process `kill %` : kill all background processes
 
 ## vim
 

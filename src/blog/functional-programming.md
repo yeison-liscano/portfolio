@@ -1,8 +1,9 @@
 ---
 title: Functional Programming
 pubDate: 2024-11-04
-description: "A practical introduction to functional programming in Python: pure
-  functions, immutability, composition, and common patterns."
+description:
+  "A practical introduction to functional programming in Python: pure functions,
+  immutability, composition, and common patterns."
 tags: ["programming", "python", "functional programming"]
 isDraft: false
 snippet:
@@ -160,8 +161,8 @@ Each step is small, focused, and easy to test in isolation.
 
 ## Recursion and Python
 
-Recursion is common in FP, but Python does not optimize tail recursion.
-For large inputs, iterative solutions are often safer.
+Recursion is common in FP, but Python does not optimize tail recursion. For
+large inputs, iterative solutions are often safer.
 
 Use recursion when it improves clarity, but keep Python's recursion limit in
 mind.
@@ -178,9 +179,9 @@ a strict rule.
 
 ## Final Thoughts
 
-Functional programming in Python is about disciplined data transformation.
-You can gradually adopt it by writing pure helper functions, limiting mutation,
-and composing operations into clear pipelines.
+Functional programming in Python is about disciplined data transformation. You
+can gradually adopt it by writing pure helper functions, limiting mutation, and
+composing operations into clear pipelines.
 
 Used well, FP makes code easier to test, reason about, and evolve.
 

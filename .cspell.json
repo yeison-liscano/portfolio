@@ -1,5 +1,9 @@
 {
-  "dictionaries": ["project-words", "en", "fr"],
+  "import": [
+    "nix/pkgs/portfolio-spell/node_modules/@cspell/dict-fr-fr/cspell-ext.json",
+    "nix/pkgs/portfolio-spell/node_modules/@cspell/dict-es-es/cspell-ext.json"
+  ],
+  "dictionaries": ["project-words", "en", "fr-fr", "es-es"],
   "dictionaryDefinitions": [
     {
       "addWords": true,

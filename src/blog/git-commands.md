@@ -1,7 +1,9 @@
 ---
 title: Most Useful Git Commands
 pubDate: 2026-03-14
-description: "A practical reference for the git commands I use the most. From stash tricks and interactive rebase to worktrees, bisect, and recovery with reflog."
+description:
+  "A practical reference for the git commands I use the most. From stash tricks
+  and interactive rebase to worktrees, bisect, and recovery with reflog."
 tags: ["git", "terminal"]
 snippet:
   language: "bash"
@@ -58,8 +60,8 @@ git stash pop
 
 #### Naming stashes
 
-By default stashes get a generic name based on the branch and commit. Use
-`-m` to give them a meaningful description so you can identify them later.
+By default stashes get a generic name based on the branch and commit. Use `-m`
+to give them a meaningful description so you can identify them later.
 
 ```bash
 git stash push -m "wip: auth refactor"
@@ -136,9 +138,9 @@ git stash clear
 
 #### Creating a branch from a stash
 
-If your stashed changes conflict with work done since the stash was created,
-you can apply the stash onto a new branch starting from the commit where the
-stash was originally made.
+If your stashed changes conflict with work done since the stash was created, you
+can apply the stash onto a new branch starting from the commit where the stash
+was originally made.
 
 ```bash
 git stash branch new-feature-branch stash@{0}
@@ -221,8 +223,8 @@ git fetch --prune
 
 ### git push -u origin branch-name
 
-The `-u` flag sets the upstream tracking reference. After this, you can just
-use `git push` and `git pull` without specifying the remote and branch.
+The `-u` flag sets the upstream tracking reference. After this, you can just use
+`git push` and `git pull` without specifying the remote and branch.
 
 ```bash
 git push -u origin feature/new-auth
@@ -248,8 +250,8 @@ git config --global pull.rebase true
 ### git reflog
 
 The safety net. `reflog` records every change to `HEAD`, even ones that
-`git log` does not show. If you accidentally reset, rebase, or delete
-something, you can usually recover it.
+`git log` does not show. If you accidentally reset, rebase, or delete something,
+you can usually recover it.
 
 ```bash
 git reflog
@@ -319,8 +321,8 @@ git restore --source origin/main -- path/to/file
 A worktree lets you check out multiple branches of the same repository at the
 same time, each in its own directory on disk. Instead of stashing or committing
 unfinished work to switch branches, you create a new worktree and work on both
-branches simultaneously. Every worktree shares the same `.git` data, so there
-is no duplication of history or objects.
+branches simultaneously. Every worktree shares the same `.git` data, so there is
+no duplication of history or objects.
 
 This is especially useful when you need to review a pull request while working
 on a feature, reproduce a bug on `main` without losing your current state, or
@@ -367,8 +369,8 @@ directory is cleaned up.
 git worktree remove ../hotfix-auth
 ```
 
-If the worktree has uncommitted changes, git will refuse to remove it unless
-you pass `--force`.
+If the worktree has uncommitted changes, git will refuse to remove it unless you
+pass `--force`.
 
 ### git worktree prune
 
@@ -393,5 +395,5 @@ Here are the aliases I keep in my `.gitconfig`:
   last = log -1 HEAD --stat
 ```
 
-These save keystrokes and make the output more readable. The small investment
-of setting them up pays off every day.
+These save keystrokes and make the output more readable. The small investment of
+setting them up pays off every day.

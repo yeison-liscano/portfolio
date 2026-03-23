@@ -10,7 +10,8 @@
     {
       "files": "*.md",
       "options": {
-        "parser": "markdown"
+        "parser": "markdown",
+        "proseWrap": "always"
       }
     }
   ]

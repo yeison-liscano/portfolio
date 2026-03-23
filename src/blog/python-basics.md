@@ -1,10 +1,9 @@
 ---
 title: Python Basics
 pubDate: 2024-10-26
-description: "Python is a great language for beginners and experts alike.
-  Let's explore the basics of Python.
-  From modules, packages, scope, and more.
-  Let's dive in!"
+description:
+  "Python is a great language for beginners and experts alike. Let's explore the
+  basics of Python. From modules, packages, scope, and more. Let's dive in!"
 tags: ["python"]
 snippet:
   language: "python"
@@ -23,8 +22,8 @@ snippet:
 ---
 
 The simplicity of Python makes the language a great option for almost everyone
-aiming to use programming in any field. This is the reason Python is widely
-used in the industry, from web development, data science, machine learning,
+aiming to use programming in any field. This is the reason Python is widely used
+in the industry, from web development, data science, machine learning,
 automation, scientific computing, and more. Having a huge community, and a vast
 number of libraries, Python is a great choice for beginners and experts alike.
 
@@ -33,23 +32,22 @@ can use them to your advantage.
 
 ## Modules
 
-A module is a file containing Python definitions and statements.
-The file name is the module name with the suffix `.py` appended.
-Within a module, the module's name (as a string) is available as the value of
-the global variable `__name__`.
+A module is a file containing Python definitions and statements. The file name
+is the module name with the suffix `.py` appended. Within a module, the module's
+name (as a string) is available as the value of the global variable `__name__`.
 
-A module can be imported by another program to make use of its functionality.
-We can define our most used functions in a module and import it,
-instead of copying their definitions into different programs.
+A module can be imported by another program to make use of its functionality. We
+can define our most used functions in a module and import it, instead of copying
+their definitions into different programs.
 
 ### if `__name__ == "__main__"`
 
-You will often see this construct in Python files.
-This is used to execute some code only if the file was run directly,
-and not imported. That is, if the file is imported, the code is not run.
-This is because when you import a module, the code in the module is executed,
-just like any other script. So if we want to have some code that we only
-want to run when the module is run directly, we can use this construct.
+You will often see this construct in Python files. This is used to execute some
+code only if the file was run directly, and not imported. That is, if the file
+is imported, the code is not run. This is because when you import a module, the
+code in the module is executed, just like any other script. So if we want to
+have some code that we only want to run when the module is run directly, we can
+use this construct.
 
 ```python
 def main():
@@ -63,8 +61,8 @@ if __name__ == "__main__":
 ## Packages
 
 A package is a hierarchical file directory structure that defines a single
-Python application environment that consists of modules and subpackages
-and sub-subpackages, and so on.
+Python application environment that consists of modules and subpackages and
+sub-subpackages, and so on.
 
 A package must contain a special file called `__init__.py` in order for Python
 to consider it as a package. This file can be left empty but we generally place
@@ -77,21 +75,20 @@ the initialization code for that package in this file.
 print("Package initialized!")
 ```
 
-Doing this will allow us to use namespaced modules, such as
-`package.module1`, `package.module2`, etc.
+Doing this will allow us to use namespaced modules, such as `package.module1`,
+`package.module2`, etc.
 
 ## Scope
 
-Scopes are the contexts in which names are looked up.
-There are four different scopes in Python: `local`, `enclosing`, `global`,
-and `built-in`.
+Scopes are the contexts in which names are looked up. There are four different
+scopes in Python: `local`, `enclosing`, `global`, and `built-in`.
 
 The scope of a name defines the area of the program where you can unambiguously
-access that name, such as variables, functions, objects, and so on.
-It is determined by the place where it is declared.
+access that name, such as variables, functions, objects, and so on. It is
+determined by the place where it is declared.
 
-Names that are declared outside of all functions are in the `global` scope.
-This means that those names can be accessed inside or outside of functions.
+Names that are declared outside of all functions are in the `global` scope. This
+means that those names can be accessed inside or outside of functions.
 
 Names that are declared inside a function are in the `local` scope, and can only
 be accessed inside that function.
@@ -166,8 +163,8 @@ outer: nonlocal
 ```
 
 Note that the `nonlocal` keyword is used to declare that `x` is not a local
-variable. Hence, when we assign a value to `x` inside the nested function,
-that change is reflected in the local variable in the enclosing function.
+variable. Hence, when we assign a value to `x` inside the nested function, that
+change is reflected in the local variable in the enclosing function.
 
 ### Example Global Scope Only-read
 
@@ -207,23 +204,22 @@ print(x)
 ```
 
 Note that the `global` keyword is used to declare that `x` is a global
-variable - hence, when we assign a value to `x` inside the function,
-that change is reflected when we use the value of `x` in the main block.
+variable - hence, when we assign a value to `x` inside the function, that change
+is reflected when we use the value of `x` in the main block.
 
 ### Built-in Scope
 
 These are the names in the pre-defined built-in modules. These are always
-available in your Python programs.
-You can see the list of built-in names by typing `dir(__builtins__)`
-in the Python interpreter.
+available in your Python programs. You can see the list of built-in names by
+typing `dir(__builtins__)` in the Python interpreter.
 
 ## Splat Operator `*` and Double Splat Operator `**`
 
-Splat operator is a kind of unpacking operator (destructuring in JS).
-It can be used to allow an iterable to be unpacked into positional arguments
-in a function call. It can also be used to unpack an iterable into a list or
-dictionary. The splat operator is represented by `*` and the double splat
-operator is represented by `**`.
+Splat operator is a kind of unpacking operator (destructuring in JS). It can be
+used to allow an iterable to be unpacked into positional arguments in a function
+call. It can also be used to unpack an iterable into a list or dictionary. The
+splat operator is represented by `*` and the double splat operator is
+represented by `**`.
 
 ### Splat Operator
 

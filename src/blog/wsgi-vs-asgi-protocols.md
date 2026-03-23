@@ -14,10 +14,10 @@ snippet:
         return [b"Hello, World!"]
 ---
 
-Python web applications require protocols to communicate between web servers
-and application code. WSGI (Web Server Gateway Interface) and ASGI
-(Asynchronous Server Gateway Interface) are two such protocols, each with
-distinct characteristics and use cases.
+Python web applications require protocols to communicate between web servers and
+application code. WSGI (Web Server Gateway Interface) and ASGI (Asynchronous
+Server Gateway Interface) are two such protocols, each with distinct
+characteristics and use cases.
 
 ## WSGI: Synchronous Web Applications
 

@@ -1,7 +1,10 @@
 ---
 title: Concurrency and Multithreading
 pubDate: 2024-11-04
-description: "Understanding concurrency, parallelism, and multithreading. How threads share memory, why concurrency matters for performance, and practical patterns with async Python."
+description:
+  "Understanding concurrency, parallelism, and multithreading. How threads share
+  memory, why concurrency matters for performance, and practical patterns with
+  async Python."
 tags: ["programming"]
 snippet:
   language: "python"
@@ -47,9 +50,9 @@ and can interact with each other more efficiently.
    amounts of data and tasks. Concurrency allows you to distribute work across
    multiple cores, making your application more scalable.
 
-3. **Resource Utilization**: Modern computers have multiple cores
-   (e.g., hyper-threaded CPUs), and concurrency ensures that these
-   cores are fully utilized, leading to better performance per watt.
+3. **Resource Utilization**: Modern computers have multiple cores (e.g.,
+   hyper-threaded CPUs), and concurrency ensures that these cores are fully
+   utilized, leading to better performance per watt.
 
 4. **User Experience**: For applications that require real-time interaction,
    such as gaming or video streaming, concurrency is critical for smooth
@@ -68,18 +71,18 @@ I/O-bound tasks, such as reading files or network requests.
 In multithreaded environments, you can create multiple threads to handle
 different tasks concurrently. For example:
 
-- One thread can be dedicated to accepting new connections
-  (e.g., in a web server).
+- One thread can be dedicated to accepting new connections (e.g., in a web
+  server).
 - Another thread can process the request.
 - Yet another thread can handle writing the response.
 
 ## Why is Multithreading Important?
 
 Multithreading is particularly important when dealing with I/O-bound operations,
-such as network requests or file operations.
-Since these operations are inherently sequential by nature (you have to wait for
-the previous operation to complete before you can perform the next one),
-multithreading allows you to **overlap** them with other tasks.
+such as network requests or file operations. Since these operations are
+inherently sequential by nature (you have to wait for the previous operation to
+complete before you can perform the next one), multithreading allows you to
+**overlap** them with other tasks.
 
 ## How to Implement Concurrency and Multithreading?
 
@@ -94,10 +97,10 @@ For example:
 
 - Use Promises and async/await patterns to handle multiple asynchronous
   operations concurrently.
-- Use `Worker Threads` for CPU-bound tasks that would otherwise block the
-  event loop.
-- Use frameworks like `Express` or `Koa` for building web applications on top
-  of Node.js's concurrency model.
+- Use `Worker Threads` for CPU-bound tasks that would otherwise block the event
+  loop.
+- Use frameworks like `Express` or `Koa` for building web applications on top of
+  Node.js's concurrency model.
 
 ### 2. **In Python**
 
@@ -108,7 +111,8 @@ I/O-bound tasks but offers limited performance gains for CPU-bound tasks.
 
 For example:
 
-- Use the `threading` module for basic multithreading (best for I/O-bound tasks).
+- Use the `threading` module for basic multithreading (best for I/O-bound
+  tasks).
 - Use `multiprocessing` if you need to run CPU-bound tasks concurrently,
   bypassing the GIL by using separate processes.
 - Use `asyncio` with async/await patterns to handle multiple asynchronous

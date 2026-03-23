@@ -14,8 +14,8 @@ La solution la plus simple est généralement la meilleure. C'est pourquoi je
 cherche presque toujours à simplifier les choses.
 
 Cette post est résumé des idées exposé dans les livres héritage Leçons d'hommes
-puissants du Humberto Montesinos M. and Père riche, père pauvre de Robert.
-En plus, j'ai ajouté quelques réflexions personnelles. En suivant les droits
+puissants du Humberto Montesinos M. and Père riche, père pauvre de Robert. En
+plus, j'ai ajouté quelques réflexions personnelles. En suivant les droits
 d'auteur, je voudrais mentionner que la plus part de idées ne sont pas les
 miennes, mais celles des auteurs mentionnés.
 
@@ -38,8 +38,8 @@ vous.
 
 Le peur d'agir ce qui nous empêche de réaliser nos rêves. C'est important de
 réfléchir, mais le plus important c'est d'agir. L'action est la clé du succès.
-Prend des risques c'est partie de la vie. L'impossible met seulement un peu
-plus de temps à arriver, autant vous insistez pour essayer et essayer.
+Prend des risques c'est partie de la vie. L'impossible met seulement un peu plus
+de temps à arriver, autant vous insistez pour essayer et essayer.
 
 > Admirez ceux qui essaient, même s'ils échouent. - Seneca
 
@@ -54,20 +54,20 @@ plus de temps à arriver, autant vous insistez pour essayer et essayer.
 
 Je veux mettre l'accent sur l'importance d'agir consciencieusement.
 
-> Realize chaque action comme si elle était la dernière de votre vie.
-> Marcus Aurelius
+> Realize chaque action comme si elle était la dernière de votre vie. Marcus
+> Aurelius
 
 <!--  -->
 
 > Certainement, les plans de ceux qui sont diligents auront de bons résultats;
-> D'un autre côté, tous ceux qui se précipitent finiront dans la
-> pauvreté - Rey Salomon
+> D'un autre côté, tous ceux qui se précipitent finiront dans la pauvreté - Rey
+> Salomon
 
 Reconnaître les limites de votre connaissance est la première étape pour
 apprendre.
 
-> Savoir que l'on sait ce que l'on sait, et que l'on ne sait pas ce que l'on
-> ne sait pas, voilà la vraie sagesse. - Confucius
+> Savoir que l'on sait ce que l'on sait, et que l'on ne sait pas ce que l'on ne
+> sait pas, voilà la vraie sagesse. - Confucius
 
 <!--  -->
 
@@ -106,13 +106,13 @@ d'une mentalité très limitée. Ce qui détermine si c'est bon ou mauvais, c'es
 votre interprétation.
 
 À retenir : les problèmes sont des opportunités. Qu'est-ce que je dis problèmes,
-ce n'est pas un problème, c'est un défi. Un défi doit être abordé une étape
-à la fois.
+ce n'est pas un problème, c'est un défi. Un défi doit être abordé une étape à la
+fois.
 
 ## Être un homme de parole
 
-> Quand on dit oui, que ce soit oui, et quand on dit non, que ce soit
-> non, car tout ce qui est dit en plus de cela vient du mal. - Jésus-Christ
+> Quand on dit oui, que ce soit oui, et quand on dit non, que ce soit non, car
+> tout ce qui est dit en plus de cela vient du mal. - Jésus-Christ
 
 ## Normes
 
@@ -121,6 +121,6 @@ ce n'est pas un problème, c'est un défi. Un défi doit être abordé une étap
 
 ## Amis des Processus
 
-Que est-ce que je dois me demander? Comment puis-je améliorer ce processus?.
-Oú est-ce que tu crois je suis en train de faire une erreur?.
-Avec quip pensez-vous que je devrais parler?.
+Que est-ce que je dois me demander? Comment puis-je améliorer ce processus?. Oú
+est-ce que tu crois je suis en train de faire une erreur?. Avec quip pensez-vous
+que je devrais parler?.
