@@ -4,7 +4,7 @@ pubDate: 2026-03-22
 description:
   "Learn how dynamic programming works, when to use it, and how to model
   solutions using top-down memoization and bottom-up tabulation."
-tags: ["programming", "dynamic programming"]
+tags: ["programming", "algorithms"]
 isDraft: false
 snippet:
   language: "python"

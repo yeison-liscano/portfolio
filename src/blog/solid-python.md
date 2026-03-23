@@ -4,7 +4,7 @@ pubDate: 2026-03-22
 description:
   "The five SOLID design principles applied to Python. Practical examples of
   SRP, OCP, LSP, ISP, and DIP to write cleaner, more maintainable code."
-tags: ["programming", "python", "design-patterns"]
+tags: ["programming", "python"]
 isDraft: false
 snippet:
   language: "python"

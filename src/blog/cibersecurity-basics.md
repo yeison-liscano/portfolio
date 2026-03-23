@@ -2,7 +2,7 @@
 title: Cybersecurity Basics
 pubDate: 2026-03-22
 description: "Cybersecurity Basics"
-tags: ["cybersecurity"]
+tags: ["security"]
 isDraft: true
 snippet:
   language: "bash"

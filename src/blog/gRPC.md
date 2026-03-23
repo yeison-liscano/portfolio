@@ -5,7 +5,7 @@ description:
   "An introduction to gRPC: how it works, why it outperforms REST for
   microservices, and how to define services with Protocol Buffers. Includes
   Python examples."
-tags: ["programming", "gRPC", "microservices"]
+tags: ["programming", "web"]
 isDraft: true
 snippet:
   language: "python"

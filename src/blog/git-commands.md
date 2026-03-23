@@ -4,7 +4,7 @@ pubDate: 2026-03-14
 description:
   "A practical reference for the git commands I use the most. From stash tricks
   and interactive rebase to worktrees, bisect, and recovery with reflog."
-tags: ["git", "terminal"]
+tags: ["tools"]
 snippet:
   language: "bash"
   code: |

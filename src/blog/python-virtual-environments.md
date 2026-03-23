@@ -4,7 +4,7 @@ pubDate: 2024-11-04
 description:
   "How to isolate project dependencies with virtual environments. Creating,
   activating, freezing requirements, and packaging Python projects with Docker."
-tags: ["python"]
+tags: ["python", "tools"]
 snippet:
   language: "docker"
   code: |

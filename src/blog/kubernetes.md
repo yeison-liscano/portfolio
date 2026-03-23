@@ -4,7 +4,7 @@ pubDate: 2026-03-22
 description:
   "A practical guide to Kubernetes. From cluster architecture and core
   components to deploying applications with pods, services, and deployments."
-tags: ["kubernetes", "devops", "containers"]
+tags: ["devops"]
 isDraft: true
 snippet:
   language: "bash"

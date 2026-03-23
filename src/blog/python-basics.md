@@ -4,7 +4,7 @@ pubDate: 2024-10-26
 description:
   "Python is a great language for beginners and experts alike. Let's explore the
   basics of Python. From modules, packages, scope, and more. Let's dive in!"
-tags: ["python"]
+tags: ["programming", "python"]
 snippet:
   language: "python"
   code: |

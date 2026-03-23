@@ -2,7 +2,7 @@
 title: "Artificial Vision and Computer Vision: From Pixels to Understanding"
 pubDate: 2026-03-22
 description: "An introduction to computer vision and image processing. From spatial domain operations to frequency transforms, with practical Python examples using OpenCV."
-tags: ["programming", "computer-vision", "python"]
+tags: ["ai", "python"]
 isDraft: false
 snippet:
   language: "python"

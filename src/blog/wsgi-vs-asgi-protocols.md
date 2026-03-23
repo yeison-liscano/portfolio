@@ -4,8 +4,7 @@ pubDate: 2025-01-28
 description: "Comprehensive guide comparing WSGI and ASGI protocols in Python
 web development. Learn key differences, implementation examples, and when
 to use each protocol for optimal web application performance."
-tags: [WSGI, ASGI, Python web development, web protocols, FastAPI, Flask,
-web servers, async programming, web sockets, HTTP/2]
+tags: ["python", "web"]
 snippet:
   language: "python"
   code: |

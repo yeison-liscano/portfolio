@@ -4,7 +4,7 @@ pubDate: 2024-11-04
 description:
   "A practical introduction to functional programming in Python: pure functions,
   immutability, composition, and common patterns."
-tags: ["programming", "python", "functional programming"]
+tags: ["programming", "python"]
 isDraft: false
 snippet:
   language: "python"
