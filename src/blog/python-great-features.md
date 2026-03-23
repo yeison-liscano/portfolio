@@ -5,7 +5,7 @@ description:
   "Exploring duck typing, Abstract Base Classes, Protocols, and caching
   decorators. The features that make Python flexible and expressive beyond the
   basics."
-tags: ["python"]
+tags: ["programming", "python"]
 snippet:
   language: "python"
   code: |

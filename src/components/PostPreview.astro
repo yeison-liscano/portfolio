@@ -11,20 +11,29 @@ interface Props {
   slug: string;
   readingTime: string;
   pubDate: Date;
+  dataTags?: string;
   snippet: {
     language: BuiltinLanguage;
     code: string;
   };
 }
 
-const { title, pubDate, description, tags, slug, readingTime, snippet } =
-  Astro.props;
+const {
+  title,
+  pubDate,
+  description,
+  tags,
+  slug,
+  readingTime,
+  snippet,
+  dataTags,
+} = Astro.props;
 
 const date = new Date(pubDate).toDateString();
 const postUrl = `${BASE_URL}blog/${slug}/`;
 ---
 
-<div class="preview-container">
+<div class="preview-container visible" data-tags={dataTags}>
   <div class="description-container">
     <span class="label">Article</span>
     <h2>
@@ -36,7 +45,9 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
     <div class="tags-container">
       {
         tags.map((tag) => (
-          <span class="tag">{tag[0].toUpperCase() + tag.slice(1)}</span>
+          <button class="tag" data-filter-tag={tag} type="button">
+            {tag[0].toUpperCase() + tag.slice(1)}
+          </button>
         ))
       }
     </div>
@@ -132,6 +143,10 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
     color: var(--text-color);
     opacity: 0.7;
     transition: color 0.2s ease;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
   }
 
   .tag:hover {
@@ -285,44 +300,44 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
     }
 
     /* --- Even cards: description LEFT, code RIGHT --- */
-    .preview-container:nth-child(even) .description-container {
+    .preview-container:nth-child(even of .visible) .description-container {
       grid-column: 1 / 8;
       grid-row: 1 / 2;
       z-index: 2;
       text-align: left;
     }
 
-    .preview-container:nth-child(even) .description-card {
+    .preview-container:nth-child(even of .visible) .description-card {
       margin-right: -60px;
     }
 
-    .preview-container:nth-child(even) .container-like-image {
+    .preview-container:nth-child(even of .visible) .container-like-image {
       grid-column: 7 / 13;
       grid-row: 1 / 2;
       z-index: 1;
     }
 
     /* --- Odd cards: code LEFT, description RIGHT --- */
-    .preview-container:nth-child(odd) .description-container {
+    .preview-container:nth-child(odd of .visible) .description-container {
       grid-column: 6 / 13;
       grid-row: 1 / 2;
       z-index: 2;
       text-align: right;
     }
 
-    .preview-container:nth-child(odd) .description-card {
+    .preview-container:nth-child(odd of .visible) .description-card {
       margin-left: -60px;
     }
 
-    .preview-container:nth-child(odd) .tags-container {
+    .preview-container:nth-child(odd of .visible) .tags-container {
       justify-content: flex-end;
     }
 
-    .preview-container:nth-child(odd) .meta {
+    .preview-container:nth-child(odd of .visible) .meta {
       justify-content: flex-end;
     }
 
-    .preview-container:nth-child(odd) .container-like-image {
+    .preview-container:nth-child(odd of .visible) .container-like-image {
       grid-column: 1 / 8;
       grid-row: 1 / 2;
       z-index: 1;

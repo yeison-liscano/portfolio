@@ -4,7 +4,7 @@ pubDate: 2026-03-22
 description:
   "Los indicadores económicos más importantes: PIB, inflación, desempleo,
   balanza comercial y más. Qué miden, cómo se calculan y por qué importan."
-tags: ["economía", "finanzas"]
+tags: ["finance"]
 isDraft: false
 snippet:
   language: "markdown"

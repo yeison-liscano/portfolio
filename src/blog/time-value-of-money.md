@@ -5,7 +5,7 @@ description:
   "The time value of money explained: compound interest, present and future
   value, annuities, and net present value. With formulas, examples, and Python
   code."
-tags: ["finance", "investing"]
+tags: ["finance"]
 isDraft: true
 snippet:
   language: "python"

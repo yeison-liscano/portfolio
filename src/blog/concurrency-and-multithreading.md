@@ -5,7 +5,7 @@ description:
   "Understanding concurrency, parallelism, and multithreading. How threads share
   memory, why concurrency matters for performance, and practical patterns with
   async Python."
-tags: ["programming"]
+tags: ["programming", "python"]
 snippet:
   language: "python"
   code: |

@@ -4,7 +4,7 @@ pubDate: 2026-03-22
 description:
   "An introduction to graph theory. From the Königsberg bridge problem to BFS,
   DFS, and practical graph representations in Python."
-tags: ["programming", "graphs", "algorithms"]
+tags: ["programming", "algorithms"]
 isDraft: true
 snippet:
   language: "python"

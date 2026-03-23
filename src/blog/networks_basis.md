@@ -4,7 +4,7 @@ pubDate: 2026-03-22
 description:
   "A beginner-friendly guide to computer networking. The TCP/IP and OSI models,
   IP addressing, DNS, and essential network tools explained."
-tags: ["networking", "fundamentals"]
+tags: ["networking"]
 isDraft: true
 snippet:
   language: "bash"

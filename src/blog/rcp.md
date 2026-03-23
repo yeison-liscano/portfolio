@@ -3,7 +3,7 @@ title: JSON-RPC V2.0
 pubDate: 2026-03-15
 description:
   "JSON-RPC is a stateless, light-weight remote procedure call (RPC) protocol"
-tags: ["JSON", "RPC", "JSON-RPC", "Protocol"]
+tags: ["programming", "web"]
 isDraft: False
 snippet:
   language: "json"

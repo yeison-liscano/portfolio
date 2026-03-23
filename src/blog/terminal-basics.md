@@ -4,7 +4,7 @@ pubDate: 2024-11-04
 description:
   "A beginner-friendly guide to the command line. What shells, terminals, and
   commands are, plus essential operations for navigating and managing files."
-tags: ["terminal"]
+tags: ["tools"]
 snippet:
   language: "bash"
   code: |

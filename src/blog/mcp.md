@@ -4,7 +4,7 @@ pubDate: 2026-03-22
 description:
   "Lessons from building a remote MCP server. Challenges with stateful sessions,
   input validation, scoped tool access, and authorization in production."
-tags: ["MCP", "LLM", "Python", "HTTP"]
+tags: ["ai", "python"]
 isDraft: true
 snippet:
   language: "python"

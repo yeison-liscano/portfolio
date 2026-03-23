@@ -9,6 +9,8 @@ const allPosts = (
 ).sort((left, right) => {
   return right.data.pubDate.valueOf() - left.data.pubDate.valueOf();
 });
+
+const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
 ---
 
 <Base title="Blog | Yeison Liscano" description="Yeison Liscano Blog">
@@ -18,7 +20,17 @@ const allPosts = (
       Thoughts, tutorials, and insights on software engineering
     </p>
   </div>
-  <div class="posts-container">
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-tag="all">All</button>
+    {
+      allTags.map((tag) => (
+        <button class="filter-btn" data-tag={tag}>
+          {tag[0].toUpperCase() + tag.slice(1)}
+        </button>
+      ))
+    }
+  </div>
+  <div class="posts-container" id="posts-container">
     {
       allPosts.map(({ data, id }) => (
         <PostPreview
@@ -29,6 +41,7 @@ const allPosts = (
           slug={id}
           readingTime={data?.readingTime}
           snippet={data.snippet}
+          dataTags={data.tags.join(",")}
         />
       ))
     }
@@ -128,4 +141,108 @@ const allPosts = (
       font-weight: 400;
     }
   }
+
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto 32px;
+  }
+
+  .filter-btn {
+    font-family: monospace;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    border: 1px solid var(--neutral);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    opacity: 0.7;
+    transition:
+      opacity 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .filter-btn:hover {
+    opacity: 1;
+    border-color: var(--contrast);
+    color: var(--contrast);
+  }
+
+  .filter-btn.active {
+    opacity: 1;
+    border-color: var(--contrast);
+    color: var(--contrast);
+    font-weight: 600;
+  }
+
+  @media screen and (min-width: 720px) {
+    .filter-bar {
+      margin-bottom: 40px;
+    }
+  }
+
+  @media screen and (min-width: 900px) {
+    .filter-bar {
+      margin-bottom: 48px;
+    }
+  }
 </style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const filterBar = document.getElementById("filter-bar");
+    const postsContainer = document.getElementById("posts-container");
+    const posts = document.querySelectorAll<HTMLElement>(
+      ".preview-container[data-tags]",
+    );
+
+    if (!filterBar || !postsContainer) return;
+
+    function filterByTag(tag: string) {
+      filterBar!.querySelectorAll(".filter-btn").forEach((b) => {
+        b.classList.toggle("active", (b as HTMLElement).dataset.tag === tag);
+      });
+
+      posts.forEach((post) => {
+        const show =
+          tag === "all" || (post.dataset.tags?.split(",") ?? []).includes(tag);
+        post.classList.toggle("visible", show);
+        post.style.display = show ? "" : "none";
+      });
+
+      const url = new URL(window.location.href);
+      if (tag === "all") {
+        url.searchParams.delete("tag");
+      } else {
+        url.searchParams.set("tag", tag);
+      }
+      window.history.replaceState({}, "", url);
+    }
+
+    filterBar.addEventListener("click", (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(
+        ".filter-btn",
+      );
+      if (!btn || !btn.dataset.tag) return;
+      filterByTag(btn.dataset.tag);
+    });
+
+    postsContainer.addEventListener("click", (e) => {
+      const tagBtn = (e.target as HTMLElement).closest<HTMLButtonElement>(
+        "[data-filter-tag]",
+      );
+      if (!tagBtn || !tagBtn.dataset.filterTag) return;
+      filterByTag(tagBtn.dataset.filterTag);
+    });
+
+    const initialTag = new URLSearchParams(window.location.search).get("tag");
+    if (initialTag) {
+      filterByTag(initialTag);
+    }
+  });
+</script>

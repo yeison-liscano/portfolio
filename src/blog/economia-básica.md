@@ -5,7 +5,7 @@ description:
   "Conceptos fundamentales de economía: transacciones, oferta y demanda,
   crédito, ciclos económicos, y más. Una guía práctica para entender cómo
   funciona la economía."
-tags: ["economía", "finanzas"]
+tags: ["finance"]
 isDraft: false
 snippet:
   language: "python"
