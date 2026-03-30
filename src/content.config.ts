@@ -4,7 +4,7 @@ import { glob } from "astro/loaders";
 import { type BuiltinLanguage } from "shiki";
 
 const blogCollection = defineCollection({
-  loader: glob({ pattern: "*.md", base: "./src/blog" }),
+  loader: glob({ pattern: "*.{md,mdx}", base: "./src/blog" }),
   schema: z.object({
     isDraft: z.boolean().default(false),
     title: z.string(),
