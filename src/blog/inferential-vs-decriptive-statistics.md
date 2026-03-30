@@ -1,0 +1,82 @@
+---
+title: Inferential vs Descriptive Statistics
+pubDate: 2026-03-29
+description:
+  "Understanding the two primary branches of statistics. Learn how descriptive
+  statistics summarizes data with measures of central tendency and dispersion,
+  while inferential statistics generalizes from samples to populations using
+  probability and hypothesis testing."
+tags: ["statistics", "data-science"]
+snippet:
+  language: "python"
+  code: |
+    import numpy as np
+    data = [23, 45, 12, 67, 34, 89, 21]
+    mean = np.mean(data)    # 41.57
+    std = np.std(data)      # 25.24
+---
+
+Statistics is fundamentally the discipline that concerns the collection,
+organization, displaying, analysis, interpretation, and presentation of data. To
+effectively analyze data and draw meaningful conclusions, the field is broadly
+divided into two primary branches: descriptive statistics and inferential
+statistics. While they are closely related, they serve entirely different
+analytical purposes.
+
+## Descriptive Statistics: Summarizing the Data
+
+The main goal of descriptive statistics is to **summarize and provide
+information about a dataset using a small number of measures or indicators**.
+When faced with a large heap of raw numbers, descriptive statistics asks how we
+can discover underlying patterns and represent the data in useful, easily
+digestible ways.
+
+This branch relies on numerical summaries and visual graphs to capture the
+outstanding characteristics of the data without making assumptions beyond the
+dataset itself. The most common summary statistics include:
+
+- **Measures of location or central tendency:** This includes the mean, median,
+  and mode, which help identify the center of the data.
+- **Measures of statistical dispersion (spread):** This includes variance,
+  standard deviation, and the interquartile range (IQR), which describe how
+  stretched or squeezed the distribution of data is.
+- **Measures of shape and relationship:** This includes concepts like skewness,
+  kurtosis, and the linear correlation between two variables.
+
+## Inferential Statistics: Generalizing Beyond the Sample
+
+While descriptive statistics describes the exact data you have on hand,
+inferential statistics is used to **generalize from a smaller sample to a larger
+population**. Because it is often impossible, too time-consuming, or too
+expensive to measure an entire population (such as the entire population of a
+country), researchers must collect observations from a limited sample and make a
+"leap of faith" to infer the true value of the broader population parameter.
+
+To do this reliably, **inferential statistics relies heavily on the laws of
+probability** to draw statistical conclusions and estimate your level of
+confidence in those conclusions. It utilizes **inductive reasoning**, meaning
+the logic flows from the specific sample data upward to make broader
+generalizations about the entire population.
+
+The key techniques used in inferential statistics include:
+
+- **Point estimation:** Providing a single numerical value as a "best guess" for
+  an unknown population parameter.
+- **Interval estimation (Confidence Intervals):** Providing a range or
+  distribution of plausible values for a parameter to account for sampling
+  variability.
+- **Hypothesis testing:** Deciding whether experimental evidence supports or
+  contradicts a specific conjecture about a system, which involves calculating
+  statistical significance (like _p-values_).
+
+Ultimately, inferential statistics teaches us how to **make intelligent
+judgments and informed decisions in the presence of uncertainty and natural
+variation**.
+
+## Summary
+
+In short, descriptive statistics focuses on organizing and summarizing the
+specific data you have gathered, giving you a clear numerical and graphical
+picture of your sample. Conversely, inferential statistics takes that summarized
+data and applies probability to make predictions, test hypotheses, and draw
+confident conclusions about the broader population that the sample represents.
