@@ -1,87 +1,160 @@
 ---
-title: MCP
+title: "Building a Production-Ready Remote MCP Server"
 pubDate: 2026-03-22
 description:
-  "Lessons from building a remote MCP server. Challenges with stateful sessions,
-  input validation, scoped tool access, and authorization in production."
-tags: ["ai", "python"]
-isDraft: true
+  "Lessons from building a remote MCP server in Python. Challenges with stateful
+  sessions, input validation, scoped tool access, and OAuth 2.1 authorization in
+  horizontally scaled production environments."
+tags: ["ai", "python", "mcp"]
+isDraft: false
 snippet:
   language: "python"
-  code: "from http_mcp import Server"
+  code: |
+    from http_mcp import Server
+    from http_mcp.types import Tool
+
+    tool = Tool(
+        inputs=MyInput,
+        output=MyOutput,
+        func=my_handler,
+        scopes=("mcp:read",),
+    )
 ---
 
-The Model Context Protocol has become the standard for granting AI agents access
-to external resources. It defines the methods and message format (JSON-RPC) for
-accessing and triggering the execution of functions (tools) and instructions
+The Model Context Protocol (MCP) is an open standard for connecting LLMs to
+external tools and data sources via a JSON-RPC interface. The key insight is
+that MCP gives you a proper, discoverable API: a model can list available tools,
+inspect their input/output schemas, and invoke them the same way a developer
+would call a REST endpoint. It has become the standard for granting AI agents
+access to external resources, defining both the methods and the message format
+for accessing and triggering the execution of functions (tools) and instructions
 (prompts).
 
-I have been working on MCP implementation and here I will share the challenges I
-faced while building a production-grade remote MCP server.
+I was in charge of creating a remote MCP server to allow our customers to use
+LLMs to access the data they already have on our platform. What seemed
+straightforward turned into a deep dive into protocol design, session
+management, and authorization at scale.
 
-## What is MCP?
+## The Problem with the Official SDK
 
-For those unfamiliar with MCP, it's a protocol developed by Anthropic that
-standardizes how AI models (Claude, or other LLMs) interact with external tools
-and data sources. Instead of hardcoding integrations into models, MCP allows you
-to define a contract: the client (AI agent) sends requests in a standard format,
-and the server responds with results.
+There was one problem: in April 2025, the Python MCP ecosystem was still very
+young. I needed a library that I could embed directly in a Starlette/FastAPI
+application — one that was lightweight, type-safe, and simple to reason about.
+The official SDK had significant issues with our infrastructure, particularly
+around session management in horizontally scaled environments:
 
-The protocol supports:
+![Discussion on GitHub](./images/mcp_session_lost_discussion.png)
+[GitHub Discussion Link](https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583)
 
-- **Tools**: Functions the AI can call to perform actions or fetch data
-- **Prompts**: Reusable instruction templates for specific tasks
-- **Resources**: Exposing data or systems for the AI to access
+Rather than working around these limitations, I decided to build a library from
+scratch with the characteristics mentioned above — and without the problems
+discovered in the official SDK.
 
-This abstraction means an AI can use the same interface whether it's calling a
-local function, a remote API, or a database query.
+## Building http-mcp
+
+[`http-mcp`](https://github.com/yeison-liscano/http_mcp) (published on PyPI as
+`http-mcp`) implements the MCP spec for tools and prompts over HTTP and STDIO. I
+designed it around a few principles:
+
+**1. Pydantic-first, schema automatically generated.** Tools are declared by
+wrapping a Python function in a `Tool` dataclass and pointing at its Pydantic
+input/output models. The JSON schema that MCP clients use for discovery is
+derived automatically from those models:
+
+```python
+from http_mcp.types import Arguments, Tool
+from pydantic import BaseModel, Field, UUID4
+
+
+class FixMetadataInput(BaseModel):
+    vulnerability_id: UUID4 = Field(description="Vulnerability uuid4 id")
+
+
+class FixMetadataOutput(BaseModel):
+    version: str = Field(
+        description="Safe version of the dependency",
+    )
+    is_breaking_change: bool = Field(
+        description="Whether upgrading to safe version is a breaking change",
+    )
+
+
+def get_fix_metadata(
+    arguments: Arguments[FixMetadataInput],
+) -> FixMetadataOutput:
+    return FixMetadataOutput(
+        version="2.3.4",
+        is_breaking_change=False,
+    )
+
+
+tool = Tool(
+    inputs=FixMetadataInput,
+    output=FixMetadataOutput,
+    func=get_fix_metadata,
+)
+```
+
+With inputs as Pydantic models validation happens automatically before the data
+reaches the tool function. Inputs are rejected with structured errors if they do
+not match the schema. Another advantage is that every field is self-documenting
+— by using `Field(description="...")`, both the input and output schemas carry
+human-readable documentation that MCP clients can surface to users and models
+alike.
+
+**2. Starlette-native auth.** Rather than inventing a new auth model, the
+library plugs into Starlette's `AuthenticationMiddleware`. Scope-based access
+control just works: tools declare which scopes they require, and the framework
+filters them before listing or invocation.
+
+**3. Validation errors as LLM feedback.** When an AI agent sends malformed
+input, the default behavior in most frameworks is to return a raw HTTP error
+that the client may silently discard. In `http-mcp`, setting
+`return_error_message=True` on a tool causes Pydantic validation errors to be
+returned as structured tool responses that the LLM actually sees. Instead of a
+cryptic 422, the model receives something like "vulnerability_id must be a valid
+UUID4, got 'abc123'" — which is enough context for it to self-correct on the
+next attempt without human intervention.
+
+```python
+Tool(
+    inputs=FixMetadataInput,
+    output=FixMetadataOutput,
+    func=get_fix_metadata,
+    return_error_message=True,  # Validation errors are returned to the LLM
+    scopes=("mcp:read",),
+)
+```
+
+This turns validation from a dead-end into a feedback loop, saving round-trips
+and tokens.
 
 ## Stateful Sessions: A Scaling Problem
 
-![GitHub Discussion Comment About session lost on multiple workers environment](./images/mcp_session_lost_discussion.png)
-
-[GitHub Discussion Link](https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583)
-
 The early versions of the MCP Python SDK maintained session state across
 requests. This creates a critical problem in horizontally scaled environments:
-if your MCP server runs on multiple workers (load-balanced), each request might
-hit a different worker instance. Session data stored on Worker A is invisible to
-Worker B, causing the session to be lost and the AI agent's context to break.
+if your MCP server runs on multiple workers behind a load balancer, each request
+might hit a different worker instance. Session data stored on Worker A is
+invisible to Worker B, causing the session to be lost and the AI agent's context
+to break.
 
-This is a fundamental architectural issue. Here's why it's problematic:
+This is a fundamental architectural issue for three reasons:
 
-1. **Load Balancers**: In production, HTTP requests from multiple clients get
-   distributed across different server instances
-2. **Stateless Design Principle**: Web services should be stateless so any
-   instance can handle any request
-3. **Horizontal Scaling**: You can't scale horizontally if every instance needs
-   to remember its own state
+1. **Load balancers distribute traffic unpredictably.** In production, HTTP
+   requests from multiple clients get distributed across different server
+   instances. Sticky sessions are a workaround, not a solution.
+2. **Stateless design is a prerequisite for reliability.** Web services should
+   be stateless so any instance can handle any request. This is especially
+   important for MCP servers, where a dropped session means the agent loses its
+   entire tool context.
+3. **Horizontal scaling requires shared-nothing architecture.** You cannot scale
+   horizontally if every instance needs to remember its own state. Adding more
+   workers should be as simple as increasing a replica count.
 
 The solution was to implement a **stateless HTTP transport** that treats each
 request as independent. Instead of maintaining session objects in memory, the
-transport sends all necessary context in each request.
-
-```python
-# Example of stateless transport - each request is self-contained
-from http_mcp import Server
-
-server = Server("my-tool-server")
-
-@server.tool()
-def fetch_user_data(user_id: str) -> dict:
-    """Fetch user information"""
-    return {
-        "id": user_id,
-        "name": "John Doe",
-        "email": "john@example.com"
-    }
-
-# No session management needed - each HTTP request is independent
-# The client includes all needed context in each request
-```
-
-This stateless design became the foundation for my `http-mcp` package on PyPI,
-which you can find here:
+transport sends all necessary context in each request. This stateless design
+became the foundation for `http-mcp`:
 [https://pypi.org/project/http-mcp/](https://pypi.org/project/http-mcp/)
 
 ## Remote MCP Architecture: HTTP vs Stdio
@@ -89,203 +162,124 @@ which you can find here:
 MCP supports two transport mechanisms:
 
 - **Stdio Transport**: The MCP server runs as a subprocess on the same machine,
-  communicating via standard input/output. This is simple for local
-  integrations.
+  communicating via standard input/output. This is simple for local integrations
+  but limits you to a single host.
 - **HTTP Transport**: The MCP server runs as a separate service (often remote),
   communicating over HTTP. This enables true separation of concerns and
   horizontal scaling.
 
-For production systems, HTTP transport is more practical. It allows:
-
-- Separate deployment and scaling of the MCP server
-- Easier monitoring and logging
-- Integration with load balancers and service meshes
-- Language-agnostic communication
+For production systems, HTTP transport is the practical choice. It allows
+separate deployment and scaling of the MCP server, easier monitoring and
+logging, integration with load balancers and service meshes, and
+language-agnostic communication between components.
 
 The trade-off is complexity: you must handle network errors, timeouts, and
 ensure your protocol is truly stateless.
 
-## Challenge 1: Input Validation - Fail vs Teach
+## Challenge 1: Input Validation — Fail vs Teach
 
-When implementing tools, you'll receive inputs from the AI agent. These inputs
-are specified by your schema but often have validation constraints (types,
-ranges, required fields, etc.).
+When implementing tools, you receive inputs from the AI agent. These inputs are
+specified by your schema but often have validation constraints — types, ranges,
+required fields, and so on.
 
-A naive approach: return an error when validation fails.
-
-A better approach: return a helpful error message that teaches the AI agent what
-went wrong, so it can correct its own request.
+A naive approach is to return a raw error when validation fails. A better
+approach is to return a **helpful error message that teaches the AI agent what
+went wrong**, so it can correct its own request on the next attempt:
 
 ```python
-# Bad: Raw validation error
-@server.tool()
-def create_user(email: str, age: int) -> dict:
-    """Create a new user"""
-    # If validation fails, Pydantic throws an exception
-    # The AI sees: "ValueError: invalid literal for int()"
-    # The AI has no idea how to fix it
-    return {"success": True}
+from http_mcp.types import Tool
+from pydantic import BaseModel, Field, UUID4
 
-# Good: Helpful error feedback
-from pydantic import BaseModel, ValidationError
 
-class UserInput(BaseModel):
-    email: str
-    age: int
+class FixMetadataInput(BaseModel):
+    vulnerability_id: UUID4 = Field(description="Vulnerability uuid4 id")
 
-@server.tool()
-def create_user(email: str, age: int) -> dict:
-    """Create a new user"""
-    try:
-        user_input = UserInput(email=email, age=age)
-    except ValidationError as e:
-        # Return the errors in a format the AI can understand
-        errors = [
-            f"Field '{field}': {error['msg']}"
-            for field, error_list in e.errors()
-            for error in [error_list[0]] if isinstance(error_list, list)
-        ]
-        return {
-            "success": False,
-            "error": "Input validation failed",
-            "details": errors,
-            "hint": "Please check that age is an integer and email is valid"
-        }
 
-    # Now proceed with valid input
-    return {"success": True, "user_id": "123"}
+class FixMetadataOutput(BaseModel):
+    version: str = Field(
+        description="Safe version of the dependency",
+    )
+    is_breaking_change: bool = Field(
+        description="Whether upgrading to safe version is a breaking change",
+    )
+
+
+Tool(
+    inputs=FixMetadataInput,
+    output=FixMetadataOutput,
+    func=get_fix_metadata,
+    return_error_message=True,  # Validation errors are shown to the LLM
+    scopes=("mcp:read",),
+)
 ```
 
-When the AI agent receives a validation error with context, it can adjust its
-next attempt. This saves round-trips and makes the interaction more efficient.
+With `return_error_message=True`, when the AI agent receives a validation error
+with context (e.g., "vulnerability_id must be a valid UUID4, got 'abc123'"), it
+can adjust its next attempt. This saves round-trips and makes the interaction
+significantly more efficient.
 
 ## Challenge 2: Context-Based Tool Exposure
 
 Not all tools should be available to all callers. You might want:
 
-- Public tools (no auth required): "weather" tool anyone can use
-- Private tools (auth required): "delete user" tool only admins can use
-- Scoped tools: Different tools for different contexts or user roles
+- **Public tools** (no auth required): A "get_server_status" tool anyone can use
+- **Private tools** (auth required): A "delete_user" tool only admins can access
+- **Scoped tools**: Different tools for different contexts or user roles
 
 I solved this by leveraging Starlette's scope system. Each HTTP request carries
-scope metadata (user, role, permissions). Tools can require specific scope
-attributes.
+scope metadata (user, role, permissions), and tools declare which scopes they
+require:
 
 ```python
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
+from http_mcp.types import Tool
+from pydantic import BaseModel, Field, UUID4
 
-# Middleware to attach user context to the scope
-class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Extract user info from headers, JWT, etc.
-        user_id = request.headers.get("X-User-ID", "anonymous")
-        user_role = request.headers.get("X-User-Role", "guest")
 
-        # Store in scope for tools to access
-        request.scope["user_id"] = user_id
-        request.scope["user_role"] = user_role
+class FixMetadataInput(BaseModel):
+    vulnerability_id: UUID4 = Field(description="Vulnerability uuid4 id")
 
-        response = await call_next(request)
-        return response
 
-# Tool definition with scope requirements
-from http_mcp import Server, requires_scope
+class FixMetadataOutput(BaseModel):
+    version: str = Field(
+        description="Safe version of the dependency",
+    )
+    is_breaking_change: bool = Field(
+        description="Whether upgrading to safe version is a breaking change",
+    )
 
-server = Server("my-tool-server")
 
-@server.tool()
-def get_weather(location: str) -> dict:
-    """Get weather for a location - public tool"""
-    return {"location": location, "temp": 72, "condition": "sunny"}
-
-@server.tool(required_scopes=["authenticated"])
-def list_user_resources(user_id: str) -> list:
-    """List resources for authenticated users"""
-    return [f"resource_{i}" for i in range(5)]
-
-@server.tool(required_scopes=["admin"])
-def delete_user(user_id: str) -> dict:
-    """Delete a user - admin only"""
-    return {"success": True, "deleted_user_id": user_id}
-
-# When the client calls "delete_user", the server checks:
-# "Does this request have 'admin' in required scopes?"
-# If not, return a permission error instead of executing the tool
+Tool(
+    inputs=FixMetadataInput,
+    output=FixMetadataOutput,
+    func=get_fix_metadata,
+    return_error_message=True,
+    scopes=("mcp:read",),  # Only callers with "mcp:read" scope can use this tool
+)
 ```
 
-This approach has several benefits:
-
-- Tools are self-documenting about their requirements
-- Authorization is centralized and consistent
-- You can change permissions without modifying tool code
-- The AI agent can query which tools are available in its current context
-
-## Challenge 3: Authorization Verification
-
-Exposing a tool doesn't mean it can be used in all ways. A practical example:
-
-A `fetch_user_records` tool might be available to authenticated users, but users
-should only access their own records, not everyone's data.
-
-```python
-# Tool with fine-grained authorization
-@server.tool(required_scopes=["authenticated"])
-def fetch_user_records(user_id: str) -> dict:
-    """Fetch records for a user"""
-    # At this point, we know the request is authenticated
-    # But we still need to verify the AI agent is accessing the right user
-
-    # Get the actual authenticated user from request scope
-    request_user_id = get_request_scope()["user_id"]
-
-    # Authorization check: Can this request access this user's data?
-    if user_id != request_user_id and get_request_scope()["user_role"] != "admin":
-        return {
-            "success": False,
-            "error": "Unauthorized",
-            "message": f"You can only access your own records (user_id: {request_user_id})"
-        }
-
-    # Authorization passed - fetch and return data
-    records = database.query(f"SELECT * FROM records WHERE user_id = {user_id}")
-    return {
-        "success": True,
-        "records": records
-    }
-```
-
-The pattern is:
-
-1. **Scope/Authentication**: Is the caller authenticated and allowed to use this
-   tool? (handled by middleware/decorators)
-2. **Authorization**: Does the caller have permission to perform this specific
-   action with these parameters? (checked inside the tool)
-
-This two-layer approach keeps concerns separated and makes authorization logic
-easy to test.
+This approach has several benefits: tools are self-documenting about their
+requirements, authorization is centralized and consistent, you can change
+permissions without modifying tool code, and the AI agent can query which tools
+are available in its current context — so it never tries to call something it
+does not have access to.
 
 ## Lessons Learned
 
 Building a production MCP server taught me several things:
 
-1. **Stateless by Default**: Design your server assuming instances are
-   ephemeral. This makes scaling trivial.
+1. **Stateless by default.** Design your server assuming instances are
+   ephemeral. This makes scaling trivial and eliminates an entire class of
+   session-related bugs.
 
-2. **Error Messages as Feedback Loops**: The AI agent learns from error
-   messages. Make them helpful and specific. Generic errors cause retries and
-   wasted tokens.
+2. **Error messages are feedback loops.** The AI agent learns from error
+   messages. Make them helpful and specific — generic errors cause retries and
+   wasted tokens. Some MCP clients do not even pass error responses to the LLM;
+   this is solved by declaring errors as a kind of response the tool can provide
+   via `return_error_message=True`.
 
-3. **Explicit Permissions**: Don't rely on implicit access control. Make scope
-   requirements visible in tool definitions. This prevents accidental security
-   holes.
-
-4. **Separate Concerns**: Keep authentication (who are you?) separate from
-   authorization (what can you do?). This clarity prevents bugs.
-
-5. **Protocol-First Design**: The MCP protocol is a contract between client and
-   server. Define it well upfront. Changes to tool schemas or behavior require
-   careful versioning.
+3. **Explicit permissions matter.** Making scope requirements visible in tool
+   definitions makes it easier to reason about security and to conditionally
+   expose tools and prompts based on the caller's identity.
 
 ## References
 
@@ -295,7 +289,3 @@ Building a production MCP server taught me several things:
   [http-mcp on PyPI](https://pypi.org/project/http-mcp/)
 - **Stateless Sessions Discussion**:
   [Python SDK GitHub Issue #520](https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583)
-
-Building MCP servers is still a relatively new domain, but the patterns are
-emerging. If you're planning to expose tools to AI agents in production, I hope
-these lessons save you some debugging time.
