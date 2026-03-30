@@ -21,6 +21,9 @@ snippet:
     )
 ---
 
+import { Image } from "astro:assets";
+import mcpSessionDiscussion from "./images/mcp_session_lost_discussion.png";
+
 The Model Context Protocol (MCP) is an open standard for connecting LLMs to
 external tools and data sources via a JSON-RPC interface. The key insight is
 that MCP gives you a proper, discoverable API: a model can list available tools,
@@ -43,7 +46,13 @@ application — one that was lightweight, type-safe, and simple to reason about.
 The official SDK had significant issues with our infrastructure, particularly
 around session management in horizontally scaled environments:
 
-![Discussion on GitHub](./images/mcp_session_lost_discussion.png)
+<Image
+  src={mcpSessionDiscussion}
+  alt="GitHub discussion about MCP session loss in horizontally scaled environments"
+  widths={[400, 700, 900]}
+  sizes="(max-width: 720px) 100vw, (max-width: 1300px) 80vw, 900px"
+/>
+
 [GitHub Discussion Link](https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583)
 
 Rather than working around these limitations, I decided to build a library from

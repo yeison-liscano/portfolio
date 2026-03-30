@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
+import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import rehypeExternalLinks from "rehype-external-links";
 
@@ -29,5 +30,5 @@ export default defineConfig({
       wrap: true,
     },
   },
-  integrations: [sitemap()],
+  integrations: [mdx(), sitemap()],
 });

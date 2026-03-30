@@ -29,6 +29,11 @@ export default [
   {
     files: ["**/*.mdx"],
     ...mdx.flat,
+    rules: {
+      ...mdx.flat.rules,
+      "@typescript-eslint/no-unused-vars": "off",
+      "no-unused-vars": "off",
+    },
   },
   // @ts-expect-error, types not yet updated
   ...markdown.configs.recommended,
