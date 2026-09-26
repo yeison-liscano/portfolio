@@ -1,0 +1,295 @@
+---
+/**
+ * OfertaDemanda - Explorable: move demand and supply and watch the
+ * equilibrium price and quantity follow.
+ *
+ * Demand: Qd = 100 + d - 2P. Supply: Qs = -20 + s + 2P.
+ * Equilibrium where Qd = Qs: P = (120 + d - s) / 4, Q = 100 + d - 2P.
+ * The server renders the resting state (d = s = 0) with the same math.
+ */
+const P_MAX = 60;
+const Q_MAX = 140;
+const W = 560;
+const H = 300;
+const M = { top: 12, right: 16, bottom: 40, left: 48 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+
+const x = (q: number) => M.left + (q / Q_MAX) * plotW;
+const y = (p: number) => M.top + plotH - (p / P_MAX) * plotH;
+
+const demandQ = (p: number, d: number) => 100 + d - 2 * p;
+const supplyQ = (p: number, s: number) => -20 + s + 2 * p;
+const line = (q: (p: number) => number) =>
+  `${x(q(0))},${y(0)} ${x(q(P_MAX))},${y(P_MAX)}`;
+const equilibrium = (d: number, s: number) => {
+  const p = (120 + d - s) / 4;
+  return { p, q: demandQ(p, d) };
+};
+
+const rest = equilibrium(0, 0);
+const uid = `oferta-${Math.random().toString(36).slice(2, 8)}`;
+const priceTicks = [0, 15, 30, 45, 60];
+const quantityTicks = [0, 20, 40, 60, 80, 100, 120, 140];
+---
+
+<oferta-demanda>
+  <div class="controls">
+    <label for={`${uid}-d`}>
+      Desplazar demanda <output data-out="d">0</output>
+    </label>
+    <input
+      id={`${uid}-d`}
+      data-in="d"
+      type="range"
+      min="-30"
+      max="30"
+      step="5"
+      value="0"
+    />
+    <label for={`${uid}-s`}>
+      Desplazar oferta <output data-out="s">0</output>
+    </label>
+    <input
+      id={`${uid}-s`}
+      data-in="s"
+      type="range"
+      min="-30"
+      max="30"
+      step="5"
+      value="0"
+    />
+  </div>
+
+  <p class="result" aria-live="polite">
+    Equilibrio: precio <strong data-out="price">${rest.p.toFixed(1)}</strong>,
+    cantidad <strong data-out="quantity">{rest.q.toFixed(0)}</strong> unidades
+  </p>
+
+  <svg
+    viewBox={`0 0 ${W} ${H}`}
+    role="img"
+    aria-label="Curvas de oferta y demanda; se cruzan en el precio y la cantidad de equilibrio"
+  >
+    <defs>
+      <clipPath id={`${uid}-clip`}>
+        <rect x={M.left} y={M.top} width={plotW} height={plotH}></rect>
+      </clipPath>
+    </defs>
+
+    {
+      priceTicks.map((p) => (
+        <g>
+          <line
+            x1={M.left}
+            x2={M.left + plotW}
+            y1={y(p)}
+            y2={y(p)}
+            class="grid"
+          />
+          <text x={M.left - 8} y={y(p)} class="tick" text-anchor="end">
+            ${p}
+          </text>
+        </g>
+      ))
+    }
+    {
+      quantityTicks.map((q) => (
+        <text x={x(q)} y={H - 22} class="tick" text-anchor="middle">
+          {q}
+        </text>
+      ))
+    }
+    <text x={M.left + plotW} y={H - 4} class="axis-label" text-anchor="end">
+      cantidad (unidades)
+    </text>
+
+    <g clip-path={`url(#${uid}-clip)`}>
+      <polyline points={line((p) => demandQ(p, 0))} class="base"></polyline>
+      <polyline points={line((p) => supplyQ(p, 0))} class="base"></polyline>
+      <polyline
+        data-out="demand"
+        points={line((p) => demandQ(p, 0))}
+        class="demand"></polyline>
+      <polyline
+        data-out="supply"
+        points={line((p) => supplyQ(p, 0))}
+        class="supply"></polyline>
+      <polyline
+        data-out="guides"
+        points={`${M.left},${y(rest.p)} ${x(rest.q)},${y(rest.p)} ${x(rest.q)},${M.top + plotH}`}
+        class="guides"></polyline>
+      <circle data-out="point" cx={x(rest.q)} cy={y(rest.p)} r="6" class="point"
+      ></circle>
+    </g>
+
+    <text x={x(demandQ(44, 0)) + 8} y={y(44)} class="curve-label">demanda</text>
+    <text
+      x={x(supplyQ(52, 0)) - 8}
+      y={y(52)}
+      class="curve-label"
+      text-anchor="end"
+    >
+      oferta
+    </text>
+  </svg>
+</oferta-demanda>
+
+<script>
+  const P_MAX = 60;
+  const Q_MAX = 140;
+  const W = 560;
+  const H = 300;
+  const M = { top: 12, right: 16, bottom: 40, left: 48 };
+  const plotW = W - M.left - M.right;
+  const plotH = H - M.top - M.bottom;
+  const x = (q: number) => M.left + (q / Q_MAX) * plotW;
+  const y = (p: number) => M.top + plotH - (p / P_MAX) * plotH;
+  const demandQ = (p: number, d: number) => 100 + d - 2 * p;
+  const supplyQ = (p: number, s: number) => -20 + s + 2 * p;
+  const line = (q: (p: number) => number) =>
+    `${x(q(0))},${y(0)} ${x(q(P_MAX))},${y(P_MAX)}`;
+  const signed = (v: number) => (v > 0 ? `+${v}` : String(v));
+
+  class OfertaDemanda extends HTMLElement {
+    connectedCallback() {
+      this.addEventListener("input", () => this.update());
+    }
+
+    private read(name: string): number {
+      const input = this.querySelector<HTMLInputElement>(`[data-in="${name}"]`);
+      return Number(input?.value ?? 0);
+    }
+
+    private out(name: string): Element | null {
+      return this.querySelector(`[data-out="${name}"]`);
+    }
+
+    update() {
+      const d = this.read("d");
+      const s = this.read("s");
+      const p = (120 + d - s) / 4;
+      const q = demandQ(p, d);
+      const set = (name: string, text: string) => {
+        const el = this.out(name);
+        if (el) el.textContent = text;
+      };
+      set("d", signed(d));
+      set("s", signed(s));
+      set("price", `$${p.toFixed(1)}`);
+      set("quantity", q.toFixed(0));
+      this.out("demand")?.setAttribute(
+        "points",
+        line((pp) => demandQ(pp, d)),
+      );
+      this.out("supply")?.setAttribute(
+        "points",
+        line((pp) => supplyQ(pp, s)),
+      );
+      this.out("guides")?.setAttribute(
+        "points",
+        `${M.left},${y(p)} ${x(q)},${y(p)} ${x(q)},${M.top + plotH}`,
+      );
+      this.out("point")?.setAttribute("cx", String(x(q)));
+      this.out("point")?.setAttribute("cy", String(y(p)));
+    }
+  }
+
+  customElements.define("oferta-demanda", OfertaDemanda);
+</script>
+
+<style>
+  oferta-demanda {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(8rem, auto) 1fr;
+    align-items: center;
+    gap: 8px 16px;
+    font-size: 0.9rem;
+  }
+
+  output,
+  .result strong {
+    color: var(--contrast);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--contrast);
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .result {
+    margin: 0;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    stroke: var(--line);
+  }
+
+  .tick,
+  .axis-label {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .base {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+
+  .demand,
+  .supply {
+    fill: none;
+    stroke: var(--text-color);
+    stroke-width: 2.5;
+  }
+
+  .supply {
+    stroke: var(--muted);
+  }
+
+  .guides {
+    fill: none;
+    stroke: var(--contrast);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .point {
+    fill: var(--contrast);
+  }
+
+  .curve-label {
+    fill: var(--text-color);
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  @media (max-width: 480px) {
+    .controls {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

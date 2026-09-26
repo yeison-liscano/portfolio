@@ -14,6 +14,9 @@ snippet:
         return (returns - investment) / investment * 100
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import OfertaDemanda from "./components/economia-basica/OfertaDemanda.astro";
+
 Palabras claves: economía, oferta, demanda, competencia perfecta, monopolio,
 dinero, tiempo, valor
 
@@ -269,6 +272,10 @@ precios tienden a bajar. Este mecanismo de mercado ajusta los precios de manera
 automática para equilibrar la economía, a menos que haya regulaciones o
 intervenciones del gobierno que impidan este ajuste natural.
 
+<Figure caption="Mueve la demanda o la oferta y observa el nuevo equilibrio. Si la demanda sube, suben el precio y la cantidad; si la oferta sube, el precio baja y la cantidad sube. Las líneas punteadas grises son las curvas originales.">
+  <OfertaDemanda />
+</Figure>
+
 ## Tipos de Mercado
 
 Existen diferentes estructuras de mercado que afectan cómo se forman los precios
@@ -311,14 +318,10 @@ medida en términos de dinero, no de porcentaje. La utilidad es lo que realmente
 recibes en tu bolsillo, pero no te permite comparar fácilmente con otras
 inversiones.
 
-$$
-\text{Rentabilidad} = \left(\frac{\text{Beneficio (valor final)}}
-{\text{Inversión}} - 1\right) \times 100
-$$
-
-$$
-\text{Utilidad} = \text{Valor final} - \text{Inversión inicial}
-$$
+```text
+Rentabilidad (%) = (Valor final / Inversión − 1) × 100
+Utilidad         = Valor final − Inversión inicial
+```
 
 Para la toma de decisiones, generalmente la rentabilidad es más relevante porque
 permite comparar oportunidades de diferentes tamaños.
@@ -444,10 +447,10 @@ elegimos entre alternativas escasas.
 ## Referencias
 
 - Banco Central de Chile. (2024). "Educación Financiera: Tasa de Interés".
-  Recuperado de <https://www.cmfchile.cl/educa/621/w3-article-27164.html>
+  Recuperado de [https://www.cmfchile.cl/educa/621/w3-article-27164.html](https://www.cmfchile.cl/educa/621/w3-article-27164.html)
 
 - Investopedia. (2024). "Economics: Definition, Topics, and Schools of Thought".
-  Recuperado de <https://www.investopedia.com/terms/e/economics.asp>
+  Recuperado de [https://www.investopedia.com/terms/e/economics.asp](https://www.investopedia.com/terms/e/economics.asp)
 
 - Principios Fundamentales de la Economía: Costo y Oportunidad. Recuperado de
-  <https://platzi.com/cursos/economia-del-comportamiento/los-cuatro-principios-de-la-economia/>
+  [https://platzi.com/cursos/economia-del-comportamiento/los-cuatro-principios-de-la-economia/](https://platzi.com/cursos/economia-del-comportamiento/los-cuatro-principios-de-la-economia/)

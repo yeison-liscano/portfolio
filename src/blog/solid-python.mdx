@@ -16,6 +16,9 @@ snippet:
             pass
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import DependencyInversion from "./components/solid-python/DependencyInversion.astro";
+
 The SOLID principles are five design guidelines that help developers write code
 that is more understandable, flexible, and maintainable. Coined by Robert C.
 Martin, these principles form the foundation of object-oriented design and are
@@ -507,6 +510,10 @@ instead, it depends on the NotificationService abstraction. This allows you to
 inject any NotificationService implementation, making the code flexible and
 testable.
 
+<Figure caption="Before, Notifier points down at the concrete services it creates. After, every arrow ends at NotificationService: Notifier uses it, and each service implements it, so adding PushNotificationService does not touch Notifier.">
+  <DependencyInversion />
+</Figure>
+
 **Why it matters:** Dependency Inversion decouples high-level business logic
 from low-level implementation details, making your code more testable, flexible,
 and resilient to change.
@@ -536,6 +543,6 @@ Protocols, duck typing) make implementing SOLID principles straightforward.
 ## References
 
 - Python Software Foundation. "abc — Abstract Base Classes." Python
-  Documentation. <https://docs.python.org/3/library/abc.html>
+  Documentation. [https://docs.python.org/3/library/abc.html](https://docs.python.org/3/library/abc.html)
 - Curso de Patrones de Diseño y SOLID en Python. Platzi.
-  <https://platzi.com/cursos/solid-python/>
+  [https://platzi.com/cursos/solid-python/](https://platzi.com/cursos/solid-python/)

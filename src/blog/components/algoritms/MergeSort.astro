@@ -1,0 +1,164 @@
+---
+/**
+ * MergeSort - The array splits in half until every piece has one element,
+ * then pieces merge back in sorted order. Levels are computed from DATA.
+ */
+const DATA = [38, 27, 43, 3, 9, 82, 10, 5];
+
+interface Piece {
+  start: number;
+  values: number[];
+}
+
+const split = (pieces: Piece[]): Piece[] =>
+  pieces.flatMap((p) => {
+    if (p.values.length === 1) return [p];
+    const half = Math.ceil(p.values.length / 2);
+    return [
+      { start: p.start, values: p.values.slice(0, half) },
+      { start: p.start + half, values: p.values.slice(half) },
+    ];
+  });
+
+const merge = (pieces: Piece[]): Piece[] =>
+  pieces.reduce<Piece[]>((acc, p, i) => {
+    if (i % 2 === 1) return acc;
+    const next = pieces[i + 1];
+    const values = next
+      ? [...p.values, ...next.values].sort((a, b) => a - b)
+      : p.values;
+    return [...acc, { start: p.start, values }];
+  }, []);
+
+const root: Piece[] = [{ start: 0, values: DATA }];
+const s1 = split(root);
+const s2 = split(s1);
+const s3 = split(s2);
+const m1 = merge(s3.map((p) => ({ ...p })));
+const m2 = merge(m1);
+const m3 = merge(m2);
+
+const levels = [
+  { phase: "split", pieces: root },
+  { phase: "split", pieces: s1 },
+  { phase: "split", pieces: s2 },
+  { phase: "split", pieces: s3 },
+  { phase: "merge", pieces: m1 },
+  { phase: "merge", pieces: m2 },
+  { phase: "merge", pieces: m3 },
+];
+
+const CELL = 32;
+const PAD = 2;
+const GAP = 14;
+const ROW = 52;
+const LEFT = 64;
+const TOP = 4;
+
+// A piece keeps its column slots; gaps grow with the number of pieces.
+const pieceX = (piece: Piece, index: number) =>
+  LEFT + piece.start * (CELL + PAD) + index * GAP;
+const pieceW = (piece: Piece) => piece.values.length * (CELL + PAD) - PAD;
+const W = LEFT + DATA.length * (CELL + PAD) + (DATA.length - 1) * GAP;
+const H = TOP + levels.length * ROW;
+
+// Link every piece to each piece on the next level that shares a slot:
+// one parent per child while splitting, two parents per child while merging.
+const overlaps = (a: Piece, b: Piece) =>
+  a.start < b.start + b.values.length && b.start < a.start + a.values.length;
+
+const links = levels.slice(1).flatMap((level, l) =>
+  levels[l].pieces.flatMap((parent, pi) =>
+    level.pieces
+      .map((child, ci) => ({ child, ci }))
+      .filter(({ child }) => overlaps(parent, child))
+      .map(({ child, ci }) => ({
+        x1: pieceX(parent, pi) + pieceW(parent) / 2,
+        y1: TOP + l * ROW + CELL,
+        x2: pieceX(child, ci) + pieceW(child) / 2,
+        y2: TOP + (l + 1) * ROW,
+      })),
+  ),
+);
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label="Merge sort splits 8 values into single elements over 3 levels, then merges them back sorted over 3 levels"
+  class="diagram"
+>
+  <text x="0" y={TOP + ROW * 1.5 + CELL / 2} class="phase">split</text>
+  <text x="0" y={TOP + ROW * 5 + CELL / 2} class="phase">merge</text>
+  {
+    links.map((link) => (
+      <line x1={link.x1} y1={link.y1} x2={link.x2} y2={link.y2} class="link" />
+    ))
+  }
+  {
+    levels.map((level, l) =>
+      level.pieces.map((piece, p) =>
+        piece.values.map((value, v) => (
+          <g>
+            <rect
+              x={pieceX(piece, p) + v * (CELL + PAD)}
+              y={TOP + l * ROW}
+              width={CELL}
+              height={CELL}
+              rx="3"
+              class:list={[
+                "cell",
+                { merged: level.phase === "merge" && piece.values.length > 1 },
+              ]}
+            />
+            <text
+              x={pieceX(piece, p) + v * (CELL + PAD) + CELL / 2}
+              y={TOP + l * ROW + CELL / 2}
+              class="value"
+            >
+              {value}
+            </text>
+          </g>
+        )),
+      ),
+    )
+  }
+</svg>
+
+<style>
+  .diagram {
+    min-width: 480px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .phase {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .link {
+    stroke: var(--line);
+    stroke-width: 1.2;
+  }
+
+  .cell {
+    fill: var(--code-background);
+    stroke: var(--muted);
+    stroke-width: 1;
+  }
+
+  .cell.merged {
+    stroke: var(--contrast);
+    stroke-width: 1.5;
+  }
+
+  .value {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+</style>

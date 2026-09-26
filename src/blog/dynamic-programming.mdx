@@ -16,6 +16,9 @@ snippet:
       return dp[n]
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import FibTree from "./components/dynamic-programming/FibTree.astro";
+
 Dynamic programming is a powerful technique used to solve complex problems by
 breaking them down into simpler sub-problems and reusing partial results.
 
@@ -74,6 +77,10 @@ print(fibonacci(10))  # 55
 
 Using a cache avoids repeated calls like `fibonacci(5)` being computed many
 times.
+
+<Figure caption="The naive fibonacci(5) makes 15 calls. With @lru_cache, each value from f(0) to f(5) is computed once, the 3 repeats become cache hits, and the 6 calls below them never happen.">
+  <FibTree />
+</Figure>
 
 ## Bottom-Up Approach (Tabulation)
 

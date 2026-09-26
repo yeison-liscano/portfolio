@@ -1,0 +1,148 @@
+---
+/**
+ * ScopeLookup - Python resolves a name by searching outward: local,
+ * enclosing, global, then built-in (LEGB), and stops at the first match.
+ */
+const id = "scope-lookup";
+
+const scopes = [
+  { name: "built-in", names: "print, len, range, …", inset: 0 },
+  { name: "global", names: "x = 10", inset: 1 },
+  { name: "enclosing", names: "def outer(): y = 20", inset: 2 },
+  { name: "local", names: "def inner(): z = 30", inset: 3 },
+];
+
+const W = 640;
+const H = 252;
+const INSET_X = 16;
+const INSET_Y = 34;
+const LINE_X = 468;
+const labelY = (inset: number) => inset * INSET_Y + 20;
+
+const checks = [
+  { y: labelY(3), text: "① no x", found: false },
+  { y: labelY(2), text: "② no x", found: false },
+  { y: labelY(1), text: "③ x = 10, found", found: true },
+  { y: labelY(0), text: "④ not reached", found: false },
+];
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label="Looking up x inside inner(): Python checks local, then enclosing, then finds x = 10 in global and never reaches built-in"
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  {
+    scopes.map((scope) => (
+      <g>
+        <rect
+          x={scope.inset * INSET_X}
+          y={scope.inset * INSET_Y}
+          width={W - scope.inset * INSET_X * 2}
+          height={H - scope.inset * INSET_Y - scope.inset * 8}
+          rx="6"
+          class="scope"
+        />
+        <text
+          x={scope.inset * INSET_X + 12}
+          y={labelY(scope.inset)}
+          class="name"
+        >
+          {scope.name}
+        </text>
+        <text
+          x={scope.inset * INSET_X + 100}
+          y={labelY(scope.inset)}
+          class="names"
+        >
+          {scope.names}
+        </text>
+      </g>
+    ))
+  }
+
+  <text x={3 * INSET_X + 12} y="170" class="code">print(x)</text>
+
+  <polyline
+    points={`${3 * INSET_X + 84},170 ${LINE_X},170 ${LINE_X},${labelY(1) + 8}`}
+    marker-end={`url(#${id}-arrow)`}
+    class="lookup"></polyline>
+
+  {
+    checks.map((check) => (
+      <text
+        x={LINE_X + 10}
+        y={check.y}
+        class:list={["check", { found: check.found }]}
+      >
+        {check.text}
+      </text>
+    ))
+  }
+</svg>
+
+<style>
+  .diagram {
+    min-width: 540px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .scope {
+    fill: var(--code-background);
+    fill-opacity: 0.55;
+    stroke: var(--muted);
+    stroke-width: 1.2;
+  }
+
+  .name {
+    fill: currentColor;
+    font-size: 12px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .names {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .code {
+    fill: currentColor;
+    font-size: 13px;
+    dominant-baseline: middle;
+  }
+
+  .lookup {
+    fill: none;
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .check {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .check.found {
+    fill: var(--contrast);
+    font-weight: 600;
+  }
+</style>

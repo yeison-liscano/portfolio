@@ -23,6 +23,11 @@ snippet:
         return -1
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import BinarySearch from "./components/algoritms/BinarySearch.astro";
+import MergeSort from "./components/algoritms/MergeSort.astro";
+
 Let's dive into some of the most important algorithms in computer science.
 Whether you're preparing for technical interviews, optimizing code, or just
 curious about how software works under the hood, understanding these classics is
@@ -115,6 +120,20 @@ Binary search finds a target value in a **sorted array** by repeatedly dividing
 the search interval in half. At each step, you compare the middle element to
 your target and eliminate half the remaining elements.
 
+<Figure caption="Searching for 23 among 11 sorted values. Each iteration keeps only the half that can still hold the target, so 4 comparisons are enough.">
+  <Stepper
+    label="Binary search iterations"
+    steps={[
+      "The range is the whole array. The middle value, 31, is greater than 23, so the right half is dropped.",
+      "The middle of indexes 0 to 4 is 12, which is less than 23, so the left side is dropped.",
+      "Only indexes 3 and 4 remain. The middle value, 17, is still less than 23.",
+      "The range is a single index, and its value is 23: found at index 4.",
+    ]}
+  >
+    <BinarySearch />
+  </Stepper>
+</Figure>
+
 ### Binary Search Complexity
 
 - **Time:** O(log n) — incredibly fast even for huge datasets
@@ -177,6 +196,10 @@ Merge sort divides an array into single-element arrays (which are trivially
 sorted), then merges them back together in sorted order. The merge step is where
 the magic happens—combining two sorted arrays into one sorted array in linear
 time.
+
+<Figure caption="Eight values split into single elements over log₂ 8 = 3 levels, then merge back in sorted order over 3 more. Every level touches all n values, which is where O(n log n) comes from.">
+  <MergeSort />
+</Figure>
 
 ### Merge Sort Complexity
 
@@ -372,15 +395,15 @@ problems.
   depth.
 
 - **Khan Academy: Algorithms Course** —
-  <https://www.khanacademy.org/computing/computer-science/algorithms>. Free,
+  [https://www.khanacademy.org/computing/computer-science/algorithms](https://www.khanacademy.org/computing/computer-science/algorithms). Free,
   interactive explanations of classic algorithms with visualizations.
 
 - **Python Documentation: Time Complexity** —
-  <https://wiki.python.org/moin/TimeComplexity>. Official Python performance
+  [https://wiki.python.org/moin/TimeComplexity](https://wiki.python.org/moin/TimeComplexity). Official Python performance
   characteristics for built-in data structures and operations.
 
-- **Visualgo: Algorithm Visualizer** — <https://visualgo.net/>. Interactive
+- **Visualgo: Algorithm Visualizer** — [https://visualgo.net/](https://visualgo.net/). Interactive
   visualizations of sorting, searching, and graph algorithms in action.
 
-- **Big-O Cheat Sheet** — <https://www.bigocheatsheet.com/>. Quick reference for
+- **Big-O Cheat Sheet** — [https://www.bigocheatsheet.com/](https://www.bigocheatsheet.com/). Quick reference for
   time and space complexity of common algorithms.
