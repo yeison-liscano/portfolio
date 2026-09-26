@@ -1,0 +1,150 @@
+---
+/**
+ * ScopeFilter - tools/list returns only the tools whose required scopes the
+ * caller's token grants. Steps are marked for <Stepper>.
+ */
+const id = "scope-filter";
+
+const tools = [
+  { name: "get_server_status", requires: "none", listed: true, cy: 44 },
+  { name: "get_fix_metadata", requires: "mcp:read", listed: true, cy: 118 },
+  { name: "delete_user", requires: "mcp:admin", listed: false, cy: 192 },
+];
+---
+
+<svg
+  viewBox="0 0 690 236"
+  role="img"
+  aria-label="A token with mcp:read lists get_server_status and get_fix_metadata; delete_user, which needs mcp:admin, stays hidden"
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <g data-step="1">
+    <rect x="0" y="96" width="116" height="44" rx="4" class="box"></rect>
+    <text x="58" y="111" class="label">agent</text>
+    <text x="58" y="129" class="sub">token: mcp:read</text>
+    <line x1="116" y1="118" x2="192" y2="118" marker-end={`url(#${id}-arrow)`}
+    ></line>
+    <text x="154" y="108" class="edge" text-anchor="middle">tools/list</text>
+  </g>
+
+  <g data-step="2">
+    <rect x="196" y="96" width="160" height="44" rx="4" class="box"></rect>
+    <text x="276" y="111" class="label">auth middleware</text>
+    <text x="276" y="129" class="sub">scopes: mcp:read</text>
+  </g>
+
+  <g data-step="3">
+    <text x="350" y="56" class="edge">compare</text>
+    {
+      tools.map((tool) => (
+        <g>
+          <line
+            x1="356"
+            y1="118"
+            x2="420"
+            y2={tool.cy}
+            marker-end={`url(#${id}-arrow)`}
+          />
+          <rect
+            x="424"
+            y={tool.cy - 20}
+            width="196"
+            height="40"
+            rx="4"
+            class="box"
+          />
+          <text x="436" y={tool.cy - 6} class="name">
+            {tool.name}
+          </text>
+          <text x="436" y={tool.cy + 11} class="requires">
+            requires: {tool.requires}
+          </text>
+        </g>
+      ))
+    }
+  </g>
+
+  <g data-step="4">
+    {
+      tools.map((tool) => (
+        <text
+          x="632"
+          y={tool.cy}
+          class:list={["status", { hidden: !tool.listed }]}
+        >
+          {tool.listed ? "listed" : "hidden"}
+        </text>
+      ))
+    }
+  </g>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  line {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .name {
+    fill: currentColor;
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .requires,
+  .edge {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .status {
+    fill: currentColor;
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .status.hidden {
+    text-decoration: line-through;
+  }
+</style>

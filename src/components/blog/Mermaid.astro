@@ -1,0 +1,145 @@
+---
+/**
+ * Mermaid - Renders a Mermaid diagram in the browser.
+ * The library loads from the CDN only on pages that use this component. The
+ * diagram takes its colors from the site palette and re-renders when the
+ * reader switches theme. Without JavaScript the source stays readable.
+ */
+interface Props {
+  /** Mermaid source. Pass it as a template literal. */
+  code: string;
+  /** What the diagram shows, for screen readers. */
+  label: string;
+}
+
+const { code, label } = Astro.props;
+const source = code.trim();
+---
+
+<blog-mermaid role="img" aria-label={label} data-code={source}>
+  <pre class="mermaid-source">{source}</pre>
+</blog-mermaid>
+
+<script>
+  const MERMAID_ESM =
+    "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+  interface MermaidApi {
+    initialize: (config: Record<string, unknown>) => void;
+    render: (id: string, code: string) => Promise<{ svg: string }>;
+  }
+
+  let mermaidPromise: Promise<MermaidApi> | null = null;
+  // Mermaid keeps global state while rendering, so draws run one at a time.
+  let queue: Promise<void> = Promise.resolve();
+  let renderCount = 0;
+
+  function loadMermaid(): Promise<MermaidApi> {
+    mermaidPromise ??= import(/* @vite-ignore */ MERMAID_ESM).then(
+      (module: { default: MermaidApi }) => module.default,
+    );
+    return mermaidPromise;
+  }
+
+  function token(name: string): string {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
+  }
+
+  function isDark(hex: string): boolean {
+    const value = parseInt(hex.replace("#", ""), 16);
+    const [r, g, b] = [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
+  }
+
+  // Only the literal hex tokens are passed: Mermaid derives shades from them
+  // and cannot parse color-mix().
+  function themeVariables(): Record<string, unknown> {
+    const background = token("--primary");
+    const text = token("--text-color");
+    return {
+      darkMode: isDark(background),
+      background,
+      fontFamily: '"Geist Sans", sans-serif',
+      fontSize: "14px",
+      primaryColor: token("--code-background"),
+      primaryTextColor: text,
+      primaryBorderColor: token("--neutral"),
+      secondaryColor: token("--neutral"),
+      tertiaryColor: background,
+      lineColor: text,
+      textColor: text,
+      noteBkgColor: token("--code-background"),
+      noteTextColor: text,
+    };
+  }
+
+  class BlogMermaid extends HTMLElement {
+    connectedCallback() {
+      this.draw();
+    }
+
+    draw() {
+      const code = this.dataset.code ?? "";
+      queue = queue.then(async () => {
+        try {
+          const mermaid = await loadMermaid();
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "strict",
+            theme: "base",
+            themeVariables: themeVariables(),
+          });
+          renderCount += 1;
+          const { svg } = await mermaid.render(
+            `blog-mermaid-${renderCount}`,
+            code,
+          );
+          this.innerHTML = svg;
+        } catch (error) {
+          // The source <pre> stays in place as the readable fallback.
+          console.error("[blog-mermaid]", error);
+        }
+      });
+    }
+  }
+
+  customElements.define("blog-mermaid", BlogMermaid);
+
+  function redrawAll() {
+    document
+      .querySelectorAll<BlogMermaid>("blog-mermaid")
+      .forEach((diagram) => diagram.draw());
+  }
+
+  new MutationObserver(redrawAll).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", redrawAll);
+</script>
+
+<style>
+  blog-mermaid {
+    display: block;
+    color: var(--text-color);
+  }
+
+  blog-mermaid :global(svg) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+  }
+
+  .mermaid-source {
+    margin: 0;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+  }
+</style>

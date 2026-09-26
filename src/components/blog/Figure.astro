@@ -1,0 +1,53 @@
+---
+/**
+ * Figure - Frames a diagram, chart or interactive demo inside a post.
+ * Wide content scrolls inside the frame so the page never scrolls sideways.
+ */
+interface Props {
+  /** One sentence stating what the figure shows. */
+  caption: string;
+  id?: string;
+}
+
+const { caption, id } = Astro.props;
+---
+
+<figure class="post-figure" id={id}>
+  <div class="post-figure-body">
+    <slot />
+  </div>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .post-figure {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+  }
+
+  .post-figure-body {
+    overflow-x: auto;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background-color: var(--surface);
+    color: var(--text-color);
+    line-height: 1.5;
+  }
+
+  .post-figure-body :global(svg) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+  }
+
+  figcaption {
+    max-width: 65ch;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+</style>

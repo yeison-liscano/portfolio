@@ -23,6 +23,11 @@ snippet:
 
 import { Image } from "astro:assets";
 import mcpSessionDiscussion from "./images/mcp_session_lost_discussion.png";
+import Figure from "../components/blog/Figure.astro";
+import Mermaid from "../components/blog/Mermaid.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import SessionModels from "./components/mcp/SessionModels.astro";
+import ScopeFilter from "./components/mcp/ScopeFilter.astro";
 
 The Model Context Protocol (MCP) is an open standard for connecting LLMs to
 external tools and data sources via a JSON-RPC interface. The key insight is
@@ -166,6 +171,10 @@ transport sends all necessary context in each request. This stateless design
 became the foundation for `http-mcp`:
 [https://pypi.org/project/http-mcp/](https://pypi.org/project/http-mcp/)
 
+<Figure caption="With the session in worker memory, the second request fails as soon as the balancer picks another worker. When each request carries its context, any worker can answer.">
+  <SessionModels />
+</Figure>
+
 ## Remote MCP Architecture: HTTP vs Stdio
 
 MCP supports two transport mechanisms:
@@ -227,6 +236,30 @@ with context (e.g., "vulnerability_id must be a valid UUID4, got 'abc123'"), it
 can adjust its next attempt. This saves round-trips and makes the interaction
 significantly more efficient.
 
+<Figure caption="A bare 422 stops at the client. Returned as a tool result, the same validation error reaches the model, which fixes the argument and retries.">
+  <Mermaid
+    label="Sequence: a validation error returned as HTTP 422 never reaches the model; returned as a tool result, the model reads it and retries with a valid UUID4"
+    code={`
+sequenceDiagram
+  participant LLM
+  participant Client as MCP client
+  participant Server as http-mcp server
+  LLM->>Client: get_fix_metadata(vulnerability_id="abc123")
+  Client->>Server: tools/call
+  alt return_error_message=False
+    Server-->>Client: HTTP 422
+    Client-->>LLM: generic failure, or nothing
+  else return_error_message=True
+    Server-->>Client: tool result: must be a valid UUID4
+    Client-->>LLM: error text
+    LLM->>Client: retry with a UUID4
+    Client->>Server: tools/call
+    Server-->>Client: version 2.3.4, not breaking
+  end
+`}
+  />
+</Figure>
+
 ## Challenge 2: Context-Based Tool Exposure
 
 Not all tools should be available to all callers. You might want:
@@ -271,6 +304,20 @@ requirements, authorization is centralized and consistent, you can change
 permissions without modifying tool code, and the AI agent can query which tools
 are available in its current context — so it never tries to call something it
 does not have access to.
+
+<Figure caption="The token's scopes decide what tools/list returns. A tool the caller cannot use is never listed, so the agent never tries it.">
+  <Stepper
+    label="Scope filtering steps"
+    steps={[
+      "The agent calls tools/list with a bearer token that grants mcp:read.",
+      "Starlette's AuthenticationMiddleware resolves the token into the request's scopes.",
+      "Each tool declares the scopes it requires, and the server compares them with the caller's.",
+      "The response lists only the tools the caller may use. delete_user stays hidden.",
+    ]}
+  >
+    <ScopeFilter />
+  </Stepper>
+</Figure>
 
 ## Lessons Learned
 
