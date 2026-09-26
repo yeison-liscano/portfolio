@@ -2,13 +2,15 @@ describe("Web site", (): void => {
   it("Navigation", (): void => {
     localStorage.setItem("theme", "light");
     cy.visit("/");
-    cy.contains("Yeison Liscano").click();
+    cy.contains("h1", "Yeison Liscano");
+    cy.contains("Selected work");
 
+    cy.contains(".nav-link", "About").click();
     cy.contains("About Me");
     cy.contains("Background");
     cy.contains("Education");
 
-    cy.contains("blog").click();
+    cy.contains(".nav-link", "Blog").click();
     cy.contains("Article");
     cy.get(".preview-container").first().find("h2 a").click();
     cy.contains("Table of contents");
