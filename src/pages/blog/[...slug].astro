@@ -1,6 +1,7 @@
 ---
 import Post from "layouts/Post.astro";
 import { getCollection, render } from "astro:content";
+import { readingTime } from "../../utils/format";
 const { BASE_URL } = import.meta.env;
 
 export async function getStaticPaths() {
@@ -18,7 +19,14 @@ const currentIndex = allPosts.findIndex((p) => p.id === post.id);
 const nextPost = allPosts[(currentIndex + 1) % allPosts.length];
 ---
 
-<Post frontmatter={post.data} headings={headings} allPosts={allPosts}>
+<Post
+  frontmatter={{
+    ...post.data,
+    readingTime: post.data.readingTime ?? readingTime(post.body),
+  }}
+  headings={headings}
+  allPosts={allPosts}
+>
   <Content />
   <div class="next-post">
     <p>Next post:</p>

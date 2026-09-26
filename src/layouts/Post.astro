@@ -32,7 +32,12 @@ const {
 
 <!doctype html>
 <html lang="en">
-  <Head title={`${title} | post`} description={description} />
+  <Head
+    title={`${title} | Yeison Liscano`}
+    description={description}
+    type="article"
+    publishedTime={pubDate.toISOString()}
+  />
   <body>
     <Aside posts={allPosts} />
     <div id="app-wrapper">
@@ -116,8 +121,17 @@ const {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    line-height: 1.8;
+    font-size: 1.0625rem;
+    line-height: 1.75;
     width: 100%;
+  }
+
+  /* Keep running text near 70 characters; figures and code use the full column. */
+  #post-article > :global(p),
+  #post-article > :global(ul),
+  #post-article > :global(ol),
+  #post-article > :global(blockquote) {
+    max-width: 70ch;
   }
 
   #post-article :global(img) {
@@ -174,7 +188,7 @@ const {
 
     #post-article {
       padding: 50px 0;
-      gap: 32px;
+      gap: 24px;
     }
   }
 </style>

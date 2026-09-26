@@ -25,27 +25,36 @@
   background-color: var(--primary);
   font-family: var(--font-sans);
   height: 100%;
+  color-scheme: dark;
 
   line-height: 1.5;
 }
 
-[data-theme="light"] {
+/*
+ * One light palette, applied in two cases: the reader chose light with the
+ * toggle, or the OS is light and the reader has not chosen dark. Head.astro
+ * sets data-theme before first paint, so the media query only matters when
+ * scripts are off. Keep both blocks identical.
+ */
+:root[data-theme="light"] {
   --primary: #ffffff;
-  --secondary: #d4d9e3;
+  --secondary: #eef0f5;
   --neutral: #dce0e8;
-  --contrast: #af63f7;
-  --text-color: #000000;
+  --contrast: #7c3aed;
+  --text-color: #111827;
   --code-background: #f6f8fa;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: light) {
-  :root {
-    --primary: #eef7ff;
-    --secondary: #cde8e5;
-    --neutral: #7ab2b2;
-    --contrast: #b38a00;
-    --text-color: #1d2d50;
-    --code-background: #f0f0f0;
+  :root:not([data-theme="dark"]) {
+    --primary: #ffffff;
+    --secondary: #eef0f5;
+    --neutral: #dce0e8;
+    --contrast: #7c3aed;
+    --text-color: #111827;
+    --code-background: #f6f8fa;
+    color-scheme: light;
   }
 }
 

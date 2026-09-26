@@ -2,123 +2,89 @@
 interface Props {
   title: string;
   description: string;
+  /** "article" for blog posts, so link previews treat them as articles. */
+  type?: "website" | "article";
+  /** ISO date of publication, for article previews. */
+  publishedTime?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, type = "website", publishedTime } = Astro.props;
+const { BASE_URL } = import.meta.env;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-const ogImage = new URL(`${import.meta.env.BASE_URL}og-image.svg`, Astro.site)
-  .href;
+const asset = (path: string) => `${BASE_URL}${path}`;
+// Social platforms (LinkedIn, X, Slack) only render raster preview images.
+const ogImage = new URL(asset("og-image.png"), Astro.site).href;
+const rssURL = new URL(asset("rss.xml"), Astro.site).href;
 ---
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Primary Meta Tags -->
   <title>{title}</title>
-  <meta name="title" content={title} />
   <meta name="description" content={description} />
+  <meta name="author" content="Yeison Liscano" />
   <link rel="canonical" href={canonicalURL} />
 
-  <!-- Global Metadata -->
-  <link rel="icon" href="/portfolio/favicon.png" />
-  <link rel="apple-touch-icon" href="/images/icon/192x192.png" />
-  <link rel="manifest" href="/portfolio/manifest.webmanifest" />
-  <meta name="google" content="notranslate" />
-  <link
-    rel="apple-touch-icon"
-    sizes="57x57"
-    href="/portfolio/apple-icon-57x57.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="60x60"
-    href="/portfolio/apple-icon-60x60.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="72x72"
-    href="/portfolio/apple-icon-72x72.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="76x76"
-    href="/portfolio/apple-icon-76x76.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="114x114"
-    href="/portfolio/apple-icon-114x114.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="120x120"
-    href="/portfolio/apple-icon-120x120.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="144x144"
-    href="/portfolio/apple-icon-144x144.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="152x152"
-    href="/portfolio/apple-icon-152x152.png"
-  />
-  <link
-    rel="apple-touch-icon"
-    sizes="180x180"
-    href="/portfolio/apple-icon-180x180.png"
-  />
-  <link
-    rel="icon"
-    type="image/png"
-    sizes="192x192"
-    href="/android-icon-192x192.png"
-  />
+  <!-- Icons and app manifest -->
+  <link rel="icon" href={asset("favicon.ico")} sizes="any" />
   <link
     rel="icon"
     type="image/png"
     sizes="32x32"
-    href="/portfolio/favicon-32x32.png"
-  />
-  <link
-    rel="icon"
-    type="image/png"
-    sizes="96x96"
-    href="/portfolio/favicon-96x96.png"
+    href={asset("favicon-32x32.png")}
   />
   <link
     rel="icon"
     type="image/png"
     sizes="16x16"
-    href="/portfolio/favicon-16x16.png"
+    href={asset("favicon-16x16.png")}
   />
-  <meta name="msapplication-TileColor" content="#2b5797" />
-  <meta name="theme-color" content="#ffffff" />
+  <link rel="apple-touch-icon" href={asset("apple-touch-icon.png")} />
+  <link rel="manifest" href={asset("manifest.webmanifest")} />
+  <meta
+    name="theme-color"
+    content="#171c28"
+    media="(prefers-color-scheme: dark)"
+  />
+  <meta
+    name="theme-color"
+    content="#ffffff"
+    media="(prefers-color-scheme: light)"
+  />
 
-  <!-- sitemap -->
-  <link rel="sitemap" href="/sitemap-index.xml" />
-
-  <!-- Automatic detection of RSS sources -->
+  <!-- Discovery -->
+  <link rel="sitemap" href={asset("sitemap-index.xml")} />
   <link
     rel="alternate"
     type="application/rss+xml"
-    title={title}
-    href={`${Astro.site}rss.xml`}
+    title="Yeison Liscano"
+    href={rssURL}
   />
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:locale" content="en_EN" />
-  <meta property="og:type" content="website" />
+  <!-- Open Graph -->
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:site_name" content="Yeison Liscano" />
+  <meta property="og:type" content={type} />
   <meta property="og:url" content={canonicalURL} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta
+    property="og:image:alt"
+    content="Yeison Liscano, AI and Security Engineer"
+  />
+  {
+    type === "article" && publishedTime && (
+      <meta property="article:published_time" content={publishedTime} />
+    )
+  }
 
-  <!-- Twitter -->
+  <!-- X (Twitter) -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
@@ -128,40 +94,43 @@ const ogImage = new URL(`${import.meta.env.BASE_URL}og-image.svg`, Astro.site)
   <meta name="twitter:creator" content="@yeison__liscano" />
 
   <script is:inline>
-    const getPreference = () => {
-      if (
-        typeof localStorage !== "undefined" &&
-        localStorage.getItem("theme")
-      ) {
-        return localStorage.getItem("theme");
+    const THEME_KEY = "theme";
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const storedTheme = () => {
+      try {
+        return localStorage.getItem(THEME_KEY);
+      } catch {
+        return null;
       }
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
     };
+
+    const getPreference = () =>
+      storedTheme() ?? (media.matches ? "dark" : "light");
+
+    /** @param {string} theme */
+    const apply = (theme) =>
+      document.documentElement.setAttribute("data-theme", theme);
 
     const toggle = () => {
-      const _html = document.querySelector("html");
-      if (!_html) return;
-
-      const _theme =
-        _html.attributes.getNamedItem("data-theme")?.value ?? "light";
-      const newTheme = _theme === "dark" ? "light" : "dark";
-
-      _html.setAttribute("data-theme", newTheme);
-      localStorage?.setItem?.("theme", newTheme);
+      const current = document.documentElement.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      apply(next);
+      try {
+        localStorage.setItem(THEME_KEY, next);
+      } catch {
+        // Storage can be blocked; the choice then lasts for this page only.
+      }
     };
 
-    const mediaMatcher = window.matchMedia("(prefers-color-scheme: dark)");
-    mediaMatcher.addEventListener("change", () => {
-      toggle();
+    // Set the theme before first paint so the page never flashes the wrong one.
+    apply(getPreference());
+
+    // Follow the OS setting only while the reader has not chosen a theme.
+    media.addEventListener("change", (event) => {
+      if (!storedTheme()) apply(event.matches ? "dark" : "light");
     });
 
-    Object.assign(window, {
-      theme: {
-        getPreference,
-        toggle,
-      },
-    });
+    Object.assign(window, { theme: { getPreference, toggle } });
   </script>
 </head>
