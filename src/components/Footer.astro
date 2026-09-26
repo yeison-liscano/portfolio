@@ -1,14 +1,15 @@
+---
+const { BASE_URL } = import.meta.env;
+const year = new Date().getFullYear();
+---
+
 <footer id="footer">
   <div class="footer-content">
+    <p>© {year} Yeison Liscano</p>
     <div class="footer-links">
-      <a href="https://www.linkedin.com/in/yeison-liscano/">
-        {"<linkedin\\>"}
-      </a>
-      <a href="https://github.com/yeison-liscano">
-        {"<github\\>"}
-      </a>
+      <a href={`${BASE_URL}rss.xml`}>RSS</a>
+      <a href={`${BASE_URL}blog/`}>Blog</a>
     </div>
-    <p>© 2026, Yeison Liscano</p>
   </div>
 </footer>
 

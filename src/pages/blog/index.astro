@@ -1,6 +1,7 @@
 ---
 import Base from "layouts/Base.astro";
 import PostPreview from "components/PostPreview.astro";
+import { label, readingTime } from "../../utils/format";
 
 import { getCollection } from "astro:content";
 
@@ -25,21 +26,21 @@ const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
     {
       allTags.map((tag) => (
         <button class="filter-btn" data-tag={tag}>
-          {tag[0].toUpperCase() + tag.slice(1)}
+          {label(tag)}
         </button>
       ))
     }
   </div>
   <div class="posts-container" id="posts-container">
     {
-      allPosts.map(({ data, id }) => (
+      allPosts.map(({ data, id, body }) => (
         <PostPreview
           title={data.title}
           pubDate={data.pubDate}
           description={data.description}
           tags={data.tags}
           slug={id}
-          readingTime={data?.readingTime}
+          readingTime={data.readingTime ?? readingTime(body)}
           snippet={data.snippet}
           dataTags={data.tags.join(",")}
         />

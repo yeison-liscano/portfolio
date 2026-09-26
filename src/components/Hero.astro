@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
+import { formatDate, isoDate } from "../utils/format";
 
 type Props = Omit<
   CollectionEntry<"blog">["data"],
@@ -9,18 +10,14 @@ type Props = Omit<
 export type { Props };
 
 const { pubDate, readingTime, title } = Astro.props;
-const formattedDate = new Date(pubDate).toLocaleDateString("en-US", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
+const formattedDate = formatDate(pubDate);
 ---
 
 <div class="hero-container">
   <div class="hero-header">
     <h1>{title}</h1>
     <div class="hero-meta">
-      <time datetime={pubDate.toDateString()}>{formattedDate}</time>
+      <time datetime={isoDate(pubDate)}>{formattedDate}</time>
       <span class="reading-time">{readingTime}</span>
     </div>
   </div>

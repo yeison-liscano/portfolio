@@ -19,12 +19,12 @@ const { posts } = Astro.props;
 
     <!-- Desktop Navigation -->
     <nav id="desktop-nav">
-      <a href={BASE_URL} class="nav-link">home</a>
-      <a href={`${BASE_URL}about/`} class="nav-link">about</a>
+      <a href={BASE_URL} class="nav-link">Home</a>
+      <a href={`${BASE_URL}about/`} class="nav-link">About</a>
       <a
         href={posts === undefined ? `${BASE_URL}blog/` : undefined}
         id="blog-link"
-        class="nav-link">blog</a
+        class="nav-link">Blog</a
       >
     </nav>
 
@@ -63,9 +63,9 @@ const { posts } = Astro.props;
     <Icon icon="x" size="24px" />
   </button>
   <nav id="mobile-nav">
-    <a href={BASE_URL} class="mobile-nav-link">home</a>
-    <a href={`${BASE_URL}about/`} class="mobile-nav-link">about</a>
-    <a href={`${BASE_URL}blog/`} class="mobile-nav-link">blog</a>
+    <a href={BASE_URL} class="mobile-nav-link">Home</a>
+    <a href={`${BASE_URL}about/`} class="mobile-nav-link">About</a>
+    <a href={`${BASE_URL}blog/`} class="mobile-nav-link">Blog</a>
     <a
       href="https://www.linkedin.com/in/yeison-liscano/"
       target="_blank"
@@ -289,7 +289,7 @@ const { posts } = Astro.props;
 
   .nav-icon-link:hover {
     color: var(--contrast);
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: var(--surface);
   }
 
   /* ===== HAMBURGER BUTTON ===== */
@@ -390,7 +390,7 @@ const { posts } = Astro.props;
   .mobile-nav-link:hover,
   .mobile-nav-link.active {
     color: var(--contrast);
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--surface);
   }
 
   /* ===== BLOG POSTS DROPDOWN ===== */
@@ -405,7 +405,7 @@ const { posts } = Astro.props;
     width: 320px;
     max-height: calc(100vh - 64px);
     background-color: var(--primary);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--line);
     border-top: none;
     padding: 16px;
     overflow-y: auto;
@@ -450,7 +450,7 @@ const { posts } = Astro.props;
 
   #posts-list a:hover {
     color: var(--contrast);
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--surface);
   }
 
   /* ===== DESKTOP BREAKPOINT ===== */

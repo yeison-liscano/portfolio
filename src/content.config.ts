@@ -17,7 +17,8 @@ const blogCollection = defineCollection({
     footnote: z.string().optional(),
     pubDate: z.date(),
     description: z.string(),
-    readingTime: z.string().default("1 min read"),
+    /** Optional override; otherwise estimated from the post body. */
+    readingTime: z.string().optional(),
   }),
 });
 
