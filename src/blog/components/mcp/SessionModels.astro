@@ -1,0 +1,220 @@
+---
+/**
+ * SessionModels - With the session in worker memory, the second request fails
+ * when the balancer picks another worker. When each request carries its
+ * context, any worker can answer.
+ */
+const id = "session-models";
+
+const panels = [
+  {
+    y: 0,
+    title: "Stateful: the session lives in worker A's memory",
+    workerA: "session: 7f3a",
+    workerB: "session: none",
+    edgeA: "initialize",
+    edgeB: "tools/call",
+    result: "404 session not found",
+    stateful: true,
+  },
+  {
+    y: 220,
+    title: "Stateless: every request carries its own context",
+    workerA: "no session kept",
+    workerB: "no session kept",
+    edgeA: "initialize",
+    edgeB: "tools/call",
+    result: "200 tool result",
+    stateful: false,
+  },
+];
+---
+
+<svg
+  viewBox="0 0 640 420"
+  role="img"
+  aria-label="Stateful sessions fail when the second request reaches worker B; stateless requests succeed on any worker"
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <line x1="0" y1="206" x2="640" y2="206" class="divider"></line>
+
+  {
+    panels.map((panel) => (
+      <g transform={`translate(0 ${panel.y})`}>
+        <text x="0" y="14" class="title">
+          {panel.title}
+        </text>
+
+        <rect x="0" y="80" width="116" height="40" rx="4" class="box" />
+        <text x="58" y="100" class="label">
+          agent
+        </text>
+
+        <rect x="196" y="80" width="112" height="40" rx="4" class="box" />
+        <text x="252" y="100" class="label">
+          balancer
+        </text>
+
+        <line
+          x1="116"
+          y1="100"
+          x2="192"
+          y2="100"
+          marker-end={`url(#${id}-arrow)`}
+        />
+        <text x="154" y="90" class="edge" text-anchor="middle">
+          requests
+        </text>
+
+        <rect x="440" y="28" width="160" height="44" rx="4" class="box" />
+        <text x="520" y="43" class="label">
+          worker A
+        </text>
+        <text x="520" y="61" class="sub">
+          {panel.workerA}
+        </text>
+
+        <rect
+          x="440"
+          y="128"
+          width="160"
+          height="44"
+          rx="4"
+          class:list={["box", { bad: panel.stateful }]}
+        />
+        <text x="520" y="143" class="label">
+          worker B
+        </text>
+        <text x="520" y="161" class:list={["sub", { bad: panel.stateful }]}>
+          {panel.workerB}
+        </text>
+
+        <line
+          x1="308"
+          y1="92"
+          x2="436"
+          y2="56"
+          marker-end={`url(#${id}-arrow)`}
+        />
+        <text x="312" y="36" class="edge">
+          ① {panel.edgeA}
+        </text>
+        {!panel.stateful && (
+          <text x="312" y="50" class="edge accent">
+            + context
+          </text>
+        )}
+
+        <line
+          x1="308"
+          y1="108"
+          x2="436"
+          y2="144"
+          marker-end={`url(#${id}-arrow)`}
+          class:list={{ bad: panel.stateful }}
+        />
+        <text x="312" y="150" class="edge">
+          ② {panel.edgeB}
+        </text>
+        {!panel.stateful && (
+          <text x="312" y="164" class="edge accent">
+            + context
+          </text>
+        )}
+
+        <text
+          x="520"
+          y="192"
+          class:list={["sub", panel.stateful ? "bad" : "good"]}
+        >
+          {panel.result}
+        </text>
+      </g>
+    ))
+  }
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  line {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  line.bad {
+    stroke: var(--bad);
+  }
+
+  .divider {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .box.bad {
+    stroke: var(--bad);
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .edge {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .accent {
+    fill: var(--contrast);
+  }
+
+  .sub.bad {
+    fill: var(--bad);
+  }
+
+  .sub.good {
+    fill: var(--good);
+  }
+</style>

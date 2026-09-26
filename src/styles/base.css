@@ -6,6 +6,15 @@
   --text-color: #d7dce2;
   --code-background: #1d2433;
 
+  /* Derived tokens for figures, charts and widgets inside posts. They mix
+     the palette above, so every theme block below updates them for free. */
+  --muted: color-mix(in oklab, var(--text-color) 68%, var(--primary));
+  --line: color-mix(in oklab, var(--text-color) 22%, var(--primary));
+  --surface: color-mix(in oklab, var(--text-color) 5%, var(--primary));
+  --good: color-mix(in oklab, #2ea043 75%, var(--text-color));
+  --warn: color-mix(in oklab, #d29922 75%, var(--text-color));
+  --bad: color-mix(in oklab, #e5534b 75%, var(--text-color));
+
   --max-width: 720px;
 
   --font-sans: "Geist Sans", sans-serif;

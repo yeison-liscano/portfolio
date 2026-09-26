@@ -254,6 +254,7 @@ notranslate
 nowrap
 nslookup
 numpy
+nums
 octicon
 ollama
 oneline
