@@ -1,0 +1,141 @@
+---
+/**
+ * BinarySearch - Each iteration halves the range [lo, hi] until the middle
+ * element is the target. Rows are Stepper steps; the rows are computed by
+ * running the algorithm on DATA at build time.
+ */
+const DATA = [3, 8, 12, 17, 23, 31, 42, 56, 64, 77, 85];
+const TARGET = 23;
+
+interface Iteration {
+  lo: number;
+  hi: number;
+  mid: number;
+  note: string;
+}
+
+const run = (lo: number, hi: number): Iteration[] => {
+  const mid = Math.floor((lo + hi) / 2);
+  const value = DATA[mid];
+  if (value === TARGET) {
+    return [
+      { lo, hi, mid, note: `${value} = ${TARGET}, found at index ${mid}` },
+    ];
+  }
+  return value < TARGET
+    ? [
+        { lo, hi, mid, note: `${value} < ${TARGET}, so lo = ${mid + 1}` },
+        ...run(mid + 1, hi),
+      ]
+    : [
+        { lo, hi, mid, note: `${value} > ${TARGET}, so hi = ${mid - 1}` },
+        ...run(lo, mid - 1),
+      ];
+};
+
+const iterations = run(0, DATA.length - 1);
+
+const CELL = 40;
+const GAP = 4;
+const ROW_H = 76;
+const TOP = 22;
+const W = DATA.length * (CELL + GAP) - GAP;
+const H = TOP + iterations.length * ROW_H;
+const cx = (i: number) => i * (CELL + GAP);
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label={`Binary search for ${TARGET} in ${DATA.length} sorted values finds it in ${iterations.length} iterations`}
+  class="diagram"
+>
+  {
+    DATA.map((_, i) => (
+      <text x={cx(i) + CELL / 2} y="10" class="index">
+        {i}
+      </text>
+    ))
+  }
+  {
+    iterations.map((it, step) => {
+      const y = TOP + step * ROW_H;
+      return (
+        <g data-step={step + 1}>
+          <text x="0" y={y + 12} class="note">
+            {`lo=${it.lo} hi=${it.hi} mid=${it.mid} · ${it.note}`}
+          </text>
+          {DATA.map((value, i) => {
+            const inRange = i >= it.lo && it.hi >= i;
+            return (
+              <g>
+                <rect
+                  x={cx(i)}
+                  y={y + 24}
+                  width={CELL}
+                  height={CELL}
+                  rx="4"
+                  class:list={["cell", { out: !inRange, mid: i === it.mid }]}
+                />
+                <text
+                  x={cx(i) + CELL / 2}
+                  y={y + 24 + CELL / 2}
+                  class:list={["value", { out: !inRange }]}
+                >
+                  {value}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      );
+    })
+  }
+</svg>
+
+<style>
+  .diagram {
+    min-width: 480px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .index {
+    fill: var(--muted);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: currentColor;
+    font-size: 12px;
+  }
+
+  .cell {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .cell.out {
+    fill: none;
+    stroke-dasharray: 3 3;
+  }
+
+  .cell.mid {
+    stroke: currentColor;
+    stroke-width: 2.5;
+  }
+
+  .value {
+    fill: currentColor;
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .value.out {
+    fill: var(--line);
+  }
+</style>

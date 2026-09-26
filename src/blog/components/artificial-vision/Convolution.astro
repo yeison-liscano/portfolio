@@ -1,0 +1,238 @@
+---
+/**
+ * Convolution - Explorable: pick an output pixel to see the 3x3 window of
+ * the input it reads, the Sobel-x kernel, and the weighted sum it produces.
+ *
+ * Pixel cells are shaded with literal grays on purpose: the shade IS the
+ * data (intensity 0-255), so it must not follow the site theme. Text on a
+ * cell switches between black and white by intensity for the same reason.
+ */
+const BG = 20;
+const FG = 200;
+// A bright 3x3 square on a dark 7x7 background.
+const IMAGE = Array.from({ length: 7 }, (_, r) =>
+  Array.from({ length: 7 }, (_, c) =>
+    r >= 2 && r <= 4 && c >= 2 && c <= 4 ? FG : BG,
+  ),
+);
+const KERNEL = [
+  [-1, 0, 1],
+  [-2, 0, 2],
+  [-1, 0, 1],
+];
+
+const convolve = (r: number, c: number) =>
+  KERNEL.flatMap((row, u) =>
+    row.map((k, v) => k * IMAGE[r + u - 1][c + v - 1]),
+  ).reduce((a, b) => a + b, 0);
+
+// Output (5x5) covers every position where the 3x3 window fits.
+const OUTPUT = Array.from({ length: 5 }, (_, i) =>
+  Array.from({ length: 5 }, (_, j) => convolve(i + 1, j + 1)),
+);
+const maxAbs = Math.max(...OUTPUT.flat().map(Math.abs));
+
+const gray = (v: number) => `rgb(${v} ${v} ${v})`;
+const ink = (v: number) => (v > 128 ? "#000" : "#fff");
+const shade = (v: number) => Math.round((Math.abs(v) / maxAbs) * 255);
+
+const DEFAULT = { i: 2, j: 1 };
+const inWindow = (r: number, c: number) =>
+  Math.abs(r - (DEFAULT.i + 1)) <= 1 && Math.abs(c - (DEFAULT.j + 1)) <= 1;
+
+const terms = (i: number, j: number) =>
+  KERNEL.flatMap((row, u) =>
+    row.map((k, v) => `(${k}×${IMAGE[i + u][j + v]})`),
+  ).join(" + ");
+---
+
+<conv-explorer
+  data-image={JSON.stringify(IMAGE)}
+  data-kernel={JSON.stringify(KERNEL)}
+  data-max={maxAbs}
+>
+  <div class="grids">
+    <div class="block">
+      <p class="block-title">Input image, 7×7</p>
+      <div class="grid" style="--n: 7">
+        {
+          IMAGE.flatMap((row, r) =>
+            row.map((v, c) => (
+              <span
+                class:list={["cell", { window: inWindow(r, c) }]}
+                data-rc={`${r},${c}`}
+                style={`background-color: ${gray(v)}; color: ${ink(v)}`}
+              >
+                {v}
+              </span>
+            )),
+          )
+        }
+      </div>
+    </div>
+
+    <div class="block">
+      <p class="block-title">Sobel x kernel</p>
+      <div class="grid" style="--n: 3">
+        {KERNEL.flat().map((k) => <span class="cell kernel">{k}</span>)}
+      </div>
+    </div>
+
+    <div class="block">
+      <p class="block-title">Output, 5×5 (pick one)</p>
+      <div class="grid" style="--n: 5">
+        {
+          OUTPUT.flatMap((row, i) =>
+            row.map((v, j) => (
+              <button
+                type="button"
+                class="cell out"
+                data-ij={`${i},${j}`}
+                aria-pressed={
+                  i === DEFAULT.i && j === DEFAULT.j ? "true" : "false"
+                }
+                aria-label={`Output row ${i + 1}, column ${j + 1}: ${v}`}
+                style={`background-color: ${gray(shade(v))}; color: ${ink(shade(v))}`}
+              >
+                {v}
+              </button>
+            )),
+          )
+        }
+      </div>
+    </div>
+  </div>
+
+  <p class="sum" aria-live="polite">
+    <span data-out="terms">{terms(DEFAULT.i, DEFAULT.j)}</span>
+    = <strong data-out="value">{OUTPUT[DEFAULT.i][DEFAULT.j]}</strong>
+  </p>
+</conv-explorer>
+
+<script>
+  class ConvExplorer extends HTMLElement {
+    connectedCallback() {
+      this.addEventListener("click", (event) => {
+        const button = (event.target as HTMLElement).closest<HTMLElement>(
+          "button[data-ij]",
+        );
+        if (!button) return;
+        const [i, j] = (button.dataset.ij ?? "0,0").split(",").map(Number);
+        this.select(i, j);
+      });
+    }
+
+    select(i: number, j: number) {
+      const image = JSON.parse(this.dataset.image ?? "[]") as number[][];
+      const kernel = JSON.parse(this.dataset.kernel ?? "[]") as number[][];
+
+      this.querySelectorAll<HTMLElement>("[data-rc]").forEach((cell) => {
+        const [r, c] = (cell.dataset.rc ?? "0,0").split(",").map(Number);
+        const inside = Math.abs(r - (i + 1)) <= 1 && Math.abs(c - (j + 1)) <= 1;
+        cell.classList.toggle("window", inside);
+      });
+      this.querySelectorAll<HTMLElement>("button[data-ij]").forEach((b) => {
+        b.setAttribute("aria-pressed", String(b.dataset.ij === `${i},${j}`));
+      });
+
+      const products = kernel.flatMap((row, u) =>
+        row.map((k, v) => ({ k, p: image[i + u][j + v] })),
+      );
+      const terms = products.map(({ k, p }) => `(${k}×${p})`).join(" + ");
+      const value = products.reduce((sum, { k, p }) => sum + k * p, 0);
+
+      const termsEl = this.querySelector('[data-out="terms"]');
+      const valueEl = this.querySelector('[data-out="value"]');
+      if (termsEl) termsEl.textContent = terms;
+      if (valueEl) valueEl.textContent = String(value);
+    }
+  }
+
+  customElements.define("conv-explorer", ConvExplorer);
+</script>
+
+<style>
+  conv-explorer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .grids {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .block-title {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(var(--n), 32px);
+    gap: 2px;
+  }
+
+  .cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 2px solid transparent;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cell.window {
+    border-color: var(--contrast);
+  }
+
+  .kernel {
+    background-color: var(--code-background);
+    color: var(--text-color);
+    border-color: var(--line);
+    font-size: 12px;
+  }
+
+  button.out {
+    padding: 0;
+    cursor: pointer;
+  }
+
+  button.out[aria-pressed="true"] {
+    border-color: var(--contrast);
+    outline: 2px solid var(--contrast);
+    outline-offset: 1px;
+  }
+
+  button.out:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .sum {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sum strong {
+    color: var(--contrast);
+    font-size: 0.95rem;
+  }
+</style>

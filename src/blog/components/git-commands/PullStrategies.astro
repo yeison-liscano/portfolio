@@ -1,0 +1,203 @@
+---
+/**
+ * PullStrategies - The same diverged branch after `git pull` (merge commit)
+ * and after `git pull --rebase` (local commits replayed on top, new hashes).
+ */
+interface Commit {
+  id: string;
+  x: number;
+  lane: 0 | 1;
+  local?: boolean;
+  merge?: boolean;
+}
+
+interface Scenario {
+  title: string;
+  commits: Commit[];
+  edges: [string, string][];
+  head: string;
+}
+
+const scenarios: Scenario[] = [
+  {
+    title: "Before: main and origin/main have diverged",
+    commits: [
+      { id: "A", x: 0, lane: 0 },
+      { id: "B", x: 1, lane: 0 },
+      { id: "C", x: 2, lane: 0 },
+      { id: "D", x: 3, lane: 0 },
+      { id: "X", x: 2, lane: 1, local: true },
+      { id: "Y", x: 3, lane: 1, local: true },
+    ],
+    edges: [
+      ["A", "B"],
+      ["B", "C"],
+      ["C", "D"],
+      ["B", "X"],
+      ["X", "Y"],
+    ],
+    head: "Y",
+  },
+  {
+    title: "git pull: a merge commit joins both lines",
+    commits: [
+      { id: "A", x: 0, lane: 0 },
+      { id: "B", x: 1, lane: 0 },
+      { id: "C", x: 2, lane: 0 },
+      { id: "D", x: 3, lane: 0 },
+      { id: "X", x: 2, lane: 1, local: true },
+      { id: "Y", x: 3, lane: 1, local: true },
+      { id: "M", x: 4, lane: 0, merge: true },
+    ],
+    edges: [
+      ["A", "B"],
+      ["B", "C"],
+      ["C", "D"],
+      ["B", "X"],
+      ["X", "Y"],
+      ["D", "M"],
+      ["Y", "M"],
+    ],
+    head: "M",
+  },
+  {
+    title: "git pull --rebase: X and Y replayed on top of D",
+    commits: [
+      { id: "A", x: 0, lane: 0 },
+      { id: "B", x: 1, lane: 0 },
+      { id: "C", x: 2, lane: 0 },
+      { id: "D", x: 3, lane: 0 },
+      { id: "X′", x: 4, lane: 0, local: true },
+      { id: "Y′", x: 5, lane: 0, local: true },
+    ],
+    edges: [
+      ["A", "B"],
+      ["B", "C"],
+      ["C", "D"],
+      ["D", "X′"],
+      ["X′", "Y′"],
+    ],
+    head: "Y′",
+  },
+];
+
+const STEP = 76;
+const LEFT = 24;
+const R = 15;
+const LANE = 40;
+const BLOCK = 128;
+const cx = (c: Commit) => LEFT + R + c.x * STEP;
+const cy = (c: Commit, top: number) => top + 52 + c.lane * LANE;
+const W = LEFT + R * 2 + 5 * STEP + 90;
+const H = scenarios.length * BLOCK - 20;
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label="git pull joins the local commits X and Y to origin with a merge commit; git pull --rebase replays them after D as X′ and Y′ in one straight line"
+  class="diagram"
+>
+  {
+    scenarios.map((s, i) => {
+      const top = i * BLOCK;
+      const find = (id: string) => s.commits.find((c) => c.id === id)!;
+      const head = find(s.head);
+      return (
+        <g>
+          <text x="0" y={top + 14} class="title">
+            {s.title}
+          </text>
+          {s.edges.map(([from, to]) => {
+            const a = find(from);
+            const b = find(to);
+            return (
+              <line
+                x1={cx(a)}
+                y1={cy(a, top)}
+                x2={cx(b)}
+                y2={cy(b, top)}
+                class:list={["edge", { local: b.local }]}
+              />
+            );
+          })}
+          {s.commits.map((c) => (
+            <g class:list={{ local: c.local }}>
+              <circle
+                cx={cx(c)}
+                cy={cy(c, top)}
+                r={R}
+                class:list={["commit", { merge: c.merge }]}
+              />
+              <text x={cx(c)} y={cy(c, top)} class="label">
+                {c.id}
+              </text>
+            </g>
+          ))}
+          <text x={cx(head) + R + 8} y={cy(head, top)} class="ref">
+            ← main
+          </text>
+          <text
+            x={cx(find("D"))}
+            y={cy(find("D"), top) - R - 6}
+            class="ref"
+            text-anchor="middle"
+          >
+            origin/main
+          </text>
+        </g>
+      );
+    })
+  }
+</svg>
+
+<style>
+  .diagram {
+    min-width: 480px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .edge {
+    stroke: var(--muted);
+    stroke-width: 2;
+  }
+
+  .edge.local {
+    stroke: var(--contrast);
+  }
+
+  .commit {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .commit.merge {
+    stroke-dasharray: 4 3;
+  }
+
+  .local {
+    color: var(--contrast);
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  .ref {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+</style>

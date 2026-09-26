@@ -1,8 +1,7 @@
 ---
 title: JSON-RPC V2.0
 pubDate: 2026-03-15
-description:
-  "JSON-RPC is a stateless, light-weight remote procedure call (RPC) protocol"
+description: "JSON-RPC is a stateless, light-weight remote procedure call (RPC) protocol"
 tags: ["programming", "web"]
 isDraft: False
 snippet:
@@ -20,6 +19,9 @@ snippet:
       "id": 2
     }
 ---
+
+import Figure from "../components/blog/Figure.astro";
+import Mermaid from "../components/blog/Mermaid.astro";
 
 This article is based on the
 [JSON‑RPC 2.0 Specification](https://www.jsonrpc.org/specification) by the
@@ -100,6 +102,22 @@ exist for each request object except for notification requests.
 The responses may be returned in any order in the responses array. The server
 must not return an empty array and should return nothing at all for batches
 containing only notifications.
+
+<Figure caption="A batch of three requests gets two responses: the notification has no id, so nothing answers it, and the responses may come back in any order. A batch of only notifications gets no reply at all.">
+  <Mermaid
+    label="Sequence: a batch with two requests and a notification returns two responses; a batch of only notifications returns nothing"
+    code={`
+sequenceDiagram
+  participant C as Client
+  participant S as Server
+  C->>S: [ sum id 1, notify_hello no id, subtract id 2 ]
+  Note over S: runs all three
+  S-->>C: [ result id 2, result id 1 ]
+  C->>S: [ notify_sum no id, notify_hello no id ]
+  Note over S: only notifications, so no reply
+`}
+  />
+</Figure>
 
 ## Attribution and Copyright Notice
 

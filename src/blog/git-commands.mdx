@@ -14,6 +14,9 @@ snippet:
     git bisect start
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import PullStrategies from "./components/git-commands/PullStrategies.astro";
+
 Git is one of those tools you use every day, but most people only scratch the
 surface. Here are the commands I find myself reaching for the most.
 
@@ -234,6 +237,10 @@ git push -u origin feature/new-auth
 
 Instead of creating a merge commit every time you pull, rebase puts your local
 commits on top of the remote changes, keeping a linear history.
+
+<Figure caption="Your local commits X and Y diverged from origin/main at B. A plain pull joins the two lines with merge commit M. A rebase pull replays them after D as new commits X′ and Y′, so history stays one straight line.">
+  <PullStrategies />
+</Figure>
 
 ```bash
 git pull --rebase

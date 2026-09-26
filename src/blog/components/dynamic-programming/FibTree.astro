@@ -1,0 +1,175 @@
+---
+/**
+ * FibTree - The naive call tree of fibonacci(5), marked with what
+ * @lru_cache does to it: each value is computed once, repeats become cache
+ * hits, and the calls below a hit never happen.
+ */
+const N = 5;
+
+type Status = "computed" | "hit" | "skipped";
+
+interface Node {
+  n: number;
+  status: Status;
+  x: number;
+  depth: number;
+  children: Node[];
+}
+
+// Walk the tree in call order (fibonacci(n - 1) first, as in the post).
+const seen = new Set<number>();
+let nextLeaf = 0;
+
+const build = (n: number, depth: number, pruned: boolean): Node => {
+  const status: Status = pruned ? "skipped" : seen.has(n) ? "hit" : "computed";
+  if (status === "computed") seen.add(n);
+  const childPruned = status !== "computed";
+  const children =
+    n <= 1
+      ? []
+      : [
+          build(n - 1, depth + 1, childPruned),
+          build(n - 2, depth + 1, childPruned),
+        ];
+  const x =
+    children.length === 0
+      ? nextLeaf++
+      : (children[0].x + children[children.length - 1].x) / 2;
+  return { n, status, x, depth, children };
+};
+
+const root = build(N, 0, false);
+
+const flatten = (node: Node): Node[] => [
+  node,
+  ...node.children.flatMap(flatten),
+];
+const nodes = flatten(root);
+const count = (status: Status) =>
+  nodes.filter((n) => n.status === status).length;
+
+const SPACING = 62;
+const LEVEL = 64;
+const NODE_W = 46;
+const NODE_H = 26;
+const PAD = 8;
+const px = (node: Node) => PAD + NODE_W / 2 + node.x * SPACING;
+const py = (node: Node) => PAD + node.depth * LEVEL;
+const W = PAD * 2 + NODE_W + (nextLeaf - 1) * SPACING;
+const maxDepth = Math.max(...nodes.map((n) => n.depth));
+const LEGEND_Y = PAD + maxDepth * LEVEL + NODE_H + 30;
+const H = LEGEND_Y + 14;
+
+const edges = nodes.flatMap((parent) =>
+  parent.children.map((child) => ({ parent, child })),
+);
+
+const legend: { status: Status; text: string }[] = [
+  { status: "computed", text: `computed once (${count("computed")})` },
+  { status: "hit", text: `cache hit (${count("hit")})` },
+  { status: "skipped", text: `never called (${count("skipped")})` },
+];
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label={`The naive fibonacci(${N}) makes ${nodes.length} calls; with a cache, ${count("computed")} values are computed, ${count("hit")} calls are cache hits and ${count("skipped")} calls never happen`}
+  class="diagram"
+>
+  {
+    edges.map(({ parent, child }) => (
+      <line
+        x1={px(parent)}
+        y1={py(parent) + NODE_H}
+        x2={px(child)}
+        y2={py(child)}
+        class:list={["edge", { skipped: child.status === "skipped" }]}
+      />
+    ))
+  }
+  {
+    nodes.map((node) => (
+      <g class={node.status}>
+        <rect
+          x={px(node) - NODE_W / 2}
+          y={py(node)}
+          width={NODE_W}
+          height={NODE_H}
+          rx="13"
+          class="node"
+        />
+        <text x={px(node)} y={py(node) + NODE_H / 2} class="label">
+          f({node.n})
+        </text>
+      </g>
+    ))
+  }
+  {
+    legend.map((item, i) => (
+      <g
+        class={item.status}
+        transform={`translate(${PAD + i * 170} ${LEGEND_Y - 8})`}
+      >
+        <rect x="0" y="0" width="28" height="16" rx="8" class="node" />
+        <text x="36" y="8" class="legend">
+          {item.text}
+        </text>
+      </g>
+    ))
+  }
+</svg>
+
+<style>
+  .diagram {
+    min-width: 500px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .edge {
+    stroke: var(--muted);
+    stroke-width: 1.2;
+  }
+
+  .edge.skipped {
+    stroke: var(--line);
+    stroke-dasharray: 3 3;
+  }
+
+  .node {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .legend {
+    fill: var(--text-color);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .hit {
+    color: var(--contrast);
+  }
+
+  .hit .node {
+    stroke-width: 2;
+  }
+
+  .skipped {
+    color: var(--line);
+  }
+
+  .skipped .node {
+    fill: none;
+    stroke-dasharray: 3 3;
+  }
+</style>

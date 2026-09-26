@@ -21,6 +21,9 @@ snippet:
         outer()
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import ScopeLookup from "./components/python-basics/ScopeLookup.astro";
+
 The simplicity of Python makes the language a great option for almost everyone
 aiming to use programming in any field. This is the reason Python is widely used
 in the industry, from web development, data science, machine learning,
@@ -100,6 +103,10 @@ the scope of the outer or enclosing function.
 The `built-in` scope is the outermost scope in Python, and it is the scope that
 contains all of the built-in names in Python. The built-in scope is searched
 last, after the local, enclosing, and global scopes (LEGB).
+
+<Figure caption="To resolve x inside inner(), Python checks the local scope, then the enclosing outer(), and finds x = 10 in the global scope. The search stops at the first match, so built-in is never checked.">
+  <ScopeLookup />
+</Figure>
 
 ### Example Global Scope
 

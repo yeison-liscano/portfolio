@@ -13,6 +13,9 @@ snippet:
         return [b"Hello, World!"]
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import Timeline from "../components/blog/Timeline.astro";
+
 Python web applications require protocols to communicate between web servers and
 application code. WSGI (Web Server Gateway Interface) and ASGI (Asynchronous
 Server Gateway Interface) are two such protocols, each with distinct
@@ -121,3 +124,78 @@ ASGI:
 - ASGI handles concurrent connections more efficiently
 - WSGI is simpler and may be faster for basic request-response cycles
 - ASGI servers (like Uvicorn) generally show better performance under high load
+
+<Figure caption="Three requests arrive at once. Each needs 5 ms of Python, an 80 ms database call, then 5 ms more. With two WSGI workers, the third request waits for a free worker and finishes at 180 ms. One ASGI worker overlaps all three database waits and finishes at 100 ms.">
+  <Timeline
+    label="Two WSGI workers finish three requests in 180 ms; one ASGI worker finishes them in 100 ms"
+    max={180}
+    tick={30}
+    unit="ms"
+    legend={{
+      cpu: "running Python",
+      wait: "waiting on the database",
+      queue: "queued for a free worker",
+    }}
+    groups={[
+      {
+        title: "WSGI: gunicorn --workers=2",
+        rows: [
+          {
+            label: "R1 · worker 1",
+            segments: [
+              { start: 0, end: 5, kind: "cpu" },
+              { start: 5, end: 85, kind: "wait" },
+              { start: 85, end: 90, kind: "cpu" },
+            ],
+          },
+          {
+            label: "R2 · worker 2",
+            segments: [
+              { start: 0, end: 5, kind: "cpu" },
+              { start: 5, end: 85, kind: "wait" },
+              { start: 85, end: 90, kind: "cpu" },
+            ],
+          },
+          {
+            label: "R3 · worker 1",
+            segments: [
+              { start: 0, end: 90, kind: "queue" },
+              { start: 90, end: 95, kind: "cpu" },
+              { start: 95, end: 175, kind: "wait" },
+              { start: 175, end: 180, kind: "cpu" },
+            ],
+          },
+        ],
+      },
+      {
+        title: "ASGI: one uvicorn worker",
+        rows: [
+          {
+            label: "R1",
+            segments: [
+              { start: 0, end: 5, kind: "cpu" },
+              { start: 5, end: 85, kind: "wait" },
+              { start: 85, end: 90, kind: "cpu" },
+            ],
+          },
+          {
+            label: "R2",
+            segments: [
+              { start: 5, end: 10, kind: "cpu" },
+              { start: 10, end: 90, kind: "wait" },
+              { start: 90, end: 95, kind: "cpu" },
+            ],
+          },
+          {
+            label: "R3",
+            segments: [
+              { start: 10, end: 15, kind: "cpu" },
+              { start: 15, end: 95, kind: "wait" },
+              { start: 95, end: 100, kind: "cpu" },
+            ],
+          },
+        ],
+      },
+    ]}
+  />
+</Figure>

@@ -34,6 +34,9 @@ cv2.destroyAllWindows()
 "
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import Convolution from "./components/artificial-vision/Convolution.astro";
+
 ## Introduction
 
 Computer vision, often called artificial vision, is the field of artificial
@@ -290,6 +293,10 @@ Output[i,j] = Σ Σ Kernel[u,v] × Image[i+u, j+v]
 
 The kernel defines what features the filter detects or what effect it applies.
 
+<Figure caption="A Sobel x kernel on a bright square. Pick any output pixel to see the 3×3 window it reads and the weighted sum it computes. The response is strongly positive on the square's left edge, negative on its right edge, and zero where the window sees no horizontal change.">
+  <Convolution />
+</Figure>
+
 #### Common Spatial Filters
 
 ##### Blur (Averaging Filter)
@@ -532,7 +539,7 @@ journey.
 
 ## References
 
-- **OpenCV Documentation**: <https://docs.opencv.org/> - Comprehensive reference
+- **OpenCV Documentation**: [https://docs.opencv.org/](https://docs.opencv.org/) - Comprehensive reference
   for the OpenCV library with tutorials and API documentation.
 
 - **Gonzalez, R. C., & Woods, R. E. (2018). Digital Image Processing (4th ed.).
@@ -541,7 +548,7 @@ journey.
   foundations.
 
 - **Stanford CS231n: Convolutional Neural Networks for Visual Recognition**:
-  <http://cs231n.stanford.edu/> - Excellent course covering image
+  [http://cs231n.stanford.edu/](http://cs231n.stanford.edu/) - Excellent course covering image
   classification, feature extraction, and the connection between classical image
   processing and modern deep learning.
 

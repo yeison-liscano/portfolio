@@ -17,6 +17,9 @@ snippet:
         return await response.text()
 ---
 
+import Figure from "../components/blog/Figure.astro";
+import Timeline from "../components/blog/Timeline.astro";
+
 Concurrency is the ability of a system or program to execute multiple tasks or
 processes simultaneously or overlappingly, without necessarily executing them at
 the same time. Concurrency allows for better utilization of resources and can
@@ -75,6 +78,105 @@ different tasks concurrently. For example:
   server).
 - Another thread can process the request.
 - Yet another thread can handle writing the response.
+
+<Figure caption="Three tasks that each compute for 20 ms, wait 60 ms on I/O, then compute 10 ms more. One thread running them in turn takes 270 ms. An event loop fills the waits with other work and finishes in 130 ms. Three threads on three cores finish in 90 ms.">
+  <Timeline
+    label="Three tasks finish in 270 ms one at a time, 130 ms with an event loop, and 90 ms on three threads"
+    max={270}
+    tick={30}
+    unit="ms"
+    legend={{ cpu: "running on a CPU", wait: "waiting on I/O" }}
+    groups={[
+      {
+        title: "One thread, one task at a time",
+        rows: [
+          {
+            label: "task A",
+            segments: [
+              { start: 0, end: 20, kind: "cpu" },
+              { start: 20, end: 80, kind: "wait" },
+              { start: 80, end: 90, kind: "cpu" },
+            ],
+          },
+          {
+            label: "task B",
+            segments: [
+              { start: 90, end: 110, kind: "cpu" },
+              { start: 110, end: 170, kind: "wait" },
+              { start: 170, end: 180, kind: "cpu" },
+            ],
+          },
+          {
+            label: "task C",
+            segments: [
+              { start: 180, end: 200, kind: "cpu" },
+              { start: 200, end: 260, kind: "wait" },
+              { start: 260, end: 270, kind: "cpu" },
+            ],
+          },
+        ],
+      },
+      {
+        title: "One thread with an event loop (async)",
+        rows: [
+          {
+            label: "task A",
+            segments: [
+              { start: 0, end: 20, kind: "cpu" },
+              { start: 20, end: 80, kind: "wait" },
+              { start: 80, end: 90, kind: "cpu" },
+            ],
+          },
+          {
+            label: "task B",
+            segments: [
+              { start: 20, end: 40, kind: "cpu" },
+              { start: 40, end: 100, kind: "wait" },
+              { start: 100, end: 110, kind: "cpu" },
+            ],
+          },
+          {
+            label: "task C",
+            segments: [
+              { start: 40, end: 60, kind: "cpu" },
+              { start: 60, end: 120, kind: "wait" },
+              { start: 120, end: 130, kind: "cpu" },
+            ],
+          },
+        ],
+      },
+      {
+        title: "Three threads on three cores",
+        rows: [
+          {
+            label: "task A",
+            segments: [
+              { start: 0, end: 20, kind: "cpu" },
+              { start: 20, end: 80, kind: "wait" },
+              { start: 80, end: 90, kind: "cpu" },
+            ],
+          },
+          {
+            label: "task B",
+            segments: [
+              { start: 0, end: 20, kind: "cpu" },
+              { start: 20, end: 80, kind: "wait" },
+              { start: 80, end: 90, kind: "cpu" },
+            ],
+          },
+          {
+            label: "task C",
+            segments: [
+              { start: 0, end: 20, kind: "cpu" },
+              { start: 20, end: 80, kind: "wait" },
+              { start: 80, end: 90, kind: "cpu" },
+            ],
+          },
+        ],
+      },
+    ]}
+  />
+</Figure>
 
 ## Why is Multithreading Important?
 

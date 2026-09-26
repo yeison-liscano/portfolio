@@ -13,8 +13,11 @@ snippet:
     import numpy as np
     data = [23, 45, 12, 67, 34, 89, 21]
     mean = np.mean(data)    # 41.57
-    std = np.std(data)      # 25.24
+    std = np.std(data)      # 25.66
 ---
+
+import Figure from "../components/blog/Figure.astro";
+import SampleToPopulation from "./components/inferential-vs-decriptive-statistics/SampleToPopulation.astro";
 
 Statistics is fundamentally the discipline that concerns the collection,
 organization, displaying, analysis, interpretation, and presentation of data. To
@@ -80,3 +83,7 @@ specific data you have gathered, giving you a clear numerical and graphical
 picture of your sample. Conversely, inferential statistics takes that summarized
 data and applies probability to make predictions, test hypotheses, and draw
 confident conclusions about the broader population that the sample represents.
+
+<Figure caption="Using the seven values from the snippet above: descriptive statistics report their mean, 41.57. Inferential statistics use the same sample to estimate the unknown population mean μ, here a 95% confidence interval from 15.9 to 67.2. The interval is wide because seven values are few.">
+  <SampleToPopulation />
+</Figure>
