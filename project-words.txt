@@ -40,6 +40,7 @@ Francesa
 GRAYSCALE
 Gini
 HPACK
+Haejy
 ICMP
 IMAP
 IMREAD
@@ -137,6 +138,7 @@ astro
 astrojs
 asyncio
 autocumplida
+axum
 backface
 bezier
 bipartiteness
@@ -256,6 +258,7 @@ nslookup
 numpy
 nums
 octicon
+oklab
 ollama
 oneline
 optgroup
@@ -273,6 +276,7 @@ protoc
 puentes
 pydantic
 pyenv
+pymocks
 pyodide
 pyplot
 pytest

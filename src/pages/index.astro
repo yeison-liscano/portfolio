@@ -2,20 +2,25 @@
 import Base from "../layouts/Base.astro";
 import MyHero from "components/MyHero.astro";
 import AboutSections from "components/AboutSections.astro";
+import Projects from "components/Projects.astro";
 import Contact from "components/Contact.astro";
 import Footer from "components/Footer.astro";
 ---
 
 <Base
   title="Yeison Liscano"
-  description="Security engineer building solutions with AWS, Python, TypeScript and React. Focused on AI-driven products."
+  description="AI & Security Engineer building secure AI agent platforms, MCP servers and the Python tooling behind them."
 >
   <div class="snap-section" id="snap-hero">
     <div class="snap-inner"><MyHero /></div>
   </div>
 
+  <div class="snap-section" id="snap-projects">
+    <div class="snap-inner"><Projects /></div>
+  </div>
+
   <div class="snap-section" id="snap-about">
-    <div class="snap-inner"><AboutSections /></div>
+    <div class="snap-inner"><AboutSections showBackground={false} /></div>
   </div>
 
   <div class="snap-section" id="snap-contact">
@@ -33,7 +38,8 @@ import Footer from "components/Footer.astro";
 <style is:global>
   /* ===== SNAP LAYOUT — home page only ===== */
   html.snap-page {
-    scroll-snap-type: y mandatory;
+    /* proximity: snaps only when close, never traps the reader */
+    scroll-snap-type: y proximity;
   }
 
   /* Strip layout wrapper padding/constraints */
@@ -76,13 +82,16 @@ import Footer from "components/Footer.astro";
   /* ===== SNAP SECTIONS ===== */
   html.snap-page .snap-section {
     scroll-snap-align: start;
-    scroll-snap-stop: always;
-    min-height: 100vh;
     display: flex;
     align-items: flex-start;
     width: 100%;
     /* Side padding mirrors original #main-content */
     padding: 0 20px;
+  }
+
+  /* Only the opening screen fills the viewport; later sections fit content. */
+  html.snap-page #snap-hero {
+    min-height: 100vh;
   }
 
   /* ===== INNER CONTENT — respects max-width like before ===== */

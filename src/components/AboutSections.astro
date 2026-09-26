@@ -1,4 +1,11 @@
 ---
+interface Props {
+  /** The home page shows a summary; the full background lives on /about. */
+  showBackground?: boolean;
+}
+
+const { showBackground = true } = Astro.props;
+
 const skills = [
   "Python",
   "TypeScript",
@@ -17,29 +24,35 @@ const skills = [
 ];
 ---
 
-<main class="about-main">
-  <section class="row-section">
-    <h2 class="section-title">Background</h2>
-    <div class="content">
-      <p>
-        I started with <strong>Python</strong>, going deep into data science on
-        Coursera before pivoting to web development. I got
-        <strong>certified as a Full-Stack Developer</strong> from Coding Dojo, where
-        I built web applications with Python and explored the basics of Machine and
-        Deep Learning. I kept growing through LinkedIn Learning, Coursera, and Platzi
-        — picking up <strong>React</strong>,
-        <strong>Node.js</strong>, <strong>TypeScript</strong>,
-        <strong>FastAPI</strong>, and <strong>AWS</strong> along the way.
-      </p>
-      <p>
-        I currently study <strong>Computer Science</strong> at the Universidad Nacional
-        de Colombia. I live in Medellin — my native language is
-        <strong>Spanish</strong>, I have a
-        <strong>B2 level in English</strong>, and a
-        <strong>B1 French certification</strong> from the Alianza Francesa of Medellin.
-      </p>
-    </div>
-  </section>
+<div class="about-main">
+  {
+    showBackground && (
+      <section class="row-section">
+        <h2 class="section-title">Background</h2>
+        <div class="content">
+          <p>
+            I started with <strong>Python</strong>, going deep into data science
+            on Coursera before pivoting to web development. I got
+            <strong>certified as a Full-Stack Developer</strong> from Coding
+            Dojo, where I built web applications with Python and explored the
+            basics of Machine and Deep Learning. I kept growing through LinkedIn
+            Learning, Coursera, and Platzi — picking up <strong>React</strong>,
+            <strong>Node.js</strong>, <strong>TypeScript</strong>,
+            <strong>FastAPI</strong>, and <strong>AWS</strong> along the way.
+          </p>
+          <p>
+            I currently study <strong>Computer Science</strong> at the
+            Universidad Nacional de Colombia. I live in Medellin — my native
+            language is
+            <strong>Spanish</strong>, I have a
+            <strong>B2 level in English</strong>, and a
+            <strong>B1 French certification</strong> from the Alianza Francesa
+            of Medellin.
+          </p>
+        </div>
+      </section>
+    )
+  }
 
   <section class="row-section">
     <h2 class="section-title">Experience</h2>
@@ -48,11 +61,26 @@ const skills = [
         <div class="edu-info">
           <p class="edu-degree">AI & Security Engineer</p>
           <p class="edu-institution">Fluid Attacks</p>
-          <p class="edu-description">
-            Architected a production AI agent platform using MCP, LLMs, and
-            PydanticAI. Built and maintained GraphQL APIs, React frontends, ETL
-            pipelines, and AWS cloud infrastructure.
-          </p>
+          <ul class="edu-highlights">
+            <li>
+              Architected a production AI agent platform using MCP, LLMs and
+              PydanticAI.
+            </li>
+            <li>
+              Built the remote MCP server that lets customers query their
+              platform data from LLM clients, with scoped tool access and OAuth
+              2.1 authorization.
+            </li>
+            <li>
+              Designed <a href="https://pypi.org/project/http-mcp/">http-mcp</a
+              >, the stateless MCP library behind that server, and published it
+              as open source.
+            </li>
+            <li>
+              Built and maintained GraphQL APIs, React frontends, ETL pipelines
+              and AWS cloud infrastructure.
+            </li>
+          </ul>
         </div>
         <span class="edu-year">2023 &ndash; Present</span>
       </div>
@@ -89,7 +117,7 @@ const skills = [
       </div>
     </div>
   </section>
-</main>
+</div>
 
 <style>
   .about-main {
@@ -104,7 +132,7 @@ const skills = [
     flex-direction: column;
     gap: 20px;
     padding: 40px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-top: 1px solid var(--line);
   }
 
   .section-title {
@@ -141,14 +169,14 @@ const skills = [
     flex-direction: column;
     gap: 6px;
     padding: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--line);
     border-radius: 8px;
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: var(--surface);
     transition: border-color 0.2s ease;
   }
 
   .edu-card:hover {
-    border-color: rgba(255, 204, 102, 0.25);
+    border-color: var(--contrast);
   }
 
   .edu-info {
@@ -179,12 +207,27 @@ const skills = [
     line-height: 1.6;
   }
 
+  .edu-highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .edu-highlights a {
+    color: var(--contrast);
+  }
+
   .edu-year {
     font-size: 0.8rem;
     font-weight: 500;
     color: var(--contrast);
-    background-color: rgba(255, 204, 102, 0.1);
-    border: 1px solid rgba(255, 204, 102, 0.2);
+    background-color: color-mix(in oklab, var(--contrast) 10%, transparent);
+    border: 1px solid color-mix(in oklab, var(--contrast) 30%, transparent);
     padding: 2px 10px;
     border-radius: 999px;
     align-self: flex-start;
@@ -202,8 +245,8 @@ const skills = [
     font-size: 0.825rem;
     font-weight: 500;
     color: var(--text-color);
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--surface);
+    border: 1px solid var(--line);
     padding: 5px 14px;
     border-radius: 999px;
     transition:
@@ -215,8 +258,8 @@ const skills = [
 
   .skill-tag:hover {
     color: var(--contrast);
-    border-color: rgba(255, 204, 102, 0.3);
-    background-color: rgba(255, 204, 102, 0.06);
+    border-color: var(--contrast);
+    background-color: var(--surface);
   }
 
   /* ===== RESPONSIVE ===== */
@@ -234,7 +277,7 @@ const skills = [
 
     .edu-card {
       flex-direction: row;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
     }
 

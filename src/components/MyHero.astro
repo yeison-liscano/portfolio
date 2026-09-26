@@ -1,94 +1,111 @@
 ---
+import { getCollection } from "astro:content";
+
 const { BASE_URL } = import.meta.env;
+const articleCount = (await getCollection("blog", ({ data }) => !data.isDraft))
+  .length;
+
+const proof = [
+  {
+    label: "Now",
+    text: "AI & Security Engineer at Fluid Attacks, building a production AI agent platform with MCP and PydanticAI.",
+  },
+  {
+    label: "Open source",
+    text: "Author of http-mcp, a stateless MCP server library published on PyPI.",
+    href: "https://pypi.org/project/http-mcp/",
+  },
+  {
+    label: "Writing",
+    text: `${articleCount} articles on MCP, security, Python and algorithms.`,
+    href: `${BASE_URL}blog/`,
+  },
+];
 ---
 
 <section class="hero-section">
-  <div class="hero-intro animate" style="--delay: 0ms">
-    <span id="greeting">Hi, my name is</span>
-    <h2><a href={BASE_URL + "about/"}>Yeison Liscano</a></h2>
-    <h3>Security Engineer</h3>
-  </div>
-
-  <div class="hero-description animate" style="--delay: 120ms">
-    <p>
-      I build secure solutions with <span>AWS</span>, <span>Python</span>,
-      <span>TypeScript</span>, and <span>React</span>. Currently focused on
-      <span>AI-driven products</span> — MCP servers, PydanticAI agents, and integrating
-      AI into the development lifecycle.
+  <div class="hero-main">
+    <p class="eyebrow animate" style="--delay: 0ms">
+      AI & Security Engineer · Medellín, Colombia
     </p>
+    <h1 class="animate" style="--delay: 60ms">Yeison Liscano</h1>
+    <p class="lead animate" style="--delay: 120ms">
+      I build secure AI agent platforms and the Python tooling behind them.
+    </p>
+    <p class="detail animate" style="--delay: 180ms">
+      My work spans MCP servers, PydanticAI agents, GraphQL APIs, React
+      frontends and AWS infrastructure, with security designed in from the
+      start.
+    </p>
+    <div class="hero-actions animate" style="--delay: 240ms">
+      <a href="#projects" class="btn btn-primary">See projects</a>
+      <a href={`${BASE_URL}blog/`} class="btn btn-secondary">Read the blog</a>
+    </div>
   </div>
 
-  <div class="hero-actions animate" style="--delay: 220ms">
-    <a href={BASE_URL + "about/"} class="btn btn-primary">About me</a>
-    <a href={BASE_URL + "blog/"} class="btn btn-secondary">Read the blog</a>
-  </div>
+  <ul class="proof animate" style="--delay: 300ms" aria-label="Highlights">
+    {
+      proof.map((item) => (
+        <li>
+          <span class="proof-label">{item.label}</span>
+          {item.href ? (
+            <a href={item.href}>{item.text}</a>
+          ) : (
+            <span class="proof-text">{item.text}</span>
+          )}
+        </li>
+      ))
+    }
+  </ul>
 </section>
 
 <style>
   .hero-section {
     min-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 36px;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-content: center;
+    gap: 48px;
     padding: 40px 0;
   }
 
-  .hero-intro {
+  .hero-main {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
+    max-width: 640px;
   }
 
-  #greeting {
-    font-size: 1.1rem;
-    color: var(--text-color);
-    opacity: 0.65;
-    display: block;
-    letter-spacing: 0.01em;
-  }
-
-  h2 {
-    font-size: 2.5rem;
-    color: var(--text-color);
+  .eyebrow {
     margin: 0;
-    line-height: 1.15;
-  }
-
-  h2 a {
-    color: var(--text-color);
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-
-  h2 a:hover {
     color: var(--contrast);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
-  h3 {
-    font-size: 1.5rem;
-    color: var(--contrast);
+  h1 {
     margin: 0;
-    font-weight: 500;
-    opacity: 0.85;
-  }
-
-  .hero-description {
-    max-width: 620px;
-  }
-
-  p {
     color: var(--text-color);
-    line-height: 1.85;
+    font-size: 2.75rem;
+    line-height: 1.1;
+  }
+
+  .lead {
+    margin: 0;
+    color: var(--text-color);
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    line-height: 1.4;
+    text-wrap: balance;
+  }
+
+  .detail {
+    margin: 0;
+    color: var(--muted);
     font-size: 1rem;
-    margin: 0;
-    opacity: 0.85;
-  }
-
-  span {
-    color: var(--contrast);
-    opacity: 1;
+    line-height: 1.75;
   }
 
   /* ===== BUTTONS ===== */
@@ -96,52 +113,99 @@ const { BASE_URL } = import.meta.env;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-top: 48px;
+    margin-top: 16px;
   }
 
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     padding: 12px 28px;
     border-radius: 6px;
     font-size: 0.9rem;
     font-weight: 500;
+    text-align: center;
     text-decoration: none;
-    cursor: pointer;
     transition:
       background-color 0.2s ease,
       color 0.2s ease,
-      box-shadow 0.2s ease,
-      transform 0.2s ease;
-    letter-spacing: 0.01em;
-    width: 100%;
-    text-align: center;
+      border-color 0.2s ease;
+  }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
   }
 
   .btn-primary {
+    border: 1px solid var(--contrast);
     background-color: var(--contrast);
     color: var(--primary);
-    border: 1px solid var(--contrast);
   }
 
   .btn-primary:hover {
     background-color: transparent;
     color: var(--contrast);
-    box-shadow: 0 0 20px rgba(255, 204, 102, 0.15);
-    transform: translateY(-1px);
   }
 
   .btn-secondary {
+    border: 1px solid var(--line);
     background-color: transparent;
     color: var(--text-color);
-    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .btn-secondary:hover {
     border-color: var(--contrast);
     color: var(--contrast);
-    transform: translateY(-1px);
+  }
+
+  /* ===== PROOF POINTS ===== */
+  .proof {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background-color: var(--surface);
+    list-style: none;
+  }
+
+  .proof li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px 24px;
+  }
+
+  .proof li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .proof-label {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .proof-text,
+  .proof a {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .proof a:hover {
+    color: var(--contrast);
+  }
+
+  .proof a:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
   }
 
   /* ===== RESPONSIVE ===== */
@@ -157,40 +221,24 @@ const { BASE_URL } = import.meta.env;
   }
 
   @media screen and (min-width: 720px) {
-    .hero-section {
-      gap: 44px;
-      padding: 60px 0;
+    h1 {
+      font-size: 3.5rem;
     }
 
-    h2 {
-      font-size: 3.25rem;
-    }
-
-    h3 {
-      font-size: 1.75rem;
-    }
-
-    #greeting {
-      font-size: 1.2rem;
-    }
-
-    p {
-      font-size: 1.1rem;
+    .lead {
+      font-size: 1.6rem;
     }
   }
 
-  @media screen and (min-width: 900px) {
+  @media screen and (min-width: 1100px) {
     .hero-section {
-      gap: 48px;
-      padding: 80px 0;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: center;
+      gap: 56px;
     }
 
-    h2 {
-      font-size: 3.75rem;
-    }
-
-    h3 {
-      font-size: 2rem;
+    h1 {
+      font-size: 4rem;
     }
   }
 </style>

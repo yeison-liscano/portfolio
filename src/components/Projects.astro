@@ -1,0 +1,272 @@
+---
+/**
+ * Projects - Selected work with what it does, how it is built, and links.
+ */
+const { BASE_URL } = import.meta.env;
+
+interface Link {
+  label: string;
+  href: string;
+}
+
+interface Project {
+  name: string;
+  kind: string;
+  summary: string;
+  highlights: string[];
+  stack: string[];
+  links: Link[];
+  note?: string;
+}
+
+const projects: Project[] = [
+  {
+    name: "http-mcp",
+    kind: "Open-source Python library",
+    summary:
+      "A lightweight Model Context Protocol server for Starlette and FastAPI apps. It exposes Python functions as MCP tools and prompts over HTTP or STDIO.",
+    highlights: [
+      "Stateless: no sessions, so it scales horizontally behind a load balancer",
+      "Pydantic models generate each tool's schema and validate every call",
+      "Scope-based authorization per tool, plus OAuth 2.1 support",
+    ],
+    stack: ["Python", "Pydantic", "Starlette", "JSON-RPC"],
+    links: [
+      { label: "GitHub", href: "https://github.com/yeison-liscano/http_mcp" },
+      { label: "PyPI", href: "https://pypi.org/project/http-mcp/" },
+      { label: "How it was built", href: `${BASE_URL}blog/mcp/` },
+    ],
+  },
+  {
+    name: "Atal Distributions",
+    kind: "Full-stack e-commerce · live",
+    summary:
+      "A cosmetics store with a product advisor and an admin panel for inventory, supplier invoices, restocking, sales and accounting.",
+    highlights: [
+      "Rust (axum) API on AWS Lambda, with a single DynamoDB table",
+      "Paying or cancelling an order is one conditional transaction, so a decision never applies twice",
+      "The accounting close covers the income statement, the IVA position and CSV exports",
+    ],
+    stack: ["Astro", "Rust", "AWS Lambda", "DynamoDB", "CloudFront"],
+    links: [{ label: "Visit site", href: "https://jatovar.com" }],
+    note: "Private repository",
+  },
+  {
+    name: "Haejy",
+    kind: "Full-stack e-commerce · live",
+    summary:
+      "A T-shirt store with a customer storefront, a size finder, and an admin panel for orders, inventory, supplier invoices and sales.",
+    highlights: [
+      "Each product is a size × color matrix, not a flat list of variants",
+      "Orders reserve stock atomically while payment is coordinated",
+      "The size finder computes a fit per garment from body measurements",
+    ],
+    stack: ["Astro", "Rust", "AWS Lambda", "DynamoDB", "CloudFront"],
+    links: [{ label: "Visit site", href: "https://haejy.com/#catalogo" }],
+    note: "Private repository",
+  },
+  {
+    name: "pymocks",
+    kind: "Open-source Python testing library",
+    summary:
+      "Decorators and context managers for mocking functions, variables and HTTP endpoints in tests.",
+    highlights: [
+      "Detects sync and async test functions automatically",
+      "Every utility works as a decorator or a context manager",
+    ],
+    stack: ["Python", "pytest", "asyncio"],
+    links: [
+      { label: "GitHub", href: "https://github.com/yeison-liscano/pymocks" },
+      { label: "PyPI", href: "https://pypi.org/project/py-mocks/" },
+    ],
+  },
+];
+---
+
+<section
+  class="projects-section"
+  id="projects"
+  aria-labelledby="projects-title"
+>
+  <div class="projects-header">
+    <p class="eyebrow">Projects</p>
+    <h2 id="projects-title">Selected work</h2>
+  </div>
+
+  <div class="projects-grid">
+    {
+      projects.map((project) => (
+        <article class="project">
+          <p class="kind">{project.kind}</p>
+          <h3>{project.name}</h3>
+          <p class="summary">{project.summary}</p>
+          <ul class="highlights">
+            {project.highlights.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+          <ul class="stack" aria-label="Built with">
+            {project.stack.map((tech) => (
+              <li>{tech}</li>
+            ))}
+          </ul>
+          <div class="links">
+            {project.links.map((link) => (
+              <a
+                href={link.href}
+                {...(link.href.startsWith("http")
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+              >
+                {link.label} <span aria-hidden="true">→</span>
+              </a>
+            ))}
+            {project.note && <span class="note">{project.note}</span>}
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .projects-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 64px 0;
+  }
+
+  .projects-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--contrast);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 2rem;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .projects-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .project {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background-color: var(--surface);
+    transition: border-color 0.2s ease;
+  }
+
+  .project:hover {
+    border-color: var(--contrast);
+  }
+
+  .kind {
+    margin: 0;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.35rem;
+  }
+
+  .summary {
+    margin: 0;
+    color: var(--text-color);
+    line-height: 1.65;
+  }
+
+  .highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .stack li {
+    padding: 2px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    margin-top: auto;
+    padding-top: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .links a {
+    color: var(--contrast);
+  }
+
+  .links a:hover {
+    text-decoration: underline;
+  }
+
+  .links a:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .note {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  @media (min-width: 900px) {
+    .projects-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    h2 {
+      font-size: 2.4rem;
+    }
+  }
+</style>
