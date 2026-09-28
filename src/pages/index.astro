@@ -5,22 +5,30 @@ import AboutSections from "components/AboutSections.astro";
 import Projects from "components/Projects.astro";
 import Contact from "components/Contact.astro";
 import Footer from "components/Footer.astro";
+import { homeSchema } from "../utils/schema";
 ---
 
 <Base
   title="Yeison Liscano"
   description="AI & Security Engineer building secure AI agent platforms, MCP servers and the Python tooling behind them."
+  jsonLd={homeSchema}
 >
   <div class="snap-section" id="snap-hero">
-    <div class="snap-inner"><MyHero /></div>
+    <div class="snap-inner">
+      <MyHero />
+    </div>
   </div>
 
   <div class="snap-section" id="snap-projects">
-    <div class="snap-inner"><Projects /></div>
+    <div class="snap-inner">
+      <Projects />
+    </div>
   </div>
 
   <div class="snap-section" id="snap-about">
-    <div class="snap-inner"><AboutSections showBackground={false} /></div>
+    <div class="snap-inner">
+      <AboutSections showBackground={false} />
+    </div>
   </div>
 
   <div class="snap-section" id="snap-contact">

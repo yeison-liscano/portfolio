@@ -94,38 +94,36 @@ const projects: Project[] = [
   </div>
 
   <div class="projects-grid">
-    {
-      projects.map((project) => (
-        <article class="project">
-          <p class="kind">{project.kind}</p>
-          <h3>{project.name}</h3>
-          <p class="summary">{project.summary}</p>
-          <ul class="highlights">
-            {project.highlights.map((item) => (
-              <li>{item}</li>
-            ))}
-          </ul>
-          <ul class="stack" aria-label="Built with">
-            {project.stack.map((tech) => (
-              <li>{tech}</li>
-            ))}
-          </ul>
-          <div class="links">
-            {project.links.map((link) => (
-              <a
-                href={link.href}
-                {...(link.href.startsWith("http")
-                  ? { target: "_blank", rel: "noopener noreferrer" }
-                  : {})}
-              >
-                {link.label} <span aria-hidden="true">→</span>
-              </a>
-            ))}
-            {project.note && <span class="note">{project.note}</span>}
-          </div>
-        </article>
-      ))
-    }
+    {projects.map((project) => (
+      <article class="project">
+        <p class="kind">{project.kind}</p>
+        <h3>{project.name}</h3>
+        <p class="summary">{project.summary}</p>
+        <ul class="highlights">
+          {project.highlights.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <ul class="stack" aria-label="Built with">
+          {project.stack.map((tech) => (
+            <li>{tech}</li>
+          ))}
+        </ul>
+        <div class="links">
+          {project.links.map((link) => (
+            <a
+              href={link.href}
+              {...(link.href.startsWith("http")
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+            >
+              {link.label} <span aria-hidden="true">→</span>
+            </a>
+          ))}
+          {project.note && <span class="note">{project.note}</span>}
+        </div>
+      </article>
+    ))}
   </div>
 </section>
 

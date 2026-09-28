@@ -98,57 +98,55 @@ const H = scenarios.length * BLOCK - 20;
   aria-label="git pull joins the local commits X and Y to origin with a merge commit; git pull --rebase replays them after D as X′ and Y′ in one straight line"
   class="diagram"
 >
-  {
-    scenarios.map((s, i) => {
-      const top = i * BLOCK;
-      const find = (id: string) => s.commits.find((c) => c.id === id)!;
-      const head = find(s.head);
-      return (
-        <g>
-          <text x="0" y={top + 14} class="title">
-            {s.title}
-          </text>
-          {s.edges.map(([from, to]) => {
-            const a = find(from);
-            const b = find(to);
-            return (
-              <line
-                x1={cx(a)}
-                y1={cy(a, top)}
-                x2={cx(b)}
-                y2={cy(b, top)}
-                class:list={["edge", { local: b.local }]}
-              />
-            );
-          })}
-          {s.commits.map((c) => (
-            <g class:list={{ local: c.local }}>
-              <circle
-                cx={cx(c)}
-                cy={cy(c, top)}
-                r={R}
-                class:list={["commit", { merge: c.merge }]}
-              />
-              <text x={cx(c)} y={cy(c, top)} class="label">
-                {c.id}
-              </text>
-            </g>
-          ))}
-          <text x={cx(head) + R + 8} y={cy(head, top)} class="ref">
-            ← main
-          </text>
-          <text
-            x={cx(find("D"))}
-            y={cy(find("D"), top) - R - 6}
-            class="ref"
-            text-anchor="middle"
-          >
-            origin/main
-          </text>
-        </g>
-      );
-    })
-  }
+  {scenarios.map((s, i) => {
+    const top = i * BLOCK;
+    const find = (id: string) => s.commits.find((c) => c.id === id)!;
+    const head = find(s.head);
+    return (
+      <g>
+        <text x="0" y={top + 14} class="title">
+          {s.title}
+        </text>
+        {s.edges.map(([from, to]) => {
+          const a = find(from);
+          const b = find(to);
+          return (
+            <line
+              x1={cx(a)}
+              y1={cy(a, top)}
+              x2={cx(b)}
+              y2={cy(b, top)}
+              class:list={["edge", { local: b.local }]}
+            />
+          );
+        })}
+        {s.commits.map((c) => (
+          <g class:list={{ local: c.local }}>
+            <circle
+              cx={cx(c)}
+              cy={cy(c, top)}
+              r={R}
+              class:list={["commit", { merge: c.merge }]}
+            />
+            <text x={cx(c)} y={cy(c, top)} class="label">
+              {c.id}
+            </text>
+          </g>
+        ))}
+        <text x={cx(head) + R + 8} y={cy(head, top)} class="ref">
+          ← main
+        </text>
+        <text
+          x={cx(find("D"))}
+          y={cy(find("D"), top) - R - 6}
+          class="ref"
+          text-anchor="middle"
+        >
+          origin/main
+        </text>
+      </g>
+    );
+  })}
 </svg>
 
 <style>

@@ -55,57 +55,55 @@ const terms = (i: number, j: number) =>
     <div class="block">
       <p class="block-title">Input image, 7×7</p>
       <div class="grid" style="--n: 7">
-        {
-          IMAGE.flatMap((row, r) =>
-            row.map((v, c) => (
-              <span
-                class:list={["cell", { window: inWindow(r, c) }]}
-                data-rc={`${r},${c}`}
-                style={`background-color: ${gray(v)}; color: ${ink(v)}`}
-              >
-                {v}
-              </span>
-            )),
-          )
-        }
+        {IMAGE.flatMap((row, r) =>
+          row.map((v, c) => (
+            <span
+              class:list={["cell", { window: inWindow(r, c) }]}
+              data-rc={`${r},${c}`}
+              style={`background-color: ${gray(v)}; color: ${ink(v)}`}
+            >
+              {v}
+            </span>
+          )),
+        )}
       </div>
     </div>
 
     <div class="block">
       <p class="block-title">Sobel x kernel</p>
       <div class="grid" style="--n: 3">
-        {KERNEL.flat().map((k) => <span class="cell kernel">{k}</span>)}
+        {KERNEL.flat().map((k) => (
+          <span class="cell kernel">{k}</span>
+        ))}
       </div>
     </div>
 
     <div class="block">
       <p class="block-title">Output, 5×5 (pick one)</p>
       <div class="grid" style="--n: 5">
-        {
-          OUTPUT.flatMap((row, i) =>
-            row.map((v, j) => (
-              <button
-                type="button"
-                class="cell out"
-                data-ij={`${i},${j}`}
-                aria-pressed={
-                  i === DEFAULT.i && j === DEFAULT.j ? "true" : "false"
-                }
-                aria-label={`Output row ${i + 1}, column ${j + 1}: ${v}`}
-                style={`background-color: ${gray(shade(v))}; color: ${ink(shade(v))}`}
-              >
-                {v}
-              </button>
-            )),
-          )
-        }
+        {OUTPUT.flatMap((row, i) =>
+          row.map((v, j) => (
+            <button
+              type="button"
+              class="cell out"
+              data-ij={`${i},${j}`}
+              aria-pressed={
+                i === DEFAULT.i && j === DEFAULT.j ? "true" : "false"
+              }
+              aria-label={`Output row ${i + 1}, column ${j + 1}: ${v}`}
+              style={`background-color: ${gray(shade(v))}; color: ${ink(shade(v))}`}
+            >
+              {v}
+            </button>
+          )),
+        )}
       </div>
     </div>
   </div>
 
   <p class="sum" aria-live="polite">
-    <span data-out="terms">{terms(DEFAULT.i, DEFAULT.j)}</span>
-    = <strong data-out="value">{OUTPUT[DEFAULT.i][DEFAULT.j]}</strong>
+    <span data-out="terms">{terms(DEFAULT.i, DEFAULT.j)}</span>={" "}
+    <strong data-out="value">{OUTPUT[DEFAULT.i][DEFAULT.j]}</strong>
   </p>
 </conv-explorer>
 

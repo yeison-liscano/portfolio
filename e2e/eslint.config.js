@@ -1,6 +1,6 @@
 import tseslint from "typescript-eslint";
 import prettierConfig from "eslint-config-prettier";
-import cypressPlugin from "eslint-plugin-cypress/flat";
+import cypressPlugin from "eslint-plugin-cypress";
 import functional from "eslint-plugin-functional";
 
 export default [

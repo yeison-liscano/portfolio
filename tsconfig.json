@@ -5,11 +5,10 @@
     "checkJs": true,
     "verbatimModuleSyntax": true,
     "plugins": [{ "name": "@astrojs/ts-plugin" }],
-    "baseUrl": "src",
     "paths": {
-      "components/*": ["components/*"],
-      "layouts/*": ["layouts/*"],
-      "pages/*": ["pages/*"]
+      "components/*": ["./src/components/*"],
+      "layouts/*": ["./src/layouts/*"],
+      "pages/*": ["./src/pages/*"]
     }
   },
   "include": [

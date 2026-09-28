@@ -22,12 +22,18 @@ const { steps, label } = Astro.props;
     <slot />
   </div>
   <ol class="stepper-steps">
-    {steps.map((step, index) => <li value={index + 1}>{step}</li>)}
+    {steps.map((step, index) => (
+      <li value={index + 1}>{step}</li>
+    ))}
   </ol>
   <div class="stepper-controls" role="group" aria-label={label} hidden>
-    <button type="button" data-action="prev">Previous</button>
+    <button type="button" data-action="prev">
+      Previous
+    </button>
     <span class="stepper-count" aria-live="polite"></span>
-    <button type="button" data-action="next">Next</button>
+    <button type="button" data-action="next">
+      Next
+    </button>
   </div>
 </blog-stepper>
 

@@ -1,3 +1,8 @@
+/* Variable fonts: one file per family covers every weight the site uses. */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/space-grotesk";
+
 :root {
   --primary: #171c28;
   --secondary: #171c28;
@@ -17,9 +22,9 @@
 
   --max-width: 720px;
 
-  --font-sans: "Geist Sans", sans-serif;
-  --font-mono: "Geist Mono", monospace;
-  --font-heading: "Space Grotesk Variable", sans-serif;
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-heading: "Space Grotesk Variable", system-ui, sans-serif;
 
   color: var(--text-color);
   background-color: var(--primary);

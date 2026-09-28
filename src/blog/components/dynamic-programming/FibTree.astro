@@ -77,47 +77,41 @@ const legend: { status: Status; text: string }[] = [
   aria-label={`The naive fibonacci(${N}) makes ${nodes.length} calls; with a cache, ${count("computed")} values are computed, ${count("hit")} calls are cache hits and ${count("skipped")} calls never happen`}
   class="diagram"
 >
-  {
-    edges.map(({ parent, child }) => (
-      <line
-        x1={px(parent)}
-        y1={py(parent) + NODE_H}
-        x2={px(child)}
-        y2={py(child)}
-        class:list={["edge", { skipped: child.status === "skipped" }]}
+  {edges.map(({ parent, child }) => (
+    <line
+      x1={px(parent)}
+      y1={py(parent) + NODE_H}
+      x2={px(child)}
+      y2={py(child)}
+      class:list={["edge", { skipped: child.status === "skipped" }]}
+    />
+  ))}
+  {nodes.map((node) => (
+    <g class={node.status}>
+      <rect
+        x={px(node) - NODE_W / 2}
+        y={py(node)}
+        width={NODE_W}
+        height={NODE_H}
+        rx="13"
+        class="node"
       />
-    ))
-  }
-  {
-    nodes.map((node) => (
-      <g class={node.status}>
-        <rect
-          x={px(node) - NODE_W / 2}
-          y={py(node)}
-          width={NODE_W}
-          height={NODE_H}
-          rx="13"
-          class="node"
-        />
-        <text x={px(node)} y={py(node) + NODE_H / 2} class="label">
-          f({node.n})
-        </text>
-      </g>
-    ))
-  }
-  {
-    legend.map((item, i) => (
-      <g
-        class={item.status}
-        transform={`translate(${PAD + i * 170} ${LEGEND_Y - 8})`}
-      >
-        <rect x="0" y="0" width="28" height="16" rx="8" class="node" />
-        <text x="36" y="8" class="legend">
-          {item.text}
-        </text>
-      </g>
-    ))
-  }
+      <text x={px(node)} y={py(node) + NODE_H / 2} class="label">
+        f({node.n})
+      </text>
+    </g>
+  ))}
+  {legend.map((item, i) => (
+    <g
+      class={item.status}
+      transform={`translate(${PAD + i * 170} ${LEGEND_Y - 8})`}
+    >
+      <rect x="0" y="0" width="28" height="16" rx="8" class="node" />
+      <text x="36" y="8" class="legend">
+        {item.text}
+      </text>
+    </g>
+  ))}
 </svg>
 
 <style>

@@ -2,6 +2,7 @@
 import Post from "layouts/Post.astro";
 import { getCollection, render } from "astro:content";
 import { readingTime } from "../../utils/format";
+import { blogPostingSchema } from "../../utils/schema";
 const { BASE_URL } = import.meta.env;
 
 export async function getStaticPaths() {
@@ -17,6 +18,14 @@ const { Content, headings } = await render(post);
 
 const currentIndex = allPosts.findIndex((p) => p.id === post.id);
 const nextPost = allPosts[(currentIndex + 1) % allPosts.length];
+
+// Rendered by src/pages/og/[slug].png.ts.
+const image = `og/${post.id}.png`;
+const jsonLd = blogPostingSchema(
+  post,
+  new URL(`${BASE_URL}blog/${post.id}/`, Astro.site).href,
+  new URL(`${BASE_URL}${image}`, Astro.site).href,
+);
 ---
 
 <Post
@@ -26,6 +35,8 @@ const nextPost = allPosts[(currentIndex + 1) % allPosts.length];
   }}
   headings={headings}
   allPosts={allPosts}
+  image={image}
+  jsonLd={jsonLd}
 >
   <Content />
   <div class="next-post">

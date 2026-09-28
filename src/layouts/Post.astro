@@ -1,14 +1,5 @@
 ---
 import type { CollectionEntry } from "astro:content";
-import "@fontsource/geist-sans/400.css";
-import "@fontsource/geist-sans/500.css";
-import "@fontsource/geist-sans/600.css";
-import "@fontsource/geist-sans/700.css";
-import "@fontsource/geist-mono/400.css";
-import "@fontsource/geist-mono/500.css";
-import "@fontsource/geist-mono/600.css";
-import "@fontsource/geist-mono/700.css";
-import "@fontsource-variable/space-grotesk";
 import "../styles/base.css";
 import Footer from "components/Footer.astro";
 import Head from "components/Head.astro";
@@ -21,22 +12,30 @@ export interface Props {
   frontmatter: CollectionEntry<"blog">["data"];
   allPosts: CollectionEntry<"blog">[];
   headings: { slug: string; text: string; depth: number }[];
+  /** Preview image path relative to the site base. */
+  image?: string;
+  jsonLd?: Record<string, unknown>;
 }
 
 const {
-  frontmatter: { title, description, pubDate, readingTime },
+  frontmatter: { title, description, pubDate, readingTime, lang },
   headings,
   allPosts,
+  image,
+  jsonLd,
 } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <Head
     title={`${title} | Yeison Liscano`}
     description={description}
     type="article"
     publishedTime={pubDate.toISOString()}
+    lang={lang}
+    image={image}
+    jsonLd={jsonLd}
   />
   <body>
     <Aside posts={allPosts} />
