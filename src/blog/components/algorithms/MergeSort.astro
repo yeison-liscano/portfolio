@@ -88,41 +88,41 @@ const links = levels.slice(1).flatMap((level, l) =>
   aria-label="Merge sort splits 8 values into single elements over 3 levels, then merges them back sorted over 3 levels"
   class="diagram"
 >
-  <text x="0" y={TOP + ROW * 1.5 + CELL / 2} class="phase">split</text>
-  <text x="0" y={TOP + ROW * 5 + CELL / 2} class="phase">merge</text>
-  {
-    links.map((link) => (
-      <line x1={link.x1} y1={link.y1} x2={link.x2} y2={link.y2} class="link" />
-    ))
-  }
-  {
-    levels.map((level, l) =>
-      level.pieces.map((piece, p) =>
-        piece.values.map((value, v) => (
-          <g>
-            <rect
-              x={pieceX(piece, p) + v * (CELL + PAD)}
-              y={TOP + l * ROW}
-              width={CELL}
-              height={CELL}
-              rx="3"
-              class:list={[
-                "cell",
-                { merged: level.phase === "merge" && piece.values.length > 1 },
-              ]}
-            />
-            <text
-              x={pieceX(piece, p) + v * (CELL + PAD) + CELL / 2}
-              y={TOP + l * ROW + CELL / 2}
-              class="value"
-            >
-              {value}
-            </text>
-          </g>
-        )),
-      ),
-    )
-  }
+  <text x="0" y={TOP + ROW * 1.5 + CELL / 2} class="phase">
+    split
+  </text>
+  <text x="0" y={TOP + ROW * 5 + CELL / 2} class="phase">
+    merge
+  </text>
+  {links.map((link) => (
+    <line x1={link.x1} y1={link.y1} x2={link.x2} y2={link.y2} class="link" />
+  ))}
+  {levels.map((level, l) =>
+    level.pieces.map((piece, p) =>
+      piece.values.map((value, v) => (
+        <g>
+          <rect
+            x={pieceX(piece, p) + v * (CELL + PAD)}
+            y={TOP + l * ROW}
+            width={CELL}
+            height={CELL}
+            rx="3"
+            class:list={[
+              "cell",
+              { merged: level.phase === "merge" && piece.values.length > 1 },
+            ]}
+          />
+          <text
+            x={pieceX(piece, p) + v * (CELL + PAD) + CELL / 2}
+            y={TOP + l * ROW + CELL / 2}
+            class="value"
+          >
+            {value}
+          </text>
+        </g>
+      )),
+    ),
+  )}
 </svg>
 
 <style>

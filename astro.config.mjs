@@ -9,6 +9,16 @@ export default defineConfig({
   site: "https://yeison-liscano.github.io",
   base: "/portfolio/",
   trailingSlash: "always",
+  // Posts renamed to fix typos in their URLs; old links keep working.
+  // cspell:ignore algoritms inidicadores economicos decriptive
+  // Sources are routes (base added by Astro); destinations need the base.
+  redirects: {
+    "/blog/algoritms/": "/portfolio/blog/algorithms/",
+    "/blog/inidicadores-economicos/": "/portfolio/blog/indicadores-economicos/",
+    "/blog/inferential-vs-decriptive-statistics/":
+      "/portfolio/blog/inferential-vs-descriptive-statistics/",
+    "/blog/rcp/": "/portfolio/blog/json-rpc/",
+  },
   markdown: {
     rehypePlugins: [
       [
