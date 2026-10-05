@@ -14,7 +14,10 @@ const allPosts = (
 const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
 ---
 
-<Base title="Blog | Yeison Liscano" description="Yeison Liscano Blog">
+<Base
+  title="Blog | Yeison Liscano"
+  description="Articles on MCP servers, AI agents, application security, Python, algorithms and economics, with interactive diagrams and runnable examples."
+>
   <div class="blog-header">
     <h1>Blog Posts</h1>
     <p class="blog-subtitle">
@@ -22,30 +25,28 @@ const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
     </p>
   </div>
   <div class="filter-bar" id="filter-bar">
-    <button class="filter-btn active" data-tag="all">All</button>
-    {
-      allTags.map((tag) => (
-        <button class="filter-btn" data-tag={tag}>
-          {label(tag)}
-        </button>
-      ))
-    }
+    <button class="filter-btn active" data-tag="all">
+      All
+    </button>
+    {allTags.map((tag) => (
+      <button class="filter-btn" data-tag={tag}>
+        {label(tag)}
+      </button>
+    ))}
   </div>
   <div class="posts-container" id="posts-container">
-    {
-      allPosts.map(({ data, id, body }) => (
-        <PostPreview
-          title={data.title}
-          pubDate={data.pubDate}
-          description={data.description}
-          tags={data.tags}
-          slug={id}
-          readingTime={data.readingTime ?? readingTime(body)}
-          snippet={data.snippet}
-          dataTags={data.tags.join(",")}
-        />
-      ))
-    }
+    {allPosts.map(({ data, id, body }) => (
+      <PostPreview
+        title={data.title}
+        pubDate={data.pubDate}
+        description={data.description}
+        tags={data.tags}
+        slug={id}
+        readingTime={data.readingTime ?? readingTime(body)}
+        snippet={data.snippet}
+        dataTags={data.tags.join(",")}
+      />
+    ))}
   </div>
 </Base>
 

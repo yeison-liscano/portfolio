@@ -1,0 +1,57 @@
+---
+/**
+ * Precedencia - Precedence graph of six statements. Statements in the same
+ * column can run at the same time; the highlighted chain forces four rounds.
+ */
+import Grafo from "./Grafo.astro";
+import type { Panel } from "./geometria";
+
+const col = [60, 220, 380, 540];
+const top = 70;
+const bottom = 150;
+
+const panels: Panel[] = [
+  {
+    nodes: [
+      { id: "S1", x: col[0], y: top, note: "a := 0", noteDy: -26 },
+      { id: "S2", x: col[0], y: bottom, note: "b := 1", noteDy: 26, hl: true },
+      { id: "S3", x: col[1], y: top, note: "c := a + 1", noteDy: -26 },
+      {
+        id: "S4",
+        x: col[1],
+        y: bottom,
+        note: "d := b + a",
+        noteDy: 26,
+        hl: true,
+      },
+      {
+        id: "S5",
+        x: col[2],
+        y: bottom,
+        note: "e := d + 1",
+        noteDy: 26,
+        hl: true,
+      },
+      { id: "S6", x: col[3], y: 110, note: "e := c + d", noteDy: 26, hl: true },
+    ],
+    edges: [
+      { a: "S1", b: "S3", dir: true },
+      { a: "S1", b: "S4", dir: true },
+      { a: "S2", b: "S4", dir: true, hl: true },
+      { a: "S3", b: "S6", dir: true },
+      { a: "S4", b: "S5", dir: true, hl: true },
+      { a: "S4", b: "S6", dir: true },
+      { a: "S5", b: "S6", dir: true, hl: true },
+    ],
+    labels: col.map((x, i) => ({ x, y: 212, text: `ronda ${i + 1}` })),
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={600}
+  height={224}
+  minWidth={480}
+  label="Grafo de precedencia de seis declaraciones: la cadena S2, S4, S5, S6 obliga a ejecutar el programa en cuatro rondas"
+/>

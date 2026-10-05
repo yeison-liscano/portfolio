@@ -1,0 +1,97 @@
+---
+/**
+ * SerieGrafos - Navigation for the seven-part "Teoría de grafos" series.
+ * The current part is shown as text, the others as links.
+ */
+interface Props {
+  /** Number of the current part, 1 to 7. */
+  actual: number;
+}
+
+const { actual } = Astro.props;
+const { BASE_URL } = import.meta.env;
+
+const PARTES = [
+  {
+    slug: "grafos-1-modelos",
+    titulo: "Qué es un grafo y qué se puede modelar",
+  },
+  {
+    slug: "grafos-2-grados-y-familias",
+    titulo: "Grados, familias especiales y grafos bipartitos",
+  },
+  {
+    slug: "grafos-3-representacion-e-isomorfismo",
+    titulo: "Listas, matrices e isomorfismo",
+  },
+  { slug: "grafos-4-conectividad", titulo: "Caminos y conexidad" },
+  {
+    slug: "grafos-5-euler-y-hamilton",
+    titulo: "Circuitos de Euler y de Hamilton",
+  },
+  {
+    slug: "grafos-6-caminos-mas-cortos",
+    titulo: "Dijkstra y el agente viajero",
+  },
+  {
+    slug: "grafos-7-planaridad-y-coloracion",
+    titulo: "Grafos planares y coloración",
+  },
+];
+---
+
+<nav class="serie" aria-label="Serie: Teoría de grafos">
+  <p class="serie-titulo">Serie: Teoría de grafos</p>
+  <ol>
+    {PARTES.map((parte, index) => (
+      <li>
+        {index + 1 === actual ? (
+          <span aria-current="page">{parte.titulo}</span>
+        ) : (
+          <a href={`${BASE_URL}blog/${parte.slug}/`}>{parte.titulo}</a>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .serie {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 2rem 0;
+    padding: 16px 20px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background-color: var(--surface);
+  }
+
+  .serie-titulo {
+    margin: 0;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  ol {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding-left: 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  li::marker {
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  [aria-current="page"] {
+    color: var(--contrast);
+    font-weight: 600;
+  }
+</style>

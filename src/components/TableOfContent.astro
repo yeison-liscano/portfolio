@@ -40,13 +40,11 @@ const { headings } = Astro.props;
     </button>
   </div>
   <ul id="article-content">
-    {
-      headings.map((heading) => (
-        <li class={`h-${heading.depth}`}>
-          <a href={`#${heading.slug}`}>{heading.text}</a>
-        </li>
-      ))
-    }
+    {headings.map((heading) => (
+      <li class={`h-${heading.depth}`}>
+        <a href={`#${heading.slug}`}>{heading.text}</a>
+      </li>
+    ))}
   </ul>
 </aside>
 

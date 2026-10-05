@@ -1,0 +1,313 @@
+---
+lang: "es"
+title: "Teoría de grafos VI: Dijkstra y el agente viajero"
+pubDate: 2026-10-04
+description:
+  "Sexta parte de la serie sobre teoría de grafos: grafos ponderados, el
+  algoritmo de Dijkstra paso a paso con su demostración y su costo, y el
+  problema del agente viajero, el circuito de Hamilton más barato."
+tags: ["math", "algorithms"]
+isDraft: true
+snippet:
+  language: "python"
+  code: |
+    import heapq
+
+    def dijkstra(grafo, origen):
+        L = {origen: 0}
+        cola = [(0, origen)]
+        while cola:
+            d, u = heapq.heappop(cola)
+            for v, w in grafo[u]:
+                if d + w < L.get(v, float("inf")):
+                    L[v] = d + w
+                    heapq.heappush(cola, (L[v], v))
+        return L
+---
+
+import Figure from "../components/blog/Figure.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import DijkstraPasos from "./components/grafos/DijkstraPasos.astro";
+import SerieGrafos from "./components/grafos/SerieGrafos.astro";
+
+Palabras clave: grafo ponderado, camino más corto, algoritmo de Dijkstra, cola
+de prioridad, problema del agente viajero, NP-difícil
+
+En los grafos de las partes anteriores todas las aristas valían lo mismo. En
+muchos problemas reales no es así: un vuelo de Medellín a Bogotá no dura lo
+mismo que uno de Medellín a Miami, un enlace de fibra no cuesta lo mismo que uno
+satelital y una vía pavimentada no se recorre en el mismo tiempo que una trocha.
+Esta parte agrega pesos a las aristas y estudia dos preguntas sobre ellos: la
+ruta más barata entre dos vértices, que tiene un algoritmo eficiente, y el
+circuito más barato que visita todos los vértices, que no lo tiene.
+
+## Grafos ponderados
+
+Un **grafo ponderado** (_weighted graph_) es un grafo en el que cada arista
+tiene asignado un número, su **peso**. El modelo básico de un sistema de
+aerolíneas tiene una arista entre dos ciudades si hay un vuelo entre ellas; con
+pesos, la misma red responde preguntas distintas según lo que el peso
+represente:
+
+- distancias en kilómetros, para la ruta más corta;
+- tiempos de vuelo, para la ruta más rápida;
+- tarifas, para la ruta más barata.
+
+Las redes de computadoras se modelan igual: el peso de un enlace puede ser su
+costo mensual, su tiempo de respuesta o la distancia física. La **longitud** de
+un camino en un grafo ponderado es la suma de los pesos de sus aristas, y el
+**problema del camino más corto** pide un camino de longitud mínima entre dos
+vértices dados.
+
+## El algoritmo de Dijkstra
+
+El algoritmo que el científico de la computación holandés Edsger Dijkstra
+publicó en 1959 resuelve el problema cuando todos los pesos son positivos. Su
+idea es encontrar las distancias desde el origen `a` en orden creciente: primero
+el vértice más cercano a `a`, luego el siguiente, y así hasta llegar al destino
+`z`.
+
+El algoritmo mantiene un conjunto `S` de vértices cuya distancia ya es
+definitiva y una etiqueta `L(v)` para cada vértice: la longitud del camino más
+corto de `a` a `v` encontrado hasta el momento que solo pasa por vértices de
+`S`.
+
+```text
+procedimiento Dijkstra(G: grafo simple conexo ponderado, con pesos positivos)
+    { G tiene vértices a = v0, v1, …, vn = z y pesos w(vi, vj),
+      con w(vi, vj) = ∞ si {vi, vj} no es una arista de G }
+    para i := 1 hasta n
+        L(vi) := ∞
+    L(a) := 0
+    S := ∅
+    mientras z ∉ S
+        u := un vértice que no está en S con L(u) mínima
+        S := S ∪ {u}
+        para todo vértice v que no está en S
+            si L(u) + w(u, v) < L(v) entonces L(v) := L(u) + w(u, v)
+    devolver L(z)   { L(z) es la longitud de un camino más corto de a a z }
+```
+
+En cada iteración entra a `S` el vértice con la etiqueta mínima, y sus vecinos
+actualizan sus etiquetas si pasar por él les da un camino más corto. Ese paso de
+actualización se llama **relajación**. La figura ejecuta el algoritmo en un
+grafo de seis vértices; cada paso muestra el vértice que entra a `S`, la arista
+por la que se llegó a él y las etiquetas después de la relajación.
+
+<Figure caption="Dijkstra de a a z. Cada paso fija el vértice de etiqueta mínima (subrayado) y relaja a sus vecinos. Las aristas que se van resaltando forman el árbol de caminos más cortos; el de a a z es a, c, b, d, e, z, de longitud 13.">
+  <Stepper
+    lang="es"
+    label="Algoritmo de Dijkstra de a a z"
+    steps={[
+      "Entra a con L(a) = 0. Sus vecinos se relajan: L(b) = 4 y L(c) = 2.",
+      "La etiqueta mínima fuera de S es L(c) = 2, así que entra c. Por c, L(b) baja de 4 a 2 + 1 = 3, L(d) = 2 + 8 = 10 y L(e) = 2 + 10 = 12.",
+      "Entra b con L(b) = 3. Por b, L(d) baja de 10 a 3 + 5 = 8.",
+      "Entra d con L(d) = 8. Por d, L(e) baja de 12 a 8 + 2 = 10 y L(z) = 8 + 6 = 14.",
+      "Entra e con L(e) = 10. Por e, L(z) baja de 14 a 10 + 3 = 13.",
+      "Entra z con L(z) = 13 y el algoritmo termina. Siguiendo hacia atrás las aristas resaltadas, la ruta es a, c, b, d, e, z.",
+    ]}
+  >
+    <DijkstraPasos />
+  </Stepper>
+</Figure>
+
+Observa el paso 2: el camino directo de `a` a `b` mide 4, pero el algoritmo
+descubre que ir por `c` cuesta 3. Por eso no se puede fijar la distancia de un
+vértice solo porque ya se le encontró algún camino: hay que esperar a que su
+etiqueta sea la mínima de las que quedan.
+
+### Por qué funciona
+
+> **Teorema.** El algoritmo de Dijkstra encuentra la longitud de un camino más
+> corto entre dos vértices de un grafo simple conexo no dirigido con pesos
+> positivos.
+
+La demostración es por inducción sobre las iteraciones, con esta afirmación:
+cuando un vértice `u` entra a `S`, `L(u)` es la distancia de `a` a `u`.
+Supongamos que es cierto para los vértices que ya están en `S` y que `u` es el
+que entra ahora. Cualquier camino de `a` a `u` sale de `S` en algún momento por
+primera vez, hacia un vértice `y` que no está en `S`. Hasta `y`, ese camino mide
+al menos `L(y)`, porque `L(y)` ya consideró todos los caminos que solo usan `S`
+antes de llegar a `y`. Como `u` se eligió con la etiqueta mínima, `L(y) ≥ L(u)`,
+y como los pesos son positivos, el resto del camino de `y` a `u` no puede
+descontar nada. Así que ningún camino es más corto que `L(u)`.
+
+El argumento falla con pesos negativos: un tramo con peso negativo después de
+`y` podría hacer más corto un camino que el algoritmo ya descartó. Para esos
+grafos se usa el algoritmo de Bellman-Ford.
+
+### Cuánto cuesta
+
+> **Teorema.** El algoritmo de Dijkstra usa `O(n²)` operaciones (sumas y
+> comparaciones) para encontrar la longitud de un camino más corto entre dos
+> vértices de un grafo ponderado simple conexo no dirigido con `n` vértices.
+
+Hay a lo sumo `n` iteraciones. En cada una se busca el mínimo entre los vértices
+fuera de `S` (a lo sumo `n` comparaciones) y se relajan los vértices fuera de
+`S` (a lo sumo `n` sumas y `n` comparaciones). En total, `O(n²)`.
+
+Para grafos dispersos conviene guardar las etiquetas en una **cola de
+prioridad** (un montículo binario): sacar el mínimo cuesta `O(log n)` y cada
+arista se relaja una vez, así que el costo baja a `O((n + m) log n)`. Es la
+versión que usan los sistemas de navegación y los protocolos de enrutamiento
+como OSPF, y la que está en el siguiente programa, que además guarda de qué
+vértice viene cada etiqueta para reconstruir la ruta:
+
+```python
+import heapq
+
+
+def dijkstra(grafo, origen):
+    """Distancias desde origen y el vértice previo en cada camino más corto."""
+    L = {v: float("inf") for v in grafo}
+    previo = {}
+    L[origen] = 0
+    cola = [(0, origen)]
+    while cola:
+        d, u = heapq.heappop(cola)
+        if d > L[u]:
+            continue  # entrada vieja: u ya salió con una etiqueta menor
+        for v, w in grafo[u].items():
+            if d + w < L[v]:
+                L[v] = d + w
+                previo[v] = u
+                heapq.heappush(cola, (L[v], v))
+    return L, previo
+
+
+def ruta(previo, origen, destino):
+    camino = [destino]
+    while camino[-1] != origen:
+        camino.append(previo[camino[-1]])
+    return camino[::-1]
+
+
+aristas = [
+    ("a", "b", 4), ("a", "c", 2), ("b", "c", 1), ("b", "d", 5), ("c", "d", 8),
+    ("c", "e", 10), ("d", "e", 2), ("d", "z", 6), ("e", "z", 3),
+]
+grafo = {}
+for u, v, w in aristas:
+    grafo.setdefault(u, {})[v] = w
+    grafo.setdefault(v, {})[u] = w
+
+L, previo = dijkstra(grafo, "a")
+print("distancias:", L)
+print("ruta de a a z:", ruta(previo, "a", "z"), "longitud", L["z"])
+```
+
+## El problema del agente viajero
+
+Ahora una pregunta que suena parecida. Un agente viajero tiene que visitar cada
+una de `n` ciudades exactamente una vez y regresar a su punto de partida. ¿En
+qué orden debe visitarlas para minimizar la distancia total?
+
+> **Problema del agente viajero.** Dado un grafo ponderado, completo y no
+> dirigido, encontrar un circuito de peso total mínimo que visite cada vértice
+> exactamente una vez y regrese al inicial.
+
+Como cada vértice se visita exactamente una vez, se trata de encontrar el
+**circuito de Hamilton** de peso mínimo en el grafo completo, la versión con
+pesos del problema de la [parte V](/portfolio/blog/grafos-5-euler-y-hamilton/).
+
+La forma directa de resolverlo es examinar todos los circuitos. Fijando la
+ciudad de partida, hay `(n − 1)!` órdenes para las demás, y cada circuito
+aparece dos veces (una en cada sentido), así que hay `(n − 1)!/2` circuitos
+distintos. Con cinco ciudades son solo 12:
+
+Las ciudades son Medellín (MDE), Bogotá (BOG), Cali (CLO), Barranquilla (BAQ) y
+Bucaramanga (BGA), abreviadas con los códigos de sus aeropuertos. Las distancias
+son aproximadas, en kilómetros por carretera y redondeadas; sirven solo para el
+ejemplo.
+
+| km  | MDE | BOG  | CLO  | BAQ  | BGA |
+| --- | --- | ---- | ---- | ---- | --- |
+| MDE |     | 415  | 420  | 700  | 390 |
+| BOG | 415 |      | 460  | 1000 | 400 |
+| CLO | 420 | 460  |      | 1100 | 830 |
+| BAQ | 700 | 1000 | 1100 |      | 560 |
+| BGA | 390 | 400  | 830  | 560  |     |
+
+```python
+from itertools import permutations
+
+ciudades = ["Medellín", "Bogotá", "Cali", "Barranquilla", "Bucaramanga"]
+km = {
+    ("Medellín", "Bogotá"): 415, ("Medellín", "Cali"): 420,
+    ("Medellín", "Barranquilla"): 700, ("Medellín", "Bucaramanga"): 390,
+    ("Bogotá", "Cali"): 460, ("Bogotá", "Barranquilla"): 1000,
+    ("Bogotá", "Bucaramanga"): 400, ("Cali", "Barranquilla"): 1100,
+    ("Cali", "Bucaramanga"): 830, ("Barranquilla", "Bucaramanga"): 560,
+}
+
+
+def distancia(u, v):
+    return km.get((u, v)) or km[(v, u)]
+
+
+def longitud(circuito):
+    return sum(distancia(u, v) for u, v in zip(circuito, circuito[1:]))
+
+
+inicio, resto = ciudades[0], ciudades[1:]
+circuitos = {}
+for orden in permutations(resto):
+    if orden[0] < orden[-1]:  # cada circuito una sola vez, no en ambos sentidos
+        circuito = (inicio, *orden, inicio)
+        circuitos[circuito] = longitud(circuito)
+
+print(len(circuitos), "circuitos distintos")
+for circuito, total in sorted(circuitos.items(), key=lambda par: par[1])[:3]:
+    print(total, "km:", " → ".join(circuito))
+```
+
+El mejor recorrido es Medellín, Barranquilla, Bucaramanga, Bogotá, Cali y de
+vuelta a Medellín (o el mismo circuito en sentido contrario), con 2540 km.
+Barranquilla queda conectada con sus dos vecinos más cercanos (Medellín y
+Bucaramanga) y Cali también (Medellín y Bogotá), y eso decide todo lo demás.
+
+### La explosión combinatoria
+
+El método funciona con cinco ciudades. El problema es cómo crece `(n − 1)!/2`:
+
+| Ciudades | Circuitos distintos | A mil millones de circuitos por segundo |
+| -------- | ------------------- | --------------------------------------- |
+| 5        | 12                  | instantáneo                             |
+| 10       | 181 440             | instantáneo                             |
+| 15       | 43 589 145 600      | unos 44 segundos                        |
+| 20       | cerca de 6,1 × 10¹⁶ | cerca de 2 años                         |
+| 25       | cerca de 3,1 × 10²³ | cerca de 10 millones de años            |
+
+El problema del agente viajero es **NP-difícil**: no se conoce ningún algoritmo
+que lo resuelva en tiempo polinomial en el peor caso. Aun así, en la práctica se
+resuelven instancias grandes con técnicas mucho mejores que la fuerza bruta,
+como ramificación y acotamiento y planos de corte; en 2006 se resolvió de forma
+exacta un problema con 85 900 ciudades. Cuando basta con una buena respuesta, se
+usan **algoritmos de aproximación**: el de Christofides garantiza, cuando las
+distancias cumplen la desigualdad triangular, un circuito a lo sumo 1,5 veces
+más largo que el óptimo.
+
+## Conclusión
+
+El camino más corto entre dos vértices se encuentra en tiempo polinomial: el
+algoritmo de Dijkstra fija las distancias en orden creciente y, con pesos
+positivos, nunca tiene que corregir una distancia ya fijada. El circuito de
+Hamilton más corto, en cambio, es NP-difícil, y la fuerza bruta deja de ser
+viable alrededor de las 15 ciudades. En la última parte de la serie veremos
+cuándo un grafo se puede dibujar sin cruces y cuántos colores hacen falta para
+colorearlo.
+
+<SerieGrafos actual={6} />
+
+## Referencias
+
+- Applegate, D. L., Bixby, R. E., Chvátal, V., & Cook, W. J. (2006). _The
+  Traveling Salesman Problem: A Computational Study_. Princeton University
+  Press.
+- Dijkstra, E. W. (1959). A note on two problems in connexion with graphs.
+  _Numerische Mathematik_, 1, 269–271.
+- Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
+  sección 10.6. McGraw-Hill.
+- Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
+  Notas de clase, Departamento de Matemáticas, Universidad Nacional de Colombia,
+  sede Medellín.

@@ -1,0 +1,289 @@
+---
+lang: "es"
+title: "Teoría de grafos III: listas, matrices e isomorfismo"
+pubDate: 2026-10-04
+description:
+  "Tercera parte de la serie sobre teoría de grafos: cómo guardar un grafo en
+  memoria con listas de adyacencia, matrices de adyacencia y matrices de
+  incidencia, y cómo decidir si dos grafos son el mismo con isomorfismos e
+  invariantes."
+tags: ["math", "algorithms"]
+isDraft: true
+snippet:
+  language: "python"
+  code: |
+    vertices = ["a", "b", "c"]
+    aristas = [("a", "b"), ("b", "c")]
+    A = [[0] * len(vertices) for _ in vertices]
+    for u, v in aristas:
+        i, j = vertices.index(u), vertices.index(v)
+        A[i][j] = A[j][i] = 1
+---
+
+import Figure from "../components/blog/Figure.astro";
+import RepresentacionExplorer from "./components/grafos/RepresentacionExplorer.astro";
+import Isomorfismo from "./components/grafos/Isomorfismo.astro";
+import SerieGrafos from "./components/grafos/SerieGrafos.astro";
+
+Palabras clave: lista de adyacencia, matriz de adyacencia, matriz de incidencia,
+isomorfismo, invariante
+
+Un dibujo es la forma más natural de mostrar un grafo a una persona, pero un
+programa necesita otra cosa: una estructura de datos. Hay varias formas de
+representar un grafo, y la elección importa porque cada una hace rápidas unas
+operaciones y lentas otras. Esta parte presenta las tres representaciones
+clásicas y una pregunta que aparece en cuanto uno tiene dos representaciones
+distintas en la mano: ¿son el mismo grafo?
+
+## Listas de aristas y listas de adyacencia
+
+La forma más directa de representar un grafo sin aristas múltiples es enumerar
+sus aristas. Para el grafo de la figura de abajo, la **lista de aristas** es:
+
+```text
+{a, b}, {a, c}, {a, e}, {c, d}, {c, e}, {d, e}
+```
+
+Una **lista de adyacencia** organiza la misma información por vértice: para cada
+vértice, la lista de los vértices adyacentes a él. En un grafo dirigido se
+guarda, para cada vértice inicial, la lista de los vértices terminales de sus
+aristas. En Python, un diccionario de listas es una lista de adyacencia:
+
+```python
+grafo = {
+    "a": ["b", "c", "e"],
+    "b": ["a"],
+    "c": ["a", "d", "e"],
+    "d": ["c", "e"],
+    "e": ["a", "c", "d"],
+}
+```
+
+Cada arista aparece dos veces, una en la lista de cada extremo. Por eso la lista
+de adyacencia ocupa memoria proporcional a `n + 2m`, donde `n` es el número de
+vértices y `m` el de aristas, y por el teorema del apretón de manos la longitud
+de la lista de `v` es exactamente `deg(v)`.
+
+## Matrices de adyacencia
+
+Los algoritmos que trabajan con muchas aristas se simplifican si el grafo se
+guarda como una matriz. Sea `G = (V, E)` un grafo simple con `n` vértices,
+enumerados en algún orden `v1, v2, …, vn`. La **matriz de adyacencia** `A` de
+`G` respecto a ese orden es la matriz de ceros y unos de tamaño `n × n` cuya
+entrada `(i, j)` es
+
+```text
+a_ij = 1   si {vi, vj} es una arista de G
+a_ij = 0   en caso contrario
+```
+
+Tres propiedades salen de la definición. La matriz de un grafo no dirigido es
+**simétrica**, porque `{vi, vj}` y `{vj, vi}` son la misma arista. La diagonal
+de un grafo simple es cero, porque no hay lazos. Y la suma de la fila `i` es el
+grado de `vi`. La matriz depende del orden elegido para los vértices: con `n`
+vértices hay `n!` órdenes posibles y, en general, `n!` matrices distintas para
+el mismo grafo.
+
+La definición se extiende sin cambios a otros tipos de grafos. En un multigrafo,
+la entrada `(i, j)` es el número de aristas entre `vi` y `vj`; un lazo en `vi`
+se registra en la diagonal. En un grafo dirigido, `a_ij = 1` si hay una arista
+de `vi` a `vj`, y la matriz deja de ser simétrica.
+
+## Matrices de incidencia
+
+La tercera representación relaciona vértices con aristas. Sean `v1, …, vn` los
+vértices y `e1, …, em` las aristas de un grafo no dirigido `G`. La **matriz de
+incidencia** es la matriz `M` de tamaño `n × m` con
+
+```text
+m_ij = 1   si la arista ej es incidente con vi
+m_ij = 0   en caso contrario
+```
+
+Cada columna tiene exactamente dos unos, los de los dos extremos de su arista
+(un lazo deja un solo uno). Las aristas múltiples aparecen como columnas
+idénticas. La suma de una fila vuelve a ser el grado del vértice.
+
+El explorador muestra el mismo grafo en las tres representaciones. Al elegir un
+vértice se resaltan sus aristas en el dibujo, su entrada en la lista, su fila y
+su columna en la matriz de adyacencia y su fila en la de incidencia, junto con
+las columnas de las aristas que lo tocan.
+
+<Figure caption="El mismo grafo guardado de tres formas. Cada representación registra los mismos vecinos del vértice elegido; lo que cambia es cuánto cuesta encontrarlos.">
+  <RepresentacionExplorer />
+</Figure>
+
+## ¿Qué representación usar?
+
+La elección depende de si el grafo es **denso** (muchas aristas, cerca de
+`n²/2`) o **disperso** (pocas aristas, cerca de `n`), y de qué operaciones se
+repiten más:
+
+| Operación                   | Lista de adyacencia | Matriz de adyacencia |
+| --------------------------- | ------------------- | -------------------- |
+| Memoria                     | `O(n + m)`          | `O(n²)`              |
+| ¿Son `u` y `v` adyacentes?  | `O(deg(u))`         | `O(1)`               |
+| Recorrer los vecinos de `u` | `O(deg(u))`         | `O(n)`               |
+| Agregar una arista          | `O(1)`              | `O(1)`               |
+
+La mayoría de los grafos reales son dispersos. En el grafo de llamadas de AT&T
+de la parte I, con unos 290 millones de vértices, una matriz de adyacencia
+tendría del orden de `8 × 10¹⁶` entradas, casi todas en cero, mientras que las
+listas de adyacencia solo guardan las 4000 millones de aristas. Por eso las
+bibliotecas de grafos, como NetworkX, usan listas (diccionarios) por defecto. La
+matriz conviene en grafos pequeños o densos, y cuando se quiere aprovechar el
+álgebra lineal.
+
+## Lo que se puede calcular con la matriz
+
+La matriz de adyacencia no es solo una tabla: sus potencias cuentan recorridos.
+La entrada `(i, j)` de `A²` es `Σ a_ik · a_kj`, y cada término vale uno
+exactamente cuando `vi — vk — vj` es un recorrido de dos aristas. Así que
+`(A²)_ij` es el número de caminos de longitud 2 de `vi` a `vj`, y en general
+**la entrada `(i, j)` de `Aʳ` es el número de caminos de longitud `r` de `vi` a
+`vj`** (caminos que pueden repetir vértices; los definimos con cuidado en la
+parte IV). En la diagonal de `A²` aparece el grado de cada vértice: un camino de
+longitud 2 de `v` a `v` es ir a un vecino y volver.
+
+```python
+vertices = ["a", "b", "c", "d", "e"]
+aristas = [("a", "b"), ("a", "c"), ("a", "e"), ("c", "d"), ("c", "e"), ("d", "e")]
+
+n = len(vertices)
+indice = {v: i for i, v in enumerate(vertices)}
+A = [[0] * n for _ in range(n)]
+for u, v in aristas:
+    A[indice[u]][indice[v]] = A[indice[v]][indice[u]] = 1
+
+
+def producto(X, Y):
+    return [[sum(X[i][k] * Y[k][j] for k in range(n)) for j in range(n)]
+            for i in range(n)]
+
+
+A2 = producto(A, A)
+print("A² =")
+for v, fila in zip(vertices, A2):
+    print(" ", v, fila)
+print("diagonal (grados):", [A2[i][i] for i in range(n)])
+print("caminos de longitud 2 de b a e:", A2[indice["b"]][indice["e"]])
+```
+
+El único camino de longitud 2 de `b` a `e` es `b, a, e`, y el programa lo
+confirma.
+
+## Isomorfismo de grafos
+
+Dos grafos pueden verse muy distintos y tener exactamente la misma estructura.
+En la figura, el pentágono y la estrella de cinco puntas son el mismo grafo con
+los vértices dibujados en otro orden. La noción precisa es la de isomorfismo:
+
+> **Definición.** Los grafos simples `G1 = (V1, E1)` y `G2 = (V2, E2)` son
+> **isomorfos** si existe una función biyectiva `f: V1 → V2` tal que, para todo
+> par de vértices `u` y `v` de `V1`, `u` y `v` son adyacentes en `G1` si y solo
+> si `f(u)` y `f(v)` son adyacentes en `G2`. La función `f` se llama un
+> **isomorfismo**. Dos grafos que no son isomorfos se llaman **no isomorfos**.
+
+Un isomorfismo es un cambio de nombres de los vértices que preserva la
+adyacencia y la no adyacencia. En el ejemplo de arriba, `f(u1) = v1`,
+`f(u2) = v3`, `f(u3) = v5`, `f(u4) = v2` y `f(u5) = v4` lleva cada lado del
+pentágono a una punta de la estrella; la arista resaltada `{u1, u2}` va a
+`{v1, v3}`.
+
+<Figure caption="Arriba, dos dibujos del mismo grafo: el isomorfismo lleva la arista resaltada del pentágono a la de la estrella. Abajo, dos grafos con 6 vértices, 6 aristas y todos los grados iguales a 2 que no son isomorfos: solo el de la derecha tiene triángulos.">
+  <Isomorfismo />
+</Figure>
+
+### Invariantes
+
+Decidir si dos grafos son isomorfos es difícil en general. Con `n` vértices hay
+`n!` biyecciones posibles, y revisar cada una deja de ser práctico muy rápido:
+con 20 vértices ya son más de `2 × 10¹⁸`. No se conoce un algoritmo de tiempo
+polinomial para el problema general; en 2015 László Babai anunció uno de tiempo
+cuasipolinomial, el mayor avance en décadas.
+
+Demostrar que dos grafos **no** son isomorfos suele ser más fácil. Basta
+encontrar una propiedad que se conserve bajo isomorfismos y que solo uno de los
+dos tenga. Esas propiedades se llaman **invariantes**:
+
+- el número de vértices y el número de aristas;
+- la sucesión de grados (los grados ordenados de mayor a menor);
+- la existencia de ciclos de una longitud dada, por ejemplo triángulos;
+- ser conexo, ser bipartito, ser planar.
+
+Que dos grafos coincidan en varios invariantes no prueba que sean isomorfos. Los
+grafos de abajo en la figura coinciden en número de vértices, número de aristas
+y grados, pero `C₆` es conexo y no tiene triángulos, mientras que dos copias de
+`K₃` no son conexas y tienen dos triángulos. Para demostrar que dos grafos
+**sí** son isomorfos hay que exhibir la biyección.
+
+Los invariantes también sirven para podar la búsqueda: si dos grafos tienen
+sucesiones de grados distintas, no hace falta probar ninguna biyección. El
+siguiente programa hace esa comprobación barata primero y luego prueba
+biyecciones por fuerza bruta, lo cual solo es razonable para grafos pequeños:
+
+```python
+from itertools import permutations
+
+
+def grados(vertices, aristas):
+    return sorted(sum(v in arista for arista in aristas) for v in vertices)
+
+
+def isomorfismo(V1, E1, V2, E2):
+    """Devuelve una biyección que preserva aristas, o None si no existe."""
+    if len(V1) != len(V2) or len(E1) != len(E2):
+        return None
+    if grados(V1, E1) != grados(V2, E2):
+        return None
+    destino = {frozenset(arista) for arista in E2}
+    for imagen in permutations(V2):
+        f = dict(zip(V1, imagen))
+        if {frozenset((f[u], f[v])) for u, v in E1} == destino:
+            return f
+    return None
+
+
+def ciclo(vertices):
+    return [(vertices[i], vertices[(i + 1) % len(vertices)])
+            for i in range(len(vertices))]
+
+
+U = ["u1", "u2", "u3", "u4", "u5"]
+V = ["v1", "v2", "v3", "v4", "v5"]
+print("pentágono y estrella:", isomorfismo(U, ciclo(U), V, ciclo(["v1", "v3", "v5", "v2", "v4"])))
+
+seis = [1, 2, 3, 4, 5, 6]
+dos_triangulos = ciclo([1, 2, 3]) + ciclo([4, 5, 6])
+print("C6 y dos K3:", isomorfismo(seis, ciclo(seis), seis, dos_triangulos))
+```
+
+En el segundo caso el programa prueba las 720 biyecciones y ninguna funciona,
+como predijo el invariante de los triángulos.
+
+El problema de isomorfismo tiene aplicaciones concretas. En química, dos
+compuestos con la misma fórmula molecular pero distinta estructura se distinguen
+comparando los grafos de sus moléculas; las bases de datos químicas comparan el
+grafo de una molécula nueva con los ya registrados. En diseño de circuitos se
+verifica que el circuito fabricado tenga el mismo grafo que el diseñado.
+
+## Conclusión
+
+Una lista de adyacencia es la representación por defecto para grafos dispersos;
+una matriz de adyacencia responde en tiempo constante si dos vértices son
+vecinos y permite contar caminos con productos de matrices. Dos grafos son el
+mismo si existe un isomorfismo entre ellos, y un invariante que los distinga
+basta para demostrar que no lo son. En la próxima parte usaremos los caminos
+para responder cuándo un grafo está conectado.
+
+<SerieGrafos actual={3} />
+
+## Referencias
+
+- Babai, L. (2016). Graph isomorphism in quasipolynomial time. _Proceedings of
+  the 48th Annual ACM Symposium on Theory of Computing (STOC)_, 684–697.
+- Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
+  sección 10.3. McGraw-Hill.
+- Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
+  Notas de clase, Departamento de Matemáticas, Universidad Nacional de Colombia,
+  sede Medellín.

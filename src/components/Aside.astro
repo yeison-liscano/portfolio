@@ -15,17 +15,25 @@ const { posts } = Astro.props;
 <header id="site-header">
   <div class="nav-container">
     <!-- Logo -->
-    <a href={BASE_URL} class="logo" aria-label="Home">YL</a>
+    <a href={BASE_URL} class="logo" aria-label="Home">
+      YL
+    </a>
 
     <!-- Desktop Navigation -->
     <nav id="desktop-nav">
-      <a href={BASE_URL} class="nav-link">Home</a>
-      <a href={`${BASE_URL}about/`} class="nav-link">About</a>
+      <a href={BASE_URL} class="nav-link">
+        Home
+      </a>
+      <a href={`${BASE_URL}about/`} class="nav-link">
+        About
+      </a>
       <a
         href={posts === undefined ? `${BASE_URL}blog/` : undefined}
         id="blog-link"
-        class="nav-link">Blog</a
+        class="nav-link"
       >
+        Blog
+      </a>
     </nav>
 
     <!-- Right side: social icons, theme toggle, hamburger -->
@@ -63,36 +71,44 @@ const { posts } = Astro.props;
     <Icon icon="x" size="24px" />
   </button>
   <nav id="mobile-nav">
-    <a href={BASE_URL} class="mobile-nav-link">Home</a>
-    <a href={`${BASE_URL}about/`} class="mobile-nav-link">About</a>
-    <a href={`${BASE_URL}blog/`} class="mobile-nav-link">Blog</a>
+    <a href={BASE_URL} class="mobile-nav-link">
+      Home
+    </a>
+    <a href={`${BASE_URL}about/`} class="mobile-nav-link">
+      About
+    </a>
+    <a href={`${BASE_URL}blog/`} class="mobile-nav-link">
+      Blog
+    </a>
     <a
       href="https://www.linkedin.com/in/yeison-liscano/"
       target="_blank"
-      class="mobile-nav-link">linkedin</a
+      class="mobile-nav-link"
     >
+      linkedin
+    </a>
     <a
       href="https://github.com/yeison-liscano"
       target="_blank"
-      class="mobile-nav-link">github</a
+      class="mobile-nav-link"
     >
+      github
+    </a>
   </nav>
 </div>
 
-{
-  posts && (
-    <div id="posts-list" class="hidden">
-      <h2>Recent Posts</h2>
-      <ul>
-        {posts.map((post) => (
-          <li>
-            <a href={`${BASE_URL}blog/${post.id}/`}>{post.data.title}</a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
+{posts && (
+  <div id="posts-list" class="hidden">
+    <h2>Recent Posts</h2>
+    <ul>
+      {posts.map((post) => (
+        <li>
+          <a href={`${BASE_URL}blog/${post.id}/`}>{post.data.title}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
 
 <script>
   // Scroll effect

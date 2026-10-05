@@ -48,19 +48,21 @@ const fmt = (v: number, digits = 1) => v.toFixed(digits);
     </marker>
   </defs>
 
-  <text x="0" y="14" class="title">Population</text>
-  <text x="0" y="30" class="sub">mean μ unknown</text>
+  <text x="0" y="14" class="title">
+    Population
+  </text>
+  <text x="0" y="30" class="sub">
+    mean μ unknown
+  </text>
   <rect x="0" y="42" width="212" height="172" rx="6" class="panel"></rect>
-  {
-    Array.from({ length: COLS * ROWS }, (_, i) => (
-      <circle
-        cx={16 + (i % COLS) * 20}
-        cy={58 + Math.floor(i / COLS) * 20}
-        r={PICKED.has(i) ? 5 : 3.5}
-        class:list={["person", { picked: PICKED.has(i) }]}
-      />
-    ))
-  }
+  {Array.from({ length: COLS * ROWS }, (_, i) => (
+    <circle
+      cx={16 + (i % COLS) * 20}
+      cy={58 + Math.floor(i / COLS) * 20}
+      r={PICKED.has(i) ? 5 : 3.5}
+      class:list={["person", { picked: PICKED.has(i) }]}
+    />
+  ))}
 
   <line
     x1="220"
@@ -68,23 +70,37 @@ const fmt = (v: number, digits = 1) => v.toFixed(digits);
     x2="296"
     y2="92"
     marker-end={`url(#${id}-arrow)`}
-    class="flow"></line>
-  <text x="258" y="82" class="edge" text-anchor="middle">sample</text>
-  <text x="258" y="108" class="edge" text-anchor="middle">n = {n}</text>
+    class="flow"
+  ></line>
+  <text x="258" y="82" class="edge" text-anchor="middle">
+    sample
+  </text>
+  <text x="258" y="108" class="edge" text-anchor="middle">
+    n = {n}
+  </text>
 
-  <text x={AX0} y="14" class="title">Descriptive: summarize the sample</text>
+  <text x={AX0} y="14" class="title">
+    Descriptive: summarize the sample
+  </text>
   <text x={AX0} y="30" class="sub">
     x̄ = {fmt(mean, 2)} · s = {fmt(s, 2)}
   </text>
   <line x1={AX0} x2={AX1} y1="92" y2="92" class="axis"></line>
-  {SAMPLE.map((v) => <circle cx={ax(v)} cy="92" r="5" class="person picked" />)}
+  {SAMPLE.map((v) => (
+    <circle cx={ax(v)} cy="92" r="5" class="person picked" />
+  ))}
   <line x1={ax(mean)} x2={ax(mean)} y1="70" y2="114" class="mean"></line>
-  <text x={ax(mean)} y="64" class="edge" text-anchor="middle">x̄</text>
+  <text x={ax(mean)} y="64" class="edge" text-anchor="middle">
+    x̄
+  </text>
 
   <text x={AX0} y="152" class="title accent">
     Inferential: estimate the population
   </text>
-  <text x={AX0} y="168" class="sub"> 95% confidence interval for μ </text>
+  <text x={AX0} y="168" class="sub">
+    {" "}
+    95% confidence interval for μ{" "}
+  </text>
   <line x1={AX0} x2={AX1} y1="206" y2="206" class="axis"></line>
   <line x1={ax(low)} x2={ax(high)} y1="206" y2="206" class="ci"></line>
   <line x1={ax(low)} x2={ax(low)} y1="198" y2="214" class="ci"></line>
@@ -96,19 +112,20 @@ const fmt = (v: number, digits = 1) => v.toFixed(digits);
   <text x={ax(high)} y="190" class="edge accent" text-anchor="middle">
     {fmt(high)}
   </text>
-  {
-    ticks.map((t) => (
-      <text x={ax(t)} y="232" class="tick">
-        {t}
-      </text>
-    ))
-  }
+  {ticks.map((t) => (
+    <text x={ax(t)} y="232" class="tick">
+      {t}
+    </text>
+  ))}
 
   <path
     d={`M ${AX0 - 8} 206 C 262 206, 262 190, 220 190`}
     marker-end={`url(#${id}-arrow)`}
-    class="infer"></path>
-  <text x="258" y="226" class="edge accent" text-anchor="middle">infer μ</text>
+    class="infer"
+  ></path>
+  <text x="258" y="226" class="edge accent" text-anchor="middle">
+    infer μ
+  </text>
 </svg>
 
 <style>

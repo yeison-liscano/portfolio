@@ -1,0 +1,289 @@
+---
+lang: "es"
+title: "Teoría de grafos VII: grafos planares y coloración"
+pubDate: 2026-10-04
+description:
+  "Última parte de la serie sobre teoría de grafos: cuándo un grafo se puede
+  dibujar sin cruces, la fórmula de Euler y sus corolarios, el teorema de
+  Kuratowski, el número cromático, el teorema de los cuatro colores y la
+  coloración voraz aplicada a horarios de exámenes."
+tags: ["math", "algorithms"]
+isDraft: true
+snippet:
+  language: "python"
+  code: |
+    # Fórmula de Euler para un grafo planar conexo: v - e + f = 2
+    def regiones(v, e):
+        return 2 - v + e
+
+    print(regiones(8, 12))  # el cubo Q3 tiene 6 caras
+---
+
+import Figure from "../components/blog/Figure.astro";
+import Planaridad from "./components/grafos/Planaridad.astro";
+import ColoracionVoraz from "./components/grafos/ColoracionVoraz.astro";
+import SerieGrafos from "./components/grafos/SerieGrafos.astro";
+
+Palabras clave: grafo planar, fórmula de Euler, teorema de Kuratowski,
+coloración, número cromático, teorema de los cuatro colores, algoritmo voraz
+
+Un viejo acertijo pide conectar tres casas con tres servicios públicos (agua,
+gas y electricidad) de modo que ninguna de las nueve conexiones se cruce con
+otra. Quien lo intenta descubre que siempre sobra un cruce. El acertijo es una
+pregunta sobre el grafo bipartito completo K₃,₃: ¿se puede dibujar en el plano
+sin que se crucen dos de sus aristas? Esta última parte de la serie responde esa
+pregunta y otra que nació también de los mapas: cuántos colores hacen falta para
+pintar las regiones de un mapa de modo que dos regiones vecinas nunca tengan el
+mismo color.
+
+## Grafos planares
+
+> **Definición.** Un grafo es **planar** si se puede dibujar en el plano sin que
+> se crucen sus aristas. Un cruce es una intersección de las líneas o arcos que
+> representan dos aristas en un punto distinto de un extremo común. Un dibujo
+> así se llama una **representación planar** del grafo.
+
+Que un dibujo tenga cruces no significa que el grafo no sea planar: puede haber
+otro dibujo sin ellos. K₄ dibujado como un cuadrado con sus dos diagonales tiene
+un cruce, pero si una de las diagonales rodea el cuadrado por fuera, el cruce
+desaparece. Para demostrar que un grafo **no** es planar hay que descartar todos
+los dibujos posibles a la vez, y para eso hace falta un argumento.
+
+<Figure caption="A la izquierda, K₄ con sus dos diagonales cruzadas. En el centro, la diagonal resaltada rodea el cuadrado y el mismo grafo queda sin cruces, así que K₄ es planar. A la derecha, K₃,₃: casas C1, C2, C3 y servicios A, G, E. Una de las tres conexiones largas puede ir por fuera, pero las dos resaltadas siempre se cruzan.">
+  <Planaridad />
+</Figure>
+
+La planaridad tiene consecuencias prácticas. En una placa de circuito impreso,
+las pistas de una misma capa no pueden cruzarse; si el grafo del circuito no es
+planar, hacen falta varias capas o puentes. En el diseño de redes de servicios y
+de vías, cada cruce es un costo.
+
+## La fórmula de Euler
+
+Una representación planar de un grafo divide el plano en **regiones** (o caras),
+incluida una región exterior no acotada. En el dibujo de K₄ sin cruces hay
+cuatro: tres triángulos interiores y la región de afuera. Euler descubrió que el
+número de regiones no depende del dibujo:
+
+> **Fórmula de Euler.** Sea `G` un grafo planar simple conexo con `e` aristas y
+> `v` vértices, y sea `f` el número de regiones de una representación planar de
+> `G`. Entonces `v − e + f = 2`.
+
+Una forma de verla es construir el grafo arista por arista, manteniéndolo
+conexo. Un solo vértice tiene `v = 1`, `e = 0` y `f = 1`, así que
+`v − e + f = 2`. Cada arista nueva hace una de dos cosas: llega a un vértice
+nuevo (suben `v` y `e` en uno; las regiones no cambian) o une dos vértices que
+ya estaban, y entonces parte una región en dos (suben `e` y `f` en uno). En
+ambos casos `v − e + f` no cambia.
+
+| Grafo                   | `v` | `e` | `f` | `v − e + f` |
+| ----------------------- | --- | --- | --- | ----------- |
+| K₄                      | 4   | 6   | 4   | 2           |
+| Cubo Q₃                 | 8   | 12  | 6   | 2           |
+| Rueda W₅                | 6   | 10  | 6   | 2           |
+| Dodecaedro (parte V)    | 20  | 30  | 12  | 2           |
+| Un camino de 5 vértices | 5   | 4   | 1   | 2           |
+
+### Tres corolarios
+
+El **grado de una región** es el número de aristas en su frontera, contando dos
+veces una arista que se recorre dos veces al rodearla. Cada arista toca dos
+regiones o la misma región dos veces, así que la suma de los grados de las
+regiones es `2e`. En un grafo simple con al menos tres vértices, cada región
+tiene grado al menos 3. De ahí salen tres desigualdades:
+
+> **Corolario 1.** Si `G` es un grafo planar simple conexo con `e` aristas y
+> `v ≥ 3` vértices, entonces `e ≤ 3v − 6`.
+
+Como cada región tiene grado al menos 3, `2e ≥ 3f`, es decir, `f ≤ 2e/3`. Con la
+fórmula de Euler, `2 = v − e + f ≤ v − e + 2e/3`, y despejando, `e ≤ 3v − 6`.
+
+> **Corolario 2.** Todo grafo planar simple conexo tiene un vértice de grado a
+> lo sumo cinco.
+
+Si todos los grados fueran al menos 6, el teorema del apretón de manos daría
+`2e ≥ 6v`, es decir, `e ≥ 3v`, lo que contradice `e ≤ 3v − 6`.
+
+> **Corolario 3.** Si un grafo planar simple conexo tiene `e` aristas, `v ≥ 3`
+> vértices y ningún circuito de longitud tres, entonces `e ≤ 2v − 4`.
+
+Sin triángulos, cada región tiene grado al menos 4, así que `2e ≥ 4f`, y el
+mismo despeje da `e ≤ 2v − 4`.
+
+Los corolarios son la herramienta para demostrar que un grafo **no** es planar:
+
+- K₅ tiene `v = 5` y `e = 10`. Pero `3v − 6 = 9 < 10`, así que K₅ no es planar.
+- K₃,₃ tiene `v = 6` y `e = 9`, y como es bipartito no tiene triángulos (ni
+  ningún circuito de longitud impar). Pero `2v − 4 = 8 < 9`, así que K₃,₃ no es
+  planar. El acertijo de las casas no tiene solución.
+
+Las desigualdades solo descartan: un grafo que las cumple no tiene por qué ser
+planar.
+
+## El teorema de Kuratowski
+
+K₅ y K₃,₃ resultan ser los dos únicos obstáculos a la planaridad, en un sentido
+preciso. Si en un grafo planar se reemplaza una arista `{u, v}` por un vértice
+nuevo `w` y las aristas `{u, w}` y `{w, v}`, el grafo sigue siendo planar. Esa
+operación se llama **subdivisión elemental**, y dos grafos son **homeomorfos**
+si se pueden obtener del mismo grafo mediante sucesiones de subdivisiones
+elementales. Agregar vértices en la mitad de las aristas no cambia si un dibujo
+tiene cruces, así que un grafo que contiene una subdivisión de K₅ o de K₃,₃ no
+puede ser planar. El matemático polaco Kazimierz Kuratowski demostró en 1930 que
+esa es la única razón:
+
+> **Teorema de Kuratowski.** Un grafo no es planar si y solo si contiene un
+> subgrafo homeomorfo a K₃,₃ o a K₅.
+
+El grafo de Petersen, por ejemplo, no es planar porque contiene una subdivisión
+de K₃,₃. Una versión equivalente, el teorema de Wagner, usa la contracción de
+aristas de la [parte II](/portfolio/blog/grafos-2-grados-y-familias/): un grafo
+es planar si y solo si no se puede llegar a K₅ ni a K₃,₃ eliminando vértices y
+aristas y contrayendo aristas. Además, la planaridad se puede decidir en tiempo
+lineal, `O(n)`, con el algoritmo de Hopcroft y Tarjan (1974).
+
+## Coloración de grafos
+
+Al pintar un mapa, dos regiones que comparten frontera deben tener colores
+distintos (dos regiones que solo se tocan en un punto no cuentan como vecinas).
+Un mapa se convierte en un grafo, su **grafo dual**: cada región es un vértice y
+dos vértices son adyacentes si sus regiones comparten frontera. El grafo dual de
+un mapa en el plano es planar, y pintar el mapa es colorear los vértices de ese
+grafo.
+
+> **Definición.** Una **coloración** de un grafo simple es una asignación de un
+> color a cada vértice de modo que dos vértices adyacentes nunca reciban el
+> mismo color.
+
+> **Definición.** El **número cromático** de un grafo `G`, escrito `χ(G)`, es el
+> menor número de colores con el que se puede colorear `G`.
+
+Algunos valores salen de inmediato:
+
+- `χ(Kₙ) = n`: todos los vértices son vecinos entre sí, así que todos necesitan
+  colores distintos.
+- `χ(G) ≤ 2` si y solo si `G` es bipartito, por el teorema de los dos colores de
+  la parte II. En particular, `χ(Kₘ,ₙ) = 2` y `χ(Qₙ) = 2`.
+- `χ(Cₙ) = 2` si `n` es par y `3` si `n` es impar: un ciclo impar no es
+  bipartito, y basta usar un tercer color en un solo vértice.
+
+### El teorema de los cuatro colores
+
+> **Teorema de los cuatro colores.** El número cromático de un grafo planar es a
+> lo sumo cuatro.
+
+La conjetura la planteó Francis Guthrie en 1852, al notar que le bastaban cuatro
+colores para el mapa de los condados de Inglaterra. En 1879 Alfred Kempe publicó
+una demostración que se aceptó durante once años, hasta que en 1890 Percy
+Heawood encontró un error; Heawood rescató del argumento una prueba de que
+**cinco** colores siempre bastan, y ese argumento usa justamente el corolario 2:
+todo grafo planar tiene un vértice de grado a lo sumo cinco. La demostración de
+los cuatro colores llegó en 1976, de Kenneth Appel y Wolfgang Haken, y fue la
+primera demostración importante que dependió de un computador: reducía el
+problema a casi dos mil configuraciones que un programa revisó una por una. En
+1997 Robertson, Sanders, Seymour y Thomas publicaron una demostración más
+simple, también asistida por computador, y en 2005 Georges Gonthier la verificó
+formalmente con el asistente de demostraciones Coq.
+
+El teorema solo habla de grafos planares. Un grafo no planar puede necesitar
+muchos más colores: K₅ necesita cinco.
+
+### Calcular el número cromático es difícil
+
+No se conoce un algoritmo eficiente para calcular `χ(G)`. Incluso decidir si un
+grafo se puede colorear con tres colores es un problema NP-completo. En la
+práctica se usan heurísticas, y la más simple es el **algoritmo voraz**:
+recorrer los vértices en algún orden y darle a cada uno el menor color que no
+tenga ninguno de sus vecinos ya coloreados. El resultado siempre es una
+coloración válida, pero la cantidad de colores depende del orden:
+
+<Figure caption="El algoritmo voraz en un grafo bipartito, cuyo número cromático es 2: aᵢ y bⱼ son adyacentes cuando i ≠ j. Si el orden alterna los dos lados, el algoritmo termina usando cuatro colores; si colorea primero un lado completo, usa dos.">
+  <ColoracionVoraz />
+</Figure>
+
+Con el orden intercalado, `a1` y `b1` reciben el color 1 porque no son vecinos.
+Entonces `a2` y `b2` ven un vecino con el color 1 y toman el 2, y el error se
+acumula hasta llegar a cuatro. La heurística de **Welsh–Powell** ordena los
+vértices de mayor a menor grado antes de aplicar el algoritmo voraz; no
+garantiza el óptimo, pero suele funcionar bien. En cualquier orden, el voraz usa
+a lo sumo `Δ + 1` colores, donde `Δ` es el grado máximo del grafo, porque un
+vértice nunca tiene más de `Δ` vecinos ya coloreados.
+
+### Aplicaciones
+
+- **Horarios de exámenes.** Cada curso es un vértice y dos cursos son adyacentes
+  si tienen un estudiante en común. Los colores son franjas horarias: dos
+  exámenes con la misma franja no pueden tener estudiantes en común. El número
+  cromático es el mínimo de franjas.
+- **Asignación de frecuencias.** Las emisoras de televisión son vértices y dos
+  emisoras son adyacentes si están lo bastante cerca para interferirse. Los
+  colores son los canales.
+- **Asignación de registros.** Un compilador construye un grafo de
+  interferencia: las variables son vértices y dos variables son adyacentes si
+  están vivas al mismo tiempo. Los colores son los registros del procesador; si
+  el grafo necesita más colores que registros, algunas variables se guardan en
+  memoria.
+- **Sudoku.** Cada una de las 81 casillas es un vértice, adyacente a las
+  casillas de su fila, su columna y su bloque. Resolver un sudoku es completar
+  una coloración con 9 colores.
+
+Un horario de exámenes con la heurística de Welsh–Powell:
+
+```python
+conflictos = [
+    ("Cálculo", "Álgebra lineal"), ("Cálculo", "Física"),
+    ("Cálculo", "Discretas"), ("Álgebra lineal", "Discretas"),
+    ("Álgebra lineal", "Estadística"), ("Discretas", "Programación"),
+    ("Discretas", "Bases de datos"), ("Física", "Estadística"),
+    ("Programación", "Bases de datos"), ("Bases de datos", "Estadística"),
+]
+
+grafo = {}
+for u, v in conflictos:
+    grafo.setdefault(u, set()).add(v)
+    grafo.setdefault(v, set()).add(u)
+
+# Welsh–Powell: de mayor a menor grado, cada curso toma la primera franja libre
+orden = sorted(grafo, key=lambda curso: len(grafo[curso]), reverse=True)
+franja = {}
+for curso in orden:
+    ocupadas = {franja[v] for v in grafo[curso] if v in franja}
+    franja[curso] = next(f for f in range(1, len(grafo) + 1) if f not in ocupadas)
+
+for f in sorted(set(franja.values())):
+    print(f"Franja {f}:", ", ".join(c for c in orden if franja[c] == f))
+```
+
+El programa usa tres franjas, y no se puede con menos: Cálculo, Álgebra lineal y
+Discretas forman un triángulo, así que necesitan tres colores distintos.
+
+## Conclusión
+
+Un grafo es planar si admite un dibujo sin cruces, y la fórmula de Euler
+`v − e + f = 2` convierte esa propiedad geométrica en desigualdades que se
+pueden contar: así se demuestra que K₅ y K₃,₃ no son planares, y el teorema de
+Kuratowski dice que son los únicos obstáculos. Colorear un grafo es asignar
+recursos sin conflictos; para los grafos planares bastan cuatro colores, pero
+calcular el número cromático de un grafo cualquiera es NP-difícil, y el
+algoritmo voraz da una cota que depende del orden.
+
+Con esto termina la serie. Recorrimos el capítulo completo: la definición y los
+modelos, el vocabulario de grados y familias, las representaciones y el
+isomorfismo, la conexidad, los circuitos de Euler y de Hamilton, los caminos más
+cortos y, por último, la planaridad y la coloración.
+
+<SerieGrafos actual={7} />
+
+## Referencias
+
+- Appel, K., & Haken, W. (1977). Every planar map is four colorable. Part I:
+  Discharging. _Illinois Journal of Mathematics_, 21(3), 429–490.
+- Kuratowski, K. (1930). Sur le problème des courbes gauches en topologie.
+  _Fundamenta Mathematicae_, 15, 271–283.
+- Robertson, N., Sanders, D., Seymour, P., & Thomas, R. (1997). The four-colour
+  theorem. _Journal of Combinatorial Theory, Series B_, 70(1), 2–44.
+- Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
+  secciones 10.7 y 10.8. McGraw-Hill.
+- Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
+  Notas de clase, Departamento de Matemáticas, Universidad Nacional de Colombia,
+  sede Medellín.

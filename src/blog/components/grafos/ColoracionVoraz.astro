@@ -1,0 +1,172 @@
+---
+/**
+ * ColoracionVoraz - The greedy coloring algorithm on a bipartite graph
+ * (chromatic number 2). Interleaving the two sides makes it use 4 colors;
+ * coloring one side first uses 2. The server renders the interleaved order.
+ */
+import Grafo from "./Grafo.astro";
+import type { Panel } from "./geometria";
+import {
+  ARISTAS_CORONA,
+  LADO_A,
+  LADO_B,
+  ORDENES,
+  totalColores,
+  voraz,
+} from "./coloracion";
+
+const inicial = ORDENES[0];
+const color = voraz(inicial.orden);
+
+const panels: Panel[] = [
+  {
+    nodes: [
+      ...LADO_A.map((id, i) => ({
+        id,
+        x: 70 + i * 120,
+        y: 40,
+        fill: color[id],
+        note: `color ${color[id]}`,
+        noteDy: -26,
+      })),
+      ...LADO_B.map((id, i) => ({
+        id,
+        x: 70 + i * 120,
+        y: 170,
+        fill: color[id],
+        note: `color ${color[id]}`,
+        noteDy: 28,
+      })),
+    ],
+    edges: ARISTAS_CORONA.map(([a, b]) => ({ a, b })),
+  },
+];
+const uid = `voraz-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<grafos-voraz>
+  <fieldset class="ordenes" hidden>
+    <legend>Orden en que el algoritmo visita los vértices</legend>
+    {ORDENES.map((orden, i) => (
+      <label class="opcion">
+        <input
+          type="radio"
+          name={`${uid}-orden`}
+          value={orden.id}
+          checked={i === 0}
+        />
+        {orden.nombre}
+      </label>
+    ))}
+  </fieldset>
+
+  <Grafo
+    panels={panels}
+    width={520}
+    height={215}
+    minWidth={440}
+    label="Grafo bipartito de 8 vértices coloreado por el algoritmo voraz; el color de cada vértice está escrito junto a él"
+  />
+
+  <p class="resultado" aria-live="polite">
+    Orden: <span data-out="orden">{inicial.orden.join(" → ")}</span>. El
+    algoritmo voraz usa <strong data-out="total">{totalColores(color)}</strong>
+    &nbsp;colores; el número cromático es 2.
+  </p>
+</grafos-voraz>
+
+<script>
+  import { ORDENES, totalColores, voraz } from "./coloracion";
+
+  class GrafosVoraz extends HTMLElement {
+    connectedCallback() {
+      const opciones = this.querySelector<HTMLElement>(".ordenes");
+      if (opciones) opciones.hidden = false;
+      this.addEventListener("change", () => this.actualizar());
+    }
+
+    actualizar() {
+      const marcada = this.querySelector<HTMLInputElement>(
+        'input[type="radio"]:checked',
+      );
+      const elegido = ORDENES.find((o) => o.id === marcada?.value);
+      if (!elegido) return;
+      const color = voraz(elegido.orden);
+      Object.entries(color).forEach(([v, c]) => {
+        const nodo = this.querySelector<SVGElement>(`[data-node="${v}"]`);
+        if (!nodo) return;
+        nodo.setAttribute("data-fill", String(c));
+        const nota = nodo.querySelector(".g-note");
+        if (nota) nota.textContent = `color ${c}`;
+      });
+      const orden = this.querySelector('[data-out="orden"]');
+      if (orden) orden.textContent = elegido.orden.join(" → ");
+      const total = this.querySelector('[data-out="total"]');
+      if (total) total.textContent = String(totalColores(color));
+    }
+  }
+
+  customElements.define("grafos-voraz", GrafosVoraz);
+</script>
+
+<style>
+  grafos-voraz {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .ordenes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: 0.9rem;
+  }
+
+  .ordenes[hidden] {
+    display: none;
+  }
+
+  legend {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .opcion {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  input[type="radio"] {
+    accent-color: var(--contrast);
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .resultado {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .resultado span {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+
+  .resultado strong {
+    color: var(--contrast);
+    font-family: var(--font-mono);
+  }
+</style>

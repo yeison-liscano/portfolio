@@ -1,0 +1,306 @@
+---
+lang: "es"
+title: "Teoría de grafos I: qué es un grafo y qué se puede modelar con él"
+pubDate: 2026-10-04
+description:
+  "Primera parte de una serie sobre teoría de grafos: la definición formal, los
+  tipos de grafos (simples, multigrafos, pseudografos y dirigidos) y quince
+  modelos reales, de las redes sociales a la ejecución concurrente de programas."
+tags: ["math", "algorithms"]
+isDraft: true
+snippet:
+  language: "python"
+  code: |
+    # G = (V, E): cada vértice con la lista de sus vecinos
+    red = {
+        "Denver": ["San Francisco", "Los Ángeles", "Chicago"],
+        "Chicago": ["Denver", "Nueva York"],
+    }
+---
+
+import Figure from "../components/blog/Figure.astro";
+import TiposDeGrafos from "./components/grafos/TiposDeGrafos.astro";
+import Precedencia from "./components/grafos/Precedencia.astro";
+import SerieGrafos from "./components/grafos/SerieGrafos.astro";
+
+Palabras clave: grafo, vértice, arista, multigrafo, pseudografo, grafo dirigido,
+modelado
+
+Un grafo es la estructura más simple que puede describir una relación: unos
+puntos y unas líneas que los unen. Con esa idea mínima se puede preguntar si es
+posible recorrer todas las calles de una ciudad sin repetir ninguna, cuántos
+colores hacen falta para pintar un mapa, si dos computadoras de una red pueden
+comunicarse, cuál es la ruta más corta entre dos ciudades o en qué orden se
+pueden ejecutar las instrucciones de un programa.
+
+Esta es la primera parte de una serie de siete artículos que recorre el capítulo
+de grafos del curso Fundamentos de Matemáticas Discretas de la Universidad
+Nacional de Colombia, sede Medellín, que a su vez sigue el capítulo 10 del libro
+de Kenneth Rosen. Cada parte trae figuras interactivas y ejemplos en Python que
+se pueden ejecutar desde la página.
+
+## ¿Qué es un grafo?
+
+Un **grafo** `G = (V, E)` consta de un conjunto no vacío `V` de **vértices**
+(también llamados nodos) y de un conjunto `E` de **aristas**. Cada arista tiene
+uno o dos vértices asociados, llamados sus **extremos**, y se dice que la arista
+**conecta** a sus extremos.
+
+El conjunto de vértices puede ser infinito, y en ese caso hablamos de un **grafo
+infinito**. Un grafo con un número finito de vértices y de aristas es un **grafo
+finito**. En esta serie solo trabajaremos con grafos finitos, que son los que
+aparecen al modelar redes, programas y mapas reales.
+
+Un ejemplo concreto: una empresa tiene centros de datos en San Francisco, Los
+Ángeles, Denver, Chicago y Nueva York, unidos por enlaces de comunicación. Cada
+centro de datos es un vértice y cada enlace es una arista. La posición de los
+puntos en el dibujo no importa; lo único que el grafo registra es qué pares de
+vértices están conectados.
+
+## Tipos de grafos
+
+La misma red puede necesitar modelos distintos según lo que queramos registrar.
+Si entre dos centros hay varios enlaces, si un centro tiene un enlace de
+diagnóstico consigo mismo o si los enlaces solo transmiten en un sentido, el
+grafo simple ya no alcanza. La figura muestra los cuatro casos sobre los mismos
+cinco centros de datos.
+
+<Figure caption="La misma red de cinco centros de datos en cuatro modelos. Cada panel resalta lo único que su tipo permite y el grafo simple no: dos enlaces entre Denver y Chicago, un enlace de Denver consigo mismo o enlaces con sentido.">
+  <TiposDeGrafos />
+</Figure>
+
+### Grafo simple
+
+En un **grafo simple** cada arista conecta dos vértices distintos y no hay dos
+aristas que conecten el mismo par. Por eso una arista queda determinada por su
+par no ordenado de extremos, y podemos escribir sin ambigüedad que `{u, v}` es
+una arista del grafo.
+
+### Multigrafos
+
+Cuando la red tiene varios enlaces entre los mismos centros de datos, por
+ejemplo para soportar más tráfico o tener respaldo, necesitamos **aristas
+múltiples**: varias aristas asociadas al mismo par de vértices. Un grafo con
+aristas múltiples se llama **multigrafo**. Si hay `m` aristas distintas
+asociadas al par `{u, v}`, decimos que `{u, v}` es una arista de
+**multiplicidad** `m`.
+
+### Pseudografos
+
+Una arista que conecta un vértice consigo mismo se llama **lazo** (en inglés
+_loop_; algunos textos en español la llaman ciclo, pero aquí reservamos esa
+palabra para otra cosa que veremos en la parte II). Un grafo que puede tener
+lazos y aristas múltiples se llama **pseudografo**. En la red de centros de
+datos, un lazo modela un enlace de diagnóstico que un centro usa para probarse a
+sí mismo.
+
+### Grafos dirigidos
+
+En los grafos anteriores las aristas no tienen dirección. Si los enlaces solo
+transmiten en un sentido, necesitamos un **grafo dirigido** o **digrafo**
+`(V, E)`: cada **arista dirigida** (o **arco**) está asociada con un par
+**ordenado** `(u, v)` de vértices. Decimos que la arista `(u, v)` **inicia** en
+`u` y **termina** en `v`.
+
+En un digrafo, `(u, v)` y `(v, u)` son aristas distintas: en el último panel de
+la figura hay un enlace de Denver a Chicago y otro de Chicago a Denver. Un
+digrafo sin lazos ni aristas múltiples dirigidas es un **grafo dirigido
+simple**. Si admite aristas múltiples dirigidas, es un **multigrafo dirigido**.
+Un grafo que combina aristas dirigidas y no dirigidas es un **grafo mixto**.
+
+### Resumen de la terminología
+
+La terminología de grafos todavía varía entre libros y disciplinas, porque el
+área creció en paralelo en matemáticas, computación, biología y ciencias
+sociales. La tabla resume la que usaremos en la serie:
+
+| Tipo                  | Aristas                  | ¿Aristas múltiples? | ¿Lazos? |
+| --------------------- | ------------------------ | ------------------- | ------- |
+| Grafo simple          | No dirigidas             | No                  | No      |
+| Multigrafo            | No dirigidas             | Sí                  | No      |
+| Pseudografo           | No dirigidas             | Sí                  | Sí      |
+| Grafo dirigido simple | Dirigidas                | No                  | No      |
+| Multigrafo dirigido   | Dirigidas                | Sí                  | Sí      |
+| Grafo mixto           | Dirigidas y no dirigidas | Sí                  | Sí      |
+
+Cuando el contexto sea claro, diremos simplemente **grafo**. Para clasificar
+cualquier grafo basta con responder tres preguntas:
+
+1. ¿Las aristas son dirigidas, no dirigidas o de ambos tipos?
+2. ¿Puede haber varias aristas entre el mismo par de vértices (o, en un digrafo,
+   varias aristas con el mismo inicio y el mismo final)?
+3. ¿Puede haber lazos?
+
+## Modelar con grafos
+
+Construir un modelo con grafos consiste en decidir qué es un vértice, qué es una
+arista y responder las tres preguntas anteriores. La tabla reúne los modelos
+clásicos que trae el capítulo, agrupados por área:
+
+| Modelo                       | Vértices; aristas                                      | Tipo                 |
+| ---------------------------- | ------------------------------------------------------ | -------------------- |
+| Grafo de conocidos           | Personas; se conocen                                   | Simple               |
+| Grafo de influencia          | Personas; `a` puede influir en `b`                     | Dirigido             |
+| Grafo de colaboración        | Personas; trabajaron juntas                            | Simple               |
+| Grafo de llamadas            | Teléfonos; una llamada de `a` a `b`                    | Multigrafo dirigido  |
+| Grafo web                    | Páginas; `a` enlaza a `b`                              | Dirigido             |
+| Grafo de citas               | Documentos; `a` cita a `b`                             | Dirigido             |
+| Dependencia de módulos       | Módulos; `b` depende de `a`                            | Dirigido             |
+| Grafo de precedencia         | Declaraciones; `b` usa el resultado de `a`             | Dirigido, sin ciclos |
+| Rutas aéreas                 | Aeropuertos; un vuelo de `a` a `b`                     | Multigrafo dirigido  |
+| Red vial                     | Intersecciones; una vía (con sentido si es de una vía) | Mixto                |
+| Superposición de nichos      | Especies; compiten por alimento                        | Simple               |
+| Interacción de proteínas     | Proteínas; interactúan en la célula                    | Simple               |
+| Red semántica                | Palabras; significado similar                          | Simple               |
+| Torneo de todos contra todos | Equipos; `a` venció a `b`                              | Dirigido             |
+| Torneo de eliminación única  | Partidos; el ganador de `a` jugó `b`                   | Dirigido             |
+
+### Redes sociales y de comunicación
+
+En un **grafo de conocidos** cada persona es un vértice y una arista une a dos
+personas que se conocen. No hacen falta aristas múltiples ni lazos, así que es
+un grafo simple. El grafo de conocidos de toda la humanidad tendría más de seis
+mil millones de vértices y probablemente más de un billón de aristas.
+
+En un **grafo de influencia** la relación ya no es simétrica: que Deborah pueda
+influir en Brian no significa que Brian pueda influir en Deborah, así que las
+aristas son dirigidas. En un **grafo de colaboración** dos personas quedan
+unidas si trabajaron juntas. El **grafo de Hollywood**, que une a dos actores si
+actuaron en la misma película o programa, tenía más de 2,9 millones de vértices
+a comienzos de 2018. El grafo de colaboración académica en matemáticas tenía más
+de 400 000 vértices y 675 000 aristas en 2004.
+
+Los **grafos de llamadas** son multigrafos dirigidos: importa quién llamó a
+quién y cuántas veces. Un grafo de llamadas estudiado en AT&T, con veinte días
+de llamadas, tenía unos 290 millones de vértices y 4000 millones de aristas.
+
+### Redes de información y de software
+
+La **web** se modela como un grafo dirigido en el que cada página es un vértice
+y cada enlace es una arista de la página que enlaza a la página enlazada. Como
+cada segundo se crean y se eliminan páginas y enlaces, el grafo web cambia casi
+de forma continua. En un **grafo de citas** cada documento es un vértice y hay
+una arista de `a` a `b` si `a` cita a `b`.
+
+En diseño de software, un **grafo de dependencia de módulos** tiene una arista
+de un módulo a otro si el segundo depende del primero. Ese grafo es el que
+recorren los gestores de paquetes para decidir qué instalar primero y el que
+muestra una dependencia circular cuando la hay.
+
+### Transporte, biología y lenguaje
+
+Una aerolínea modela sus vuelos de un día como un multigrafo dirigido: cada
+aeropuerto es un vértice y cada vuelo es una arista del aeropuerto de salida al
+de llegada, con varias aristas si hay varios vuelos entre los mismos
+aeropuertos. Una **red vial** con calles de doble sentido y de un solo sentido
+necesita un grafo mixto.
+
+En ecología, un **grafo de superposición de nichos** une a dos especies que
+compiten por los mismos recursos. En biología molecular, un **grafo de
+interacción entre proteínas** une a dos proteínas que interactúan en la célula.
+Las células de levadura tienen más de 6000 proteínas y se conocen más de 80 000
+interacciones entre ellas; las células humanas tienen más de 100 000 proteínas y
+quizá hasta 1 000 000 de interacciones. Por eso estos grafos se estudian por
+**módulos**: grupos pequeños de proteínas que cumplen juntas una función.
+
+En una **red semántica** los vértices son palabras y las aristas unen palabras
+de significado parecido. Con el Corpus Nacional Británico, de 100 millones de
+palabras, se construyó un grafo de unos 100 000 sustantivos y 500 000 aristas.
+Alrededor de la palabra _mouse_ aparecen dos vecindarios separados: el de los
+animales y el del hardware, que es justo la información que necesita un programa
+de comprensión del lenguaje para decidir de qué ratón se habla.
+
+### Torneos
+
+En un **torneo de todos contra todos** cada equipo juega una vez contra cada uno
+de los demás y no hay empates. Se modela con un grafo dirigido simple en el que
+`(a, b)` es una arista si `a` venció a `b`. Un equipo invicto es un vértice del
+que solo salen aristas, y uno sin victorias es un vértice al que solo llegan.
+
+## Un modelo en detalle: ejecución concurrente
+
+Un programa se ejecuta más rápido si algunas de sus instrucciones corren al
+mismo tiempo. La restricción es que ninguna instrucción puede ejecutarse antes
+de que estén listos los resultados que necesita. Esa dependencia se representa
+con un **grafo de precedencia**: cada declaración es un vértice y hay una arista
+de una declaración a otra si la segunda no puede ejecutarse antes de que termine
+la primera.
+
+Tomemos estas seis declaraciones:
+
+```text
+S1: a := 0
+S2: b := 1
+S3: c := a + 1
+S4: d := b + a
+S5: e := d + 1
+S6: e := c + d
+```
+
+`S3` lee `a`, así que depende de `S1`. `S4` lee `a` y `b`, así que depende de
+`S1` y de `S2`. `S5` lee `d` (depende de `S4`), y `S6` lee `c` y `d` y además
+sobrescribe la `e` que escribió `S5`, así que debe ir después de `S3`, `S4` y
+`S5`.
+
+<Figure caption="Las declaraciones de una misma columna pueden ejecutarse al mismo tiempo. La cadena resaltada S2, S4, S5, S6 tiene cuatro declaraciones, así que ninguna estrategia termina en menos de cuatro rondas.">
+  <Precedencia />
+</Figure>
+
+La primera ronda ejecuta todo lo que no tiene predecesores; cada ronda siguiente
+ejecuta todo lo que ya tiene listos sus predecesores. El grafo responde dos
+preguntas de diseño a la vez: cuántos procesadores sirven de algo (dos, porque
+ninguna ronda tiene más de dos declaraciones) y cuál es el mínimo de rondas
+(cuatro, el largo de la cadena más larga). El mismo cálculo en Python:
+
+```python
+from collections import defaultdict
+
+# Arista (u, v): v necesita que u haya terminado
+aristas = [
+    ("S1", "S3"), ("S1", "S4"), ("S2", "S4"),
+    ("S3", "S6"), ("S4", "S5"), ("S4", "S6"), ("S5", "S6"),
+]
+
+predecesores = defaultdict(set)
+vertices = set()
+for u, v in aristas:
+    predecesores[v].add(u)
+    vertices |= {u, v}
+
+ronda = {}
+pendientes = set(vertices)
+numero = 1
+while pendientes:
+    listas = {v for v in pendientes if predecesores[v] <= ronda.keys()}
+    for v in listas:
+        ronda[v] = numero
+    pendientes -= listas
+    numero += 1
+
+for v in sorted(ronda):
+    print(v, "-> ronda", ronda[v])
+```
+
+Este orden por rondas es un caso particular del **ordenamiento topológico**, el
+mismo que usan `make`, los gestores de paquetes y los orquestadores de tareas
+para decidir qué ejecutar primero.
+
+## Conclusión
+
+Un grafo solo guarda qué cosas están relacionadas, y por eso sirve para modelar
+casi cualquier sistema: redes de computadoras, personas, proteínas, palabras o
+instrucciones de un programa. Antes de aplicar cualquier algoritmo hay que
+decidir qué es un vértice, qué es una arista y responder las tres preguntas de
+la clasificación. En la próxima parte veremos el vocabulario para describir la
+estructura de un grafo: grados, vecindades, familias especiales y grafos
+bipartitos.
+
+<SerieGrafos actual={1} />
+
+## Referencias
+
+- Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
+  capítulo 10. McGraw-Hill.
+- Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
+  Notas de clase, Departamento de Matemáticas, Universidad Nacional de Colombia,
+  sede Medellín.

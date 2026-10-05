@@ -25,34 +25,30 @@ const skills = [
 ---
 
 <div class="about-main">
-  {
-    showBackground && (
-      <section class="row-section">
-        <h2 class="section-title">Background</h2>
-        <div class="content">
-          <p>
-            I started with <strong>Python</strong>, going deep into data science
-            on Coursera before pivoting to web development. I got
-            <strong>certified as a Full-Stack Developer</strong> from Coding
-            Dojo, where I built web applications with Python and explored the
-            basics of Machine and Deep Learning. I kept growing through LinkedIn
-            Learning, Coursera, and Platzi — picking up <strong>React</strong>,
-            <strong>Node.js</strong>, <strong>TypeScript</strong>,
-            <strong>FastAPI</strong>, and <strong>AWS</strong> along the way.
-          </p>
-          <p>
-            I currently study <strong>Computer Science</strong> at the
-            Universidad Nacional de Colombia. I live in Medellin — my native
-            language is
-            <strong>Spanish</strong>, I have a
-            <strong>B2 level in English</strong>, and a
-            <strong>B1 French certification</strong> from the Alianza Francesa
-            of Medellin.
-          </p>
-        </div>
-      </section>
-    )
-  }
+  {showBackground && (
+    <section class="row-section">
+      <h2 class="section-title">Background</h2>
+      <div class="content">
+        <p>
+          I started with <strong>Python</strong>, going deep into data science
+          on Coursera before pivoting to web development. I got
+          <strong>certified as a Full-Stack Developer</strong> from Coding Dojo,
+          where I built web applications with Python and explored the basics of
+          Machine and Deep Learning. I kept growing through LinkedIn Learning,
+          Coursera, and Platzi — picking up <strong>React</strong>,
+          <strong>Node.js</strong>, <strong>TypeScript</strong>,
+          <strong>FastAPI</strong>, and <strong>AWS</strong> along the way.
+        </p>
+        <p>
+          I currently study <strong>Computer Science</strong> at the Universidad
+          Nacional de Colombia. I live in Medellin — my native language is
+          <strong>Spanish</strong>, I have a<strong>B2 level in English</strong>
+          , and a<strong>B1 French certification</strong> from the Alianza
+          Francesa of Medellin.
+        </p>
+      </div>
+    </section>
+  )}
 
   <section class="row-section">
     <h2 class="section-title">Experience</h2>
@@ -72,8 +68,8 @@ const skills = [
               2.1 authorization.
             </li>
             <li>
-              Designed <a href="https://pypi.org/project/http-mcp/">http-mcp</a
-              >, the stateless MCP library behind that server, and published it
+              Designed <a href="https://pypi.org/project/http-mcp/">http-mcp</a>
+              , the stateless MCP library behind that server, and published it
               as open source.
             </li>
             <li>
@@ -113,7 +109,9 @@ const skills = [
     <h2 class="section-title">Skills</h2>
     <div class="content">
       <div class="skills-grid">
-        {skills.map((skill) => <span class="skill-tag">{skill}</span>)}
+        {skills.map((skill) => (
+          <span class="skill-tag">{skill}</span>
+        ))}
       </div>
     </div>
   </section>

@@ -50,47 +50,43 @@ const cx = (i: number) => i * (CELL + GAP);
   aria-label={`Binary search for ${TARGET} in ${DATA.length} sorted values finds it in ${iterations.length} iterations`}
   class="diagram"
 >
-  {
-    DATA.map((_, i) => (
-      <text x={cx(i) + CELL / 2} y="10" class="index">
-        {i}
-      </text>
-    ))
-  }
-  {
-    iterations.map((it, step) => {
-      const y = TOP + step * ROW_H;
-      return (
-        <g data-step={step + 1}>
-          <text x="0" y={y + 12} class="note">
-            {`lo=${it.lo} hi=${it.hi} mid=${it.mid} · ${it.note}`}
-          </text>
-          {DATA.map((value, i) => {
-            const inRange = i >= it.lo && it.hi >= i;
-            return (
-              <g>
-                <rect
-                  x={cx(i)}
-                  y={y + 24}
-                  width={CELL}
-                  height={CELL}
-                  rx="4"
-                  class:list={["cell", { out: !inRange, mid: i === it.mid }]}
-                />
-                <text
-                  x={cx(i) + CELL / 2}
-                  y={y + 24 + CELL / 2}
-                  class:list={["value", { out: !inRange }]}
-                >
-                  {value}
-                </text>
-              </g>
-            );
-          })}
-        </g>
-      );
-    })
-  }
+  {DATA.map((_, i) => (
+    <text x={cx(i) + CELL / 2} y="10" class="index">
+      {i}
+    </text>
+  ))}
+  {iterations.map((it, step) => {
+    const y = TOP + step * ROW_H;
+    return (
+      <g data-step={step + 1}>
+        <text x="0" y={y + 12} class="note">
+          {`lo=${it.lo} hi=${it.hi} mid=${it.mid} · ${it.note}`}
+        </text>
+        {DATA.map((value, i) => {
+          const inRange = i >= it.lo && it.hi >= i;
+          return (
+            <g>
+              <rect
+                x={cx(i)}
+                y={y + 24}
+                width={CELL}
+                height={CELL}
+                rx="4"
+                class:list={["cell", { out: !inRange, mid: i === it.mid }]}
+              />
+              <text
+                x={cx(i) + CELL / 2}
+                y={y + 24 + CELL / 2}
+                class:list={["value", { out: !inRange }]}
+              >
+                {value}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  })}
 </svg>
 
 <style>

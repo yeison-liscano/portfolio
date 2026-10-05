@@ -202,34 +202,10 @@ required fields, and so on.
 
 A naive approach is to return a raw error when validation fails. A better
 approach is to return a **helpful error message that teaches the AI agent what
-went wrong**, so it can correct its own request on the next attempt:
-
-```python
-from http_mcp.types import Tool
-from pydantic import BaseModel, Field, UUID4
-
-
-class FixMetadataInput(BaseModel):
-    vulnerability_id: UUID4 = Field(description="Vulnerability uuid4 id")
-
-
-class FixMetadataOutput(BaseModel):
-    version: str = Field(
-        description="Safe version of the dependency",
-    )
-    is_breaking_change: bool = Field(
-        description="Whether upgrading to safe version is a breaking change",
-    )
-
-
-Tool(
-    inputs=FixMetadataInput,
-    output=FixMetadataOutput,
-    func=get_fix_metadata,
-    return_error_message=True,  # Validation errors are shown to the LLM
-    scopes=("mcp:read",),
-)
-```
+went wrong**, so it can correct its own request on the next attempt. The
+`FixMetadataInput` model above already declares the constraint
+(`vulnerability_id` must be a UUID4); turning validation into feedback is the
+single `return_error_message=True` flag on the `Tool`, as shown earlier.
 
 With `return_error_message=True`, when the AI agent receives a validation error
 with context (e.g., "vulnerability_id must be a valid UUID4, got 'abc123'"), it
@@ -270,31 +246,13 @@ Not all tools should be available to all callers. You might want:
 
 I solved this by leveraging Starlette's scope system. Each HTTP request carries
 scope metadata (user, role, permissions), and tools declare which scopes they
-require:
+require. With the same models as before, the only addition is `scopes`:
 
 ```python
-from http_mcp.types import Tool
-from pydantic import BaseModel, Field, UUID4
-
-
-class FixMetadataInput(BaseModel):
-    vulnerability_id: UUID4 = Field(description="Vulnerability uuid4 id")
-
-
-class FixMetadataOutput(BaseModel):
-    version: str = Field(
-        description="Safe version of the dependency",
-    )
-    is_breaking_change: bool = Field(
-        description="Whether upgrading to safe version is a breaking change",
-    )
-
-
 Tool(
     inputs=FixMetadataInput,
     output=FixMetadataOutput,
     func=get_fix_metadata,
-    return_error_message=True,
     scopes=("mcp:read",),  # Only callers with "mcp:read" scope can use this tool
 )
 ```

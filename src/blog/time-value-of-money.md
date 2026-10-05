@@ -188,9 +188,8 @@ $746,500. Your total contributions are $500 × 360 = $180,000, meaning $566,500
 comes from investment returns. This illustrates the power of consistent
 investing over long periods.
 
-Alternatively, if you knew you wanted
-$500,000 at retirement and wanted to know what monthly payment
-is required, you would rearrange the formula to solve for
+Alternatively, if you knew you wanted $500,000 at retirement and wanted to know
+what monthly payment is required, you would rearrange the formula to solve for
 $PMT$:
 
 $$

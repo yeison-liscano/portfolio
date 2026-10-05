@@ -14,6 +14,8 @@ const blogCollection = defineCollection({
     }),
     author: z.string().default("Yeison Liscano"),
     tags: z.array(z.string()),
+    /** Language of the post, for <html lang> and link previews. */
+    lang: z.enum(["en", "es", "fr"]).default("en"),
     footnote: z.string().optional(),
     pubDate: z.date(),
     description: z.string(),

@@ -12,22 +12,41 @@ interface Props {
   steps: string[];
   /** Name shown to screen readers, e.g. "TLS handshake steps". */
   label: string;
+  /** Language of the controls; match the post. */
+  lang?: "en" | "es" | "fr";
 }
 
-const { steps, label } = Astro.props;
+const WORDS = {
+  en: { prev: "Previous", next: "Next", step: "Step", of: "of" },
+  es: { prev: "Anterior", next: "Siguiente", step: "Paso", of: "de" },
+  fr: { prev: "Précédent", next: "Suivant", step: "Étape", of: "sur" },
+};
+
+const { steps, label, lang = "en" } = Astro.props;
+const words = WORDS[lang];
 ---
 
-<blog-stepper data-total={steps.length}>
+<blog-stepper
+  data-total={steps.length}
+  data-word-step={words.step}
+  data-word-of={words.of}
+>
   <div class="stepper-stage">
     <slot />
   </div>
   <ol class="stepper-steps">
-    {steps.map((step, index) => <li value={index + 1}>{step}</li>)}
+    {steps.map((step, index) => (
+      <li value={index + 1}>{step}</li>
+    ))}
   </ol>
   <div class="stepper-controls" role="group" aria-label={label} hidden>
-    <button type="button" data-action="prev">Previous</button>
+    <button type="button" data-action="prev">
+      {words.prev}
+    </button>
     <span class="stepper-count" aria-live="polite"></span>
-    <button type="button" data-action="next">Next</button>
+    <button type="button" data-action="next">
+      {words.next}
+    </button>
   </div>
 </blog-stepper>
 
@@ -70,7 +89,11 @@ const { steps, label } = Astro.props;
         item.toggleAttribute("data-current", index + 1 === this.current);
       });
       const count = this.querySelector(".stepper-count");
-      if (count) count.textContent = `Step ${this.current} of ${this.total}`;
+      const word = this.dataset.wordStep ?? "Step";
+      const of = this.dataset.wordOf ?? "of";
+      if (count) {
+        count.textContent = `${word} ${this.current} ${of} ${this.total}`;
+      }
       const [prev, next] = this.querySelectorAll("button");
       prev.disabled = this.current === 1;
       next.disabled = this.current === this.total;

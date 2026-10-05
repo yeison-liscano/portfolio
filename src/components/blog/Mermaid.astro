@@ -22,7 +22,7 @@ const source = code.trim();
 
 <script>
   const MERMAID_ESM =
-    "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+    "https://cdn.jsdelivr.net/npm/mermaid@12.0.0/dist/mermaid.esm.min.mjs";
 
   interface MermaidApi {
     initialize: (config: Record<string, unknown>) => void;
@@ -34,10 +34,28 @@ const source = code.trim();
   let queue: Promise<void> = Promise.resolve();
   let renderCount = 0;
 
+  // Loaded through an injected module script, like PyodideRunner does. A
+  // dynamic import() here breaks: Astro inlines this script into the page,
+  // where Vite leaves its __VITE_PRELOAD__ placeholder unfilled.
+  const LOAD_TIMEOUT_MS = 20000;
+
   function loadMermaid(): Promise<MermaidApi> {
-    mermaidPromise ??= import(/* @vite-ignore */ MERMAID_ESM).then(
-      (module: { default: MermaidApi }) => module.default,
-    );
+    mermaidPromise ??= new Promise<MermaidApi>((resolve, reject) => {
+      const callback = `__blogMermaidLoaded${Date.now()}`;
+      const slots = window as unknown as Record<string, unknown>;
+      const timer = window.setTimeout(() => {
+        reject(new Error(`Mermaid did not load from ${MERMAID_ESM}`));
+      }, LOAD_TIMEOUT_MS);
+      slots[callback] = (mermaid: MermaidApi) => {
+        window.clearTimeout(timer);
+        delete slots[callback];
+        resolve(mermaid);
+      };
+      const script = document.createElement("script");
+      script.type = "module";
+      script.textContent = `import mermaid from ${JSON.stringify(MERMAID_ESM)}; window[${JSON.stringify(callback)}](mermaid);`;
+      document.head.append(script);
+    });
     return mermaidPromise;
   }
 
@@ -61,7 +79,7 @@ const source = code.trim();
     return {
       darkMode: isDark(background),
       background,
-      fontFamily: '"Geist Sans", sans-serif',
+      fontFamily: '"Geist Variable", system-ui, sans-serif',
       fontSize: "14px",
       primaryColor: token("--code-background"),
       primaryTextColor: text,

@@ -1,0 +1,92 @@
+---
+/**
+ * Operaciones - Three ways to get a new graph from G: delete an edge,
+ * delete a vertex, contract an edge. Each panel highlights what changed.
+ */
+import Grafo from "./Grafo.astro";
+import type { GraphEdge, GraphNode, Panel } from "./geometria";
+
+const W = 300;
+const H = 160;
+
+const nodos: GraphNode[] = [
+  { id: "a", x: 70, y: 30 },
+  { id: "b", x: 150, y: 30 },
+  { id: "c", x: 150, y: 110 },
+  { id: "d", x: 70, y: 110 },
+  { id: "e", x: 230, y: 70 },
+];
+
+const aristas: GraphEdge[] = [
+  { a: "a", b: "b" },
+  { a: "b", b: "c" },
+  { a: "c", b: "d" },
+  { a: "d", b: "a" },
+  { a: "a", b: "c" },
+  { a: "b", b: "e" },
+  { a: "c", b: "e" },
+];
+
+const tocaC = (e: GraphEdge) => e.a === "c" || e.b === "c";
+
+const panels: Panel[] = [
+  {
+    x: 0,
+    y: 0,
+    w: W,
+    h: H,
+    title: "G: 5 vértices, 7 aristas",
+    nodes: nodos,
+    edges: aristas,
+  },
+  {
+    x: 340,
+    y: 0,
+    w: W,
+    h: H,
+    title: "G − e, con e = {a, c}",
+    nodes: nodos,
+    edges: aristas.map((e) =>
+      e.a === "a" && e.b === "c" ? { ...e, ghost: true, hl: true } : e,
+    ),
+  },
+  {
+    x: 0,
+    y: 175,
+    w: W,
+    h: H,
+    title: "G − c: se van c y sus 4 aristas",
+    nodes: nodos.map((n) =>
+      n.id === "c" ? { ...n, ghost: true, hl: true } : n,
+    ),
+    edges: aristas.map((e) => (tocaC(e) ? { ...e, ghost: true } : e)),
+  },
+  {
+    x: 340,
+    y: 175,
+    w: W,
+    h: H,
+    title: "{b, c} contraída en w",
+    nodes: [
+      { id: "a", x: 70, y: 30 },
+      { id: "w", x: 150, y: 70, hl: true },
+      { id: "d", x: 70, y: 110 },
+      { id: "e", x: 230, y: 70 },
+    ],
+    edges: [
+      { a: "a", b: "d" },
+      { a: "a", b: "w", hl: true },
+      { a: "w", b: "d", hl: true },
+      { a: "w", b: "e", hl: true },
+    ],
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={640}
+  height={335}
+  minWidth={560}
+  label="Un grafo G y los grafos que resultan de eliminar la arista a-c, eliminar el vértice c y contraer la arista b-c"
+/>

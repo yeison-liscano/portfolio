@@ -77,29 +77,25 @@ const quantityTicks = [0, 20, 40, 60, 80, 100, 120, 140];
       </clipPath>
     </defs>
 
-    {
-      priceTicks.map((p) => (
-        <g>
-          <line
-            x1={M.left}
-            x2={M.left + plotW}
-            y1={y(p)}
-            y2={y(p)}
-            class="grid"
-          />
-          <text x={M.left - 8} y={y(p)} class="tick" text-anchor="end">
-            ${p}
-          </text>
-        </g>
-      ))
-    }
-    {
-      quantityTicks.map((q) => (
-        <text x={x(q)} y={H - 22} class="tick" text-anchor="middle">
-          {q}
+    {priceTicks.map((p) => (
+      <g>
+        <line
+          x1={M.left}
+          x2={M.left + plotW}
+          y1={y(p)}
+          y2={y(p)}
+          class="grid"
+        />
+        <text x={M.left - 8} y={y(p)} class="tick" text-anchor="end">
+          ${p}
         </text>
-      ))
-    }
+      </g>
+    ))}
+    {quantityTicks.map((q) => (
+      <text x={x(q)} y={H - 22} class="tick" text-anchor="middle">
+        {q}
+      </text>
+    ))}
     <text x={M.left + plotW} y={H - 4} class="axis-label" text-anchor="end">
       cantidad (unidades)
     </text>
@@ -110,20 +106,30 @@ const quantityTicks = [0, 20, 40, 60, 80, 100, 120, 140];
       <polyline
         data-out="demand"
         points={line((p) => demandQ(p, 0))}
-        class="demand"></polyline>
+        class="demand"
+      ></polyline>
       <polyline
         data-out="supply"
         points={line((p) => supplyQ(p, 0))}
-        class="supply"></polyline>
+        class="supply"
+      ></polyline>
       <polyline
         data-out="guides"
         points={`${M.left},${y(rest.p)} ${x(rest.q)},${y(rest.p)} ${x(rest.q)},${M.top + plotH}`}
-        class="guides"></polyline>
-      <circle data-out="point" cx={x(rest.q)} cy={y(rest.p)} r="6" class="point"
+        class="guides"
+      ></polyline>
+      <circle
+        data-out="point"
+        cx={x(rest.q)}
+        cy={y(rest.p)}
+        r="6"
+        class="point"
       ></circle>
     </g>
 
-    <text x={x(demandQ(44, 0)) + 8} y={y(44)} class="curve-label">demanda</text>
+    <text x={x(demandQ(44, 0)) + 8} y={y(44)} class="curve-label">
+      demanda
+    </text>
     <text
       x={x(supplyQ(52, 0)) - 8}
       y={y(52)}

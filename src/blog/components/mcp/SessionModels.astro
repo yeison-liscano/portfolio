@@ -52,100 +52,98 @@ const panels = [
 
   <line x1="0" y1="206" x2="640" y2="206" class="divider"></line>
 
-  {
-    panels.map((panel) => (
-      <g transform={`translate(0 ${panel.y})`}>
-        <text x="0" y="14" class="title">
-          {panel.title}
-        </text>
+  {panels.map((panel) => (
+    <g transform={`translate(0 ${panel.y})`}>
+      <text x="0" y="14" class="title">
+        {panel.title}
+      </text>
 
-        <rect x="0" y="80" width="116" height="40" rx="4" class="box" />
-        <text x="58" y="100" class="label">
-          agent
-        </text>
+      <rect x="0" y="80" width="116" height="40" rx="4" class="box" />
+      <text x="58" y="100" class="label">
+        agent
+      </text>
 
-        <rect x="196" y="80" width="112" height="40" rx="4" class="box" />
-        <text x="252" y="100" class="label">
-          balancer
-        </text>
+      <rect x="196" y="80" width="112" height="40" rx="4" class="box" />
+      <text x="252" y="100" class="label">
+        balancer
+      </text>
 
-        <line
-          x1="116"
-          y1="100"
-          x2="192"
-          y2="100"
-          marker-end={`url(#${id}-arrow)`}
-        />
-        <text x="154" y="90" class="edge" text-anchor="middle">
-          requests
-        </text>
+      <line
+        x1="116"
+        y1="100"
+        x2="192"
+        y2="100"
+        marker-end={`url(#${id}-arrow)`}
+      />
+      <text x="154" y="90" class="edge" text-anchor="middle">
+        requests
+      </text>
 
-        <rect x="440" y="28" width="160" height="44" rx="4" class="box" />
-        <text x="520" y="43" class="label">
-          worker A
-        </text>
-        <text x="520" y="61" class="sub">
-          {panel.workerA}
-        </text>
+      <rect x="440" y="28" width="160" height="44" rx="4" class="box" />
+      <text x="520" y="43" class="label">
+        worker A
+      </text>
+      <text x="520" y="61" class="sub">
+        {panel.workerA}
+      </text>
 
-        <rect
-          x="440"
-          y="128"
-          width="160"
-          height="44"
-          rx="4"
-          class:list={["box", { bad: panel.stateful }]}
-        />
-        <text x="520" y="143" class="label">
-          worker B
-        </text>
-        <text x="520" y="161" class:list={["sub", { bad: panel.stateful }]}>
-          {panel.workerB}
-        </text>
+      <rect
+        x="440"
+        y="128"
+        width="160"
+        height="44"
+        rx="4"
+        class:list={["box", { bad: panel.stateful }]}
+      />
+      <text x="520" y="143" class="label">
+        worker B
+      </text>
+      <text x="520" y="161" class:list={["sub", { bad: panel.stateful }]}>
+        {panel.workerB}
+      </text>
 
-        <line
-          x1="308"
-          y1="92"
-          x2="436"
-          y2="56"
-          marker-end={`url(#${id}-arrow)`}
-        />
-        <text x="312" y="36" class="edge">
-          ① {panel.edgeA}
+      <line
+        x1="308"
+        y1="92"
+        x2="436"
+        y2="56"
+        marker-end={`url(#${id}-arrow)`}
+      />
+      <text x="312" y="36" class="edge">
+        ① {panel.edgeA}
+      </text>
+      {!panel.stateful && (
+        <text x="312" y="50" class="edge accent">
+          + context
         </text>
-        {!panel.stateful && (
-          <text x="312" y="50" class="edge accent">
-            + context
-          </text>
-        )}
+      )}
 
-        <line
-          x1="308"
-          y1="108"
-          x2="436"
-          y2="144"
-          marker-end={`url(#${id}-arrow)`}
-          class:list={{ bad: panel.stateful }}
-        />
-        <text x="312" y="150" class="edge">
-          ② {panel.edgeB}
+      <line
+        x1="308"
+        y1="108"
+        x2="436"
+        y2="144"
+        marker-end={`url(#${id}-arrow)`}
+        class:list={{ bad: panel.stateful }}
+      />
+      <text x="312" y="150" class="edge">
+        ② {panel.edgeB}
+      </text>
+      {!panel.stateful && (
+        <text x="312" y="164" class="edge accent">
+          + context
         </text>
-        {!panel.stateful && (
-          <text x="312" y="164" class="edge accent">
-            + context
-          </text>
-        )}
+      )}
 
-        <text
-          x="520"
-          y="192"
-          class:list={["sub", panel.stateful ? "bad" : "good"]}
-        >
-          {panel.result}
-        </text>
-      </g>
-    ))
-  }
+      <text
+        x="520"
+        y="192"
+        class:list={["sub", panel.stateful ? "bad" : "good"]}
+      >
+        {panel.result}
+      </text>
+    </g>
+  ))}
 </svg>
 
 <style>

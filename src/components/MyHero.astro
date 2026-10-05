@@ -28,7 +28,9 @@ const proof = [
     <p class="eyebrow animate" style="--delay: 0ms">
       AI & Security Engineer · Medellín, Colombia
     </p>
-    <h1 class="animate" style="--delay: 60ms">Yeison Liscano</h1>
+    <h1 class="animate" style="--delay: 60ms">
+      Yeison Liscano
+    </h1>
     <p class="lead animate" style="--delay: 120ms">
       I build secure AI agent platforms and the Python tooling behind them.
     </p>
@@ -38,24 +40,26 @@ const proof = [
       start.
     </p>
     <div class="hero-actions animate" style="--delay: 240ms">
-      <a href="#projects" class="btn btn-primary">See projects</a>
-      <a href={`${BASE_URL}blog/`} class="btn btn-secondary">Read the blog</a>
+      <a href="#projects" class="btn btn-primary">
+        See projects
+      </a>
+      <a href={`${BASE_URL}blog/`} class="btn btn-secondary">
+        Read the blog
+      </a>
     </div>
   </div>
 
   <ul class="proof animate" style="--delay: 300ms" aria-label="Highlights">
-    {
-      proof.map((item) => (
-        <li>
-          <span class="proof-label">{item.label}</span>
-          {item.href ? (
-            <a href={item.href}>{item.text}</a>
-          ) : (
-            <span class="proof-text">{item.text}</span>
-          )}
-        </li>
-      ))
-    }
+    {proof.map((item) => (
+      <li>
+        <span class="proof-label">{item.label}</span>
+        {item.href ? (
+          <a href={item.href}>{item.text}</a>
+        ) : (
+          <span class="proof-text">{item.text}</span>
+        )}
+      </li>
+    ))}
   </ul>
 </section>
 

@@ -47,53 +47,48 @@ const checks = [
     </marker>
   </defs>
 
-  {
-    scopes.map((scope) => (
-      <g>
-        <rect
-          x={scope.inset * INSET_X}
-          y={scope.inset * INSET_Y}
-          width={W - scope.inset * INSET_X * 2}
-          height={H - scope.inset * INSET_Y - scope.inset * 8}
-          rx="6"
-          class="scope"
-        />
-        <text
-          x={scope.inset * INSET_X + 12}
-          y={labelY(scope.inset)}
-          class="name"
-        >
-          {scope.name}
-        </text>
-        <text
-          x={scope.inset * INSET_X + 100}
-          y={labelY(scope.inset)}
-          class="names"
-        >
-          {scope.names}
-        </text>
-      </g>
-    ))
-  }
+  {scopes.map((scope) => (
+    <g>
+      <rect
+        x={scope.inset * INSET_X}
+        y={scope.inset * INSET_Y}
+        width={W - scope.inset * INSET_X * 2}
+        height={H - scope.inset * INSET_Y - scope.inset * 8}
+        rx="6"
+        class="scope"
+      />
+      <text x={scope.inset * INSET_X + 12} y={labelY(scope.inset)} class="name">
+        {scope.name}
+      </text>
+      <text
+        x={scope.inset * INSET_X + 100}
+        y={labelY(scope.inset)}
+        class="names"
+      >
+        {scope.names}
+      </text>
+    </g>
+  ))}
 
-  <text x={3 * INSET_X + 12} y="170" class="code">print(x)</text>
+  <text x={3 * INSET_X + 12} y="170" class="code">
+    print(x)
+  </text>
 
   <polyline
     points={`${3 * INSET_X + 84},170 ${LINE_X},170 ${LINE_X},${labelY(1) + 8}`}
     marker-end={`url(#${id}-arrow)`}
-    class="lookup"></polyline>
+    class="lookup"
+  ></polyline>
 
-  {
-    checks.map((check) => (
-      <text
-        x={LINE_X + 10}
-        y={check.y}
-        class:list={["check", { found: check.found }]}
-      >
-        {check.text}
-      </text>
-    ))
-  }
+  {checks.map((check) => (
+    <text
+      x={LINE_X + 10}
+      y={check.y}
+      class:list={["check", { found: check.found }]}
+    >
+      {check.text}
+    </text>
+  ))}
 </svg>
 
 <style>

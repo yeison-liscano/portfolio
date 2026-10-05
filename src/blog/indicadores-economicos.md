@@ -1,4 +1,5 @@
 ---
+lang: "es"
 title: Indicadores Económicos
 pubDate: 2026-03-22
 description:

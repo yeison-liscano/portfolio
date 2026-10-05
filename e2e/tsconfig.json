@@ -2,7 +2,6 @@
   "extends": "../tsconfig.json",
   "exclude": [],
   "compilerOptions": {
-    "baseUrl": ".",
     "types": ["cypress"],
     "isolatedModules": false,
     "allowJs": true,

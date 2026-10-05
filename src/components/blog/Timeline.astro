@@ -86,79 +86,73 @@ const H = legendY + 12;
 ---
 
 <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} class="timeline">
-  {
-    laidOut.map(({ top, group, end }) => (
-      <g transform={`translate(0 ${top})`}>
-        <text x="0" y="14" class="title">
-          {group.title}
-        </text>
-        {group.rows.map((row, r) => {
-          const y = TITLE_H + r * (ROW_H + ROW_GAP);
-          return (
-            <g>
-              <text x="0" y={y + ROW_H / 2} class="row-label">
-                {row.label}
-              </text>
-              <line
-                x1={LABEL_W}
-                x2={x(max)}
-                y1={y + ROW_H / 2}
-                y2={y + ROW_H / 2}
-                class="track"
+  {laidOut.map(({ top, group, end }) => (
+    <g transform={`translate(0 ${top})`}>
+      <text x="0" y="14" class="title">
+        {group.title}
+      </text>
+      {group.rows.map((row, r) => {
+        const y = TITLE_H + r * (ROW_H + ROW_GAP);
+        return (
+          <g>
+            <text x="0" y={y + ROW_H / 2} class="row-label">
+              {row.label}
+            </text>
+            <line
+              x1={LABEL_W}
+              x2={x(max)}
+              y1={y + ROW_H / 2}
+              y2={y + ROW_H / 2}
+              class="track"
+            />
+            {row.segments.map((s) => (
+              <rect
+                x={x(s.start)}
+                y={y}
+                width={x(s.end) - x(s.start)}
+                height={ROW_H}
+                rx="2"
+                class={s.kind}
               />
-              {row.segments.map((s) => (
-                <rect
-                  x={x(s.start)}
-                  y={y}
-                  width={x(s.end) - x(s.start)}
-                  height={ROW_H}
-                  rx="2"
-                  class={s.kind}
-                />
-              ))}
-            </g>
-          );
-        })}
-        <line
-          x1={x(end)}
-          x2={x(end)}
-          y1={TITLE_H - 4}
-          y2={TITLE_H + group.rows.length * (ROW_H + ROW_GAP) - 4}
-          class="finish"
-        />
-        <text
-          x={x(end) + 6}
-          y={TITLE_H + ((ROW_H + ROW_GAP) * group.rows.length) / 2 - 4}
-          class="finish-label"
-        >
-          {end} {unit}
-        </text>
-      </g>
-    ))
-  }
+            ))}
+          </g>
+        );
+      })}
+      <line
+        x1={x(end)}
+        x2={x(end)}
+        y1={TITLE_H - 4}
+        y2={TITLE_H + group.rows.length * (ROW_H + ROW_GAP) - 4}
+        class="finish"
+      />
+      <text
+        x={x(end) + 6}
+        y={TITLE_H + ((ROW_H + ROW_GAP) * group.rows.length) / 2 - 4}
+        class="finish-label"
+      >
+        {end} {unit}
+      </text>
+    </g>
+  ))}
 
   <line x1={LABEL_W} x2={x(max)} y1={axisY} y2={axisY} class="axis"></line>
-  {
-    ticks.map((t) => (
-      <g>
-        <line x1={x(t)} x2={x(t)} y1={axisY} y2={axisY + 4} class="axis" />
-        <text x={x(t)} y={axisY + 16} class="tick">
-          {t === max ? `${t} ${unit}` : t}
-        </text>
-      </g>
-    ))
-  }
+  {ticks.map((t) => (
+    <g>
+      <line x1={x(t)} x2={x(t)} y1={axisY} y2={axisY + 4} class="axis" />
+      <text x={x(t)} y={axisY + 16} class="tick">
+        {t === max ? `${t} ${unit}` : t}
+      </text>
+    </g>
+  ))}
 
-  {
-    legendEntries.map(([kind, text], i) => (
-      <g transform={`translate(${legendX[i]} ${legendY - 10})`}>
-        <rect x="0" y="0" width="22" height="12" rx="2" class={kind} />
-        <text x="30" y="6" class="legend">
-          {text}
-        </text>
-      </g>
-    ))
-  }
+  {legendEntries.map(([kind, text], i) => (
+    <g transform={`translate(${legendX[i]} ${legendY - 10})`}>
+      <rect x="0" y="0" width="22" height="12" rx="2" class={kind} />
+      <text x="30" y="6" class="legend">
+        {text}
+      </text>
+    </g>
+  ))}
 </svg>
 
 <style>

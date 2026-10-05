@@ -1,0 +1,82 @@
+---
+/**
+ * TiposDeGrafos - The same five data centres drawn as a simple graph, a
+ * multigraph, a pseudograph and a digraph. Each panel highlights the one
+ * thing its type allows that the simple graph does not.
+ */
+import Grafo from "./Grafo.astro";
+import type { GraphEdge, GraphNode, Panel } from "./geometria";
+
+const W = 310;
+const H = 180;
+
+const ciudades: GraphNode[] = [
+  { id: "SF", x: 22, y: 42, label: "San Francisco", dx: -8, anchor: "start" },
+  { id: "LA", x: 62, y: 128, label: "Los Ángeles", dy: 16 },
+  { id: "DEN", x: 145, y: 92, label: "Denver", dy: 16 },
+  { id: "CHI", x: 222, y: 42, label: "Chicago" },
+  {
+    id: "NY",
+    x: 288,
+    y: 100,
+    label: "Nueva York",
+    dx: 8,
+    dy: 16,
+    anchor: "end",
+  },
+];
+
+const base: GraphEdge[] = [
+  { a: "SF", b: "LA" },
+  { a: "SF", b: "DEN" },
+  { a: "LA", b: "DEN" },
+  { a: "CHI", b: "NY" },
+];
+
+const panel = (
+  x: number,
+  y: number,
+  title: string,
+  edges: GraphEdge[],
+): Panel => ({
+  x,
+  y,
+  w: W,
+  h: H,
+  title,
+  nodeStyle: "dot",
+  nodes: ciudades,
+  edges,
+});
+
+const panels: Panel[] = [
+  panel(0, 0, "grafo simple", [...base, { a: "DEN", b: "CHI" }]),
+  panel(330, 0, "multigrafo: aristas múltiples", [
+    ...base,
+    { a: "DEN", b: "CHI", bend: 9, hl: true },
+    { a: "DEN", b: "CHI", bend: -9, hl: true },
+  ]),
+  panel(0, 190, "pseudografo: lazos", [
+    ...base,
+    { a: "DEN", b: "CHI", bend: 9 },
+    { a: "DEN", b: "CHI", bend: -9 },
+    { a: "DEN", b: "DEN", loop: -100, hl: true },
+  ]),
+  panel(330, 190, "grafo dirigido: aristas con sentido", [
+    { a: "SF", b: "LA", dir: true },
+    { a: "DEN", b: "SF", dir: true },
+    { a: "LA", b: "DEN", dir: true },
+    { a: "CHI", b: "NY", dir: true },
+    { a: "DEN", b: "CHI", dir: true, bend: 9, hl: true },
+    { a: "CHI", b: "DEN", dir: true, bend: 9, hl: true },
+  ]),
+];
+---
+
+<Grafo
+  panels={panels}
+  width={640}
+  height={370}
+  minWidth={560}
+  label="La misma red de cinco centros de datos dibujada como grafo simple, multigrafo, pseudografo y grafo dirigido"
+/>
