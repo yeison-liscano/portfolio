@@ -1,0 +1,346 @@
+---
+lang: "es"
+title: "Teoría de grafos V: circuitos de Euler y de Hamilton"
+pubDate: 2026-10-04
+description:
+  "Quinta parte de la serie sobre teoría de grafos: los puentes de Königsberg,
+  cuándo existe un circuito o un camino de Euler y cómo construirlo, y por qué
+  la pregunta parecida para Hamilton es uno de los problemas difíciles de la
+  computación."
+tags: ["math", "algorithms"]
+isDraft: true
+snippet:
+  language: "python"
+  code: |
+    # Criterio de Euler para un multigrafo conexo
+    def tipo_euler(grados):
+        impares = sum(1 for g in grados.values() if g % 2)
+        if impares == 0:
+            return "circuito de Euler"
+        return "camino de Euler" if impares == 2 else "ninguno"
+---
+
+import Figure from "../components/blog/Figure.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Konigsberg from "./components/grafos/Konigsberg.astro";
+import CircuitoEuler from "./components/grafos/CircuitoEuler.astro";
+import Dodecaedro from "./components/grafos/Dodecaedro.astro";
+import SerieGrafos from "./components/grafos/SerieGrafos.astro";
+
+Palabras clave: circuito de Euler, camino de Euler, Königsberg, algoritmo de
+Hierholzer, circuito de Hamilton, teorema de Dirac, teorema de Ore, NP-completo
+
+Dos preguntas se parecen mucho. ¿Se puede recorrer un grafo empezando y
+terminando en el mismo vértice y pasando por **cada arista** exactamente una
+vez? ¿Se puede recorrer empezando y terminando en el mismo vértice y pasando por
+**cada vértice** exactamente una vez? La primera se responde con solo mirar los
+grados de los vértices. La segunda, hasta donde sabemos, no tiene una respuesta
+eficiente para grafos en general. Esta parte cuenta por qué, empezando por el
+problema con el que nació la teoría de grafos.
+
+## Los puentes de Königsberg
+
+La ciudad de Königsberg, en Prusia (hoy Kaliningrado, en Rusia), estaba dividida
+en cuatro regiones por los brazos del río Pregel: las dos orillas, la isla de
+Kneiphof y la región entre los dos brazos del río. En el siglo XVIII siete
+puentes conectaban esas regiones. Los habitantes daban largos paseos los
+domingos y se preguntaban si era posible salir de algún punto de la ciudad,
+cruzar cada puente exactamente una vez y regresar al punto de partida.
+
+El matemático suizo Leonhard Euler resolvió el problema en una publicación de
+1736, que se considera el primer trabajo de teoría de grafos. Euler representó
+cada región con un vértice y cada puente con una arista. Como hay dos puentes
+entre la isla y cada orilla, el resultado es un multigrafo:
+
+<Figure caption="Los siete puentes de Königsberg como multigrafo. Las cuatro regiones tienen grado impar, así que no existe un paseo que cruce cada puente una sola vez, ni volviendo al inicio ni terminando en otro lugar.">
+  <Konigsberg />
+</Figure>
+
+La pregunta de los domingos se convierte en una pregunta sobre el grafo: ¿hay un
+circuito simple que contenga todas las aristas?
+
+> **Definición.** Un **circuito de Euler** en un grafo `G` es un circuito simple
+> que contiene cada arista de `G`. Un **camino de Euler** es un camino simple
+> que contiene cada arista de `G`.
+
+## El criterio de Euler
+
+Supongamos que un multigrafo tiene un circuito de Euler que empieza en `a`. Cada
+vez que el circuito pasa por un vértice distinto de `a`, entra por una arista y
+sale por otra, así que suma dos al grado de ese vértice. El vértice `a` recibe
+uno al salir, uno al volver al final y dos por cada vez que el circuito pasa por
+él en el medio. Como el circuito usa cada arista exactamente una vez, todos los
+grados son pares. Euler demostró que la condición también es suficiente:
+
+> **Teorema.** Un multigrafo conexo con al menos dos vértices tiene un circuito
+> de Euler si y solo si cada uno de sus vértices tiene grado par.
+
+> **Teorema.** Un multigrafo conexo tiene un camino de Euler, pero no un
+> circuito de Euler, si y solo si tiene exactamente dos vértices de grado impar.
+> El camino empieza en uno de ellos y termina en el otro.
+
+El segundo teorema sale del primero: si `u` y `v` son los únicos vértices de
+grado impar, agregar una arista `{u, v}` deja todos los grados pares; el
+circuito de Euler del grafo ampliado, sin la arista agregada, es un camino de
+Euler de `u` a `v`.
+
+Ahora el problema de Königsberg se resuelve en una línea. Las cuatro regiones
+tienen grado impar (la isla 5, las otras tres 3), así que no hay circuito de
+Euler. Tampoco hay camino de Euler, porque hay cuatro vértices de grado impar y
+no dos. No se puede cruzar cada puente exactamente una vez, se vuelva o no al
+punto de partida.
+
+```python
+from collections import Counter
+
+puentes = [
+    ("A", "C"), ("A", "C"), ("A", "B"), ("A", "B"),
+    ("A", "D"), ("B", "D"), ("C", "D"),
+]
+
+grado = Counter()
+for u, v in puentes:
+    grado[u] += 1
+    grado[v] += 1
+
+impares = sorted(v for v in grado if grado[v] % 2 == 1)
+print("grados:", dict(grado))
+print("vértices de grado impar:", impares)
+if not impares:
+    print("hay circuito de Euler")
+elif len(impares) == 2:
+    print("hay camino de Euler entre", impares[0], "y", impares[1])
+else:
+    print("no hay circuito ni camino de Euler")
+```
+
+## Cómo construir un circuito de Euler
+
+La demostración de la suficiencia es un algoritmo. La idea es caminar sin
+repetir aristas hasta quedar atascado, y luego empalmar circuitos más pequeños:
+
+```text
+procedimiento Euler(G: multigrafo conexo con todos los grados pares)
+    circuito := un circuito en G que empieza en un vértice cualquiera,
+                agregando aristas hasta volver a ese vértice
+    H := G sin las aristas de circuito
+    mientras H tenga aristas:
+        subcircuito := un circuito en H que empieza en un vértice de H
+                       que también está en circuito
+        H := H sin las aristas de subcircuito ni los vértices aislados
+        circuito := circuito con subcircuito insertado en ese vértice
+    devolver circuito   { circuito es un circuito de Euler }
+```
+
+El primer paso nunca se atasca en un vértice distinto del inicial: como todos
+los grados son pares, cada vez que se entra a un vértice queda una arista sin
+usar para salir. Y si quedan aristas sin usar, alguna toca al circuito, porque
+el grafo es conexo. Esta versión se conoce como el **algoritmo de Hierholzer** y
+tarda `O(m)`, donde `m` es el número de aristas.
+
+Un uso clásico son los acertijos de dibujar una figura de un solo trazo, sin
+levantar el lápiz y sin repasar ninguna línea. ¿Se pueden dibujar las cimitarras
+de la figura empezando y terminando en el mismo punto? Todos sus vértices tienen
+grado par, así que sí, y el algoritmo encuentra cómo:
+
+<Figure caption="El algoritmo en las cimitarras: un primer circuito desde a, un subcircuito desde d con las aristas que quedaron, y el empalme de ambos en d. Las 18 aristas quedan cubiertas una sola vez.">
+  <Stepper
+    lang="es"
+    label="Construcción de un circuito de Euler"
+    steps={[
+      "Desde a se camina sin repetir aristas hasta volver: a, b, d, c, b, e, i, f, e, a.",
+      "Se quitan esas aristas. El vértice d está en el circuito y aún tiene aristas: el subcircuito d, g, h, j, i, h, k, g, f, d las usa todas.",
+      "Se inserta el subcircuito en d: a, b, d, g, h, j, i, h, k, g, f, d, c, b, e, i, f, e, a es un circuito de Euler.",
+    ]}
+  >
+    <CircuitoEuler />
+  </Stepper>
+</Figure>
+
+La versión iterativa con una pila hace los empalmes sin construir los
+subcircuitos por separado: avanza mientras haya aristas sin usar y, cuando se
+atasca, retrocede y anota el vértice en el circuito final.
+
+```python
+from collections import defaultdict
+
+
+def circuito_euler(aristas, inicio):
+    """Algoritmo de Hierholzer. Supone un multigrafo conexo con grados pares."""
+    incidentes = defaultdict(list)
+    for i, (u, v) in enumerate(aristas):
+        incidentes[u].append((v, i))
+        incidentes[v].append((u, i))
+    usada = [False] * len(aristas)
+    pila, circuito = [inicio], []
+    while pila:
+        u = pila[-1]
+        while incidentes[u] and usada[incidentes[u][-1][1]]:
+            incidentes[u].pop()
+        if incidentes[u]:
+            v, i = incidentes[u].pop()
+            usada[i] = True
+            pila.append(v)
+        else:
+            circuito.append(pila.pop())
+    return circuito[::-1]
+
+
+cimitarras = [
+    ("a", "b"), ("b", "d"), ("d", "c"), ("c", "b"), ("b", "e"),
+    ("e", "i"), ("i", "f"), ("f", "e"), ("e", "a"),
+    ("d", "g"), ("g", "h"), ("h", "j"), ("j", "i"), ("i", "h"),
+    ("h", "k"), ("k", "g"), ("g", "f"), ("f", "d"),
+]
+circuito = circuito_euler(cimitarras, "a")
+print(", ".join(circuito))
+print(len(circuito) - 1, "aristas recorridas de", len(cimitarras))
+```
+
+El circuito que devuelve puede ser distinto del de la figura: un grafo suele
+tener muchos circuitos de Euler, y cualquiera sirve. Las aplicaciones van más
+allá de los acertijos: la ruta de un camión de basura, de un quitanieves o de un
+inspector de redes eléctricas que debe pasar por cada calle o cada línea una
+vez. Cuando el grafo no cumple el criterio, el **problema del cartero chino**
+busca el recorrido más corto que repite el mínimo de aristas.
+
+## Caminos y circuitos de Hamilton
+
+Tenemos condiciones necesarias y suficientes para recorrer cada **arista**
+exactamente una vez. ¿Podemos hacer lo mismo con los **vértices**?
+
+> **Definición.** Un **camino de Hamilton** en un grafo `G` es un camino simple
+> que pasa por cada vértice exactamente una vez. Un **circuito de Hamilton** es
+> un circuito simple que pasa por cada vértice exactamente una vez. Es decir,
+> `x0, x1, …, xn` es un camino de Hamilton en `G = (V, E)` si `V = {x0, …, xn}`
+> y `xi ≠ xj` para `0 ≤ i < j ≤ n`; y `x0, x1, …, xn, x0`, con `n > 0`, es un
+> circuito de Hamilton si `x0, …, xn` es un camino de Hamilton y `{xn, x0}` es
+> una arista.
+
+El nombre viene de un juego que el matemático irlandés William Rowan Hamilton
+inventó en 1857, el **juego icosiano**. Era un dodecaedro de madera, un poliedro
+con 12 caras pentagonales, con una clavija en cada uno de sus 20 vértices y el
+nombre de una ciudad del mundo en cada vértice. El objetivo era empezar en una
+ciudad, viajar por las aristas visitando cada una de las otras 19 ciudades
+exactamente una vez y regresar a la primera, marcando el recorrido con una
+cuerda. En lenguaje de grafos, el juego pide un circuito de Hamilton en el grafo
+del dodecaedro:
+
+<Figure caption="El dodecaedro aplanado: 20 vértices, 30 aristas y cada vértice de grado 3. El circuito resaltado, calculado al construir esta página, visita las 20 ciudades del juego de Hamilton y vuelve a la primera.">
+  <Dodecaedro />
+</Figure>
+
+### Condiciones para que exista un circuito de Hamilton
+
+A diferencia del caso de Euler, no se conoce una condición necesaria y
+suficiente sencilla. Sí hay varias observaciones que sirven para demostrar que
+un grafo **no** tiene circuito de Hamilton:
+
+- Un grafo con un vértice de grado uno no tiene circuito de Hamilton: el
+  circuito entra y sale de cada vértice por dos aristas distintas.
+- Si un vértice tiene grado dos, sus dos aristas deben estar en cualquier
+  circuito de Hamilton.
+- Al construir un circuito de Hamilton, cuando este pasa por un vértice, las
+  demás aristas de ese vértice se pueden descartar.
+- Un circuito de Hamilton no puede contener un circuito más pequeño.
+
+En la otra dirección, cuantas más aristas tiene un grafo, más fácil es que tenga
+un circuito de Hamilton, y agregar aristas nunca destruye uno. El grafo completo
+`Kₙ` tiene un circuito de Hamilton para todo `n ≥ 3`: basta visitar los vértices
+en cualquier orden y volver al inicial, porque todas las aristas existen. Esa
+intuición produce dos condiciones suficientes famosas, que piden que los grados
+sean grandes:
+
+> **Teorema de Dirac (1952).** Si `G` es un grafo simple con `n ≥ 3` vértices y
+> cada vértice tiene grado al menos `n/2`, entonces `G` tiene un circuito de
+> Hamilton.
+
+> **Teorema de Ore (1960).** Si `G` es un grafo simple con `n ≥ 3` vértices y
+> `deg(u) + deg(v) ≥ n` para cada par de vértices **no adyacentes** `u` y `v`,
+> entonces `G` tiene un circuito de Hamilton.
+
+El teorema de Dirac es un corolario del de Ore: si todos los grados son al menos
+`n/2`, la suma de dos grados cualesquiera es al menos `n`. Pero ninguno de los
+dos es necesario. El ciclo `C₅` tiene un circuito de Hamilton (él mismo) y sus
+grados son 2, menores que `5/2`. El dodecaedro tiene uno con todos los grados
+iguales a 3, muy lejos de `20/2 = 10`.
+
+### Un problema difícil
+
+Para encontrar un circuito de Hamilton, o demostrar que no existe, los mejores
+algoritmos conocidos tardan un tiempo exponencial en el número de vértices en el
+peor caso. El problema es **NP-completo**: un algoritmo de tiempo polinomial
+para él daría algoritmos de tiempo polinomial para miles de problemas que hoy se
+consideran intratables, y resolvería la pregunta abierta P versus NP.
+
+Para grafos pequeños, una búsqueda con retroceso (_backtracking_) funciona bien:
+extender el camino con un vecino no visitado y, si se llega a un callejón sin
+salida, deshacer el último paso. Así se calculó el circuito de la figura:
+
+```python
+def dodecaedro():
+    """Exterior o0..o4, anillo medio m0..m9 e interior i0..i4, como en la figura."""
+    aristas = []
+    for k in range(5):
+        aristas += [
+            (f"o{k}", f"o{(k + 1) % 5}"),
+            (f"o{k}", f"m{2 * k}"),
+            (f"m{2 * k + 1}", f"i{k}"),
+            (f"i{k}", f"i{(k + 1) % 5}"),
+        ]
+    aristas += [(f"m{j}", f"m{(j + 1) % 10}") for j in range(10)]
+    grafo = {}
+    for u, v in aristas:
+        grafo.setdefault(u, []).append(v)
+        grafo.setdefault(v, []).append(u)
+    return grafo
+
+
+def circuito_hamilton(grafo, inicio):
+    camino = [inicio]
+
+    def extender():
+        if len(camino) == len(grafo):
+            return inicio in grafo[camino[-1]]
+        for v in grafo[camino[-1]]:
+            if v not in camino:
+                camino.append(v)
+                if extender():
+                    return True
+                camino.pop()
+        return False
+
+    return camino + [inicio] if extender() else None
+
+
+G = dodecaedro()
+print(len(G), "vértices,", sum(map(len, G.values())) // 2, "aristas")
+print(" -> ".join(circuito_hamilton(G, "o0")))
+```
+
+Con 20 vértices la búsqueda termina enseguida, pero en el peor caso el número de
+caminos parciales crece exponencialmente con el tamaño del grafo. En la próxima
+parte aparece una versión con pesos de este mismo problema, el del agente
+viajero, que pide el circuito de Hamilton más barato.
+
+## Conclusión
+
+Recorrer cada arista una vez y recorrer cada vértice una vez son preguntas
+hermanas con destinos opuestos. La de Euler tiene una respuesta completa: un
+multigrafo conexo tiene un circuito de Euler si y solo si todos sus grados son
+pares, y el algoritmo de Hierholzer lo construye en tiempo lineal. La de
+Hamilton solo tiene condiciones suficientes, como las de Dirac y Ore, y en
+general es NP-completa.
+
+<SerieGrafos actual={5} />
+
+## Referencias
+
+- Euler, L. (1741). _Solutio problematis ad geometriam situs pertinentis_.
+  Commentarii Academiae Scientiarum Petropolitanae, 8, 128–140. Presentado en
+  1735 y fechado en 1736.
+- Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
+  sección 10.5. McGraw-Hill.
+- Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
+  Notas de clase, Departamento de Matemáticas, Universidad Nacional de Colombia,
+  sede Medellín.

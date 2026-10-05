@@ -1,0 +1,84 @@
+---
+/**
+ * Dodecaedro - Hamilton's icosian game: the dodecahedron's 20 vertices and
+ * 30 edges drawn flat. The highlighted Hamilton circuit is found at build
+ * time by backtracking, so it is always correct.
+ */
+import Grafo from "./Grafo.astro";
+import {
+  polygon,
+  type GraphEdge,
+  type GraphNode,
+  type Panel,
+} from "./geometria";
+
+const C = 160;
+const exterior = polygon(5, C, C, 148, -90);
+const medio = polygon(10, C, C, 96, -90);
+const interior = polygon(5, C, C, 46, -54);
+
+const nodos: GraphNode[] = [
+  ...exterior.map((p, k) => ({ id: `o${k}`, ...p })),
+  ...medio.map((p, k) => ({ id: `m${k}`, ...p })),
+  ...interior.map((p, k) => ({ id: `i${k}`, ...p })),
+];
+
+const pares: [string, string][] = [];
+for (let k = 0; k < 5; k += 1) {
+  pares.push([`o${k}`, `o${(k + 1) % 5}`]);
+  pares.push([`o${k}`, `m${2 * k}`]);
+  pares.push([`m${2 * k + 1}`, `i${k}`]);
+  pares.push([`i${k}`, `i${(k + 1) % 5}`]);
+}
+for (let j = 0; j < 10; j += 1) pares.push([`m${j}`, `m${(j + 1) % 10}`]);
+
+const vecinos = new Map<string, string[]>(nodos.map((n) => [n.id, []]));
+pares.forEach(([u, v]) => {
+  vecinos.get(u)?.push(v);
+  vecinos.get(v)?.push(u);
+});
+
+const buscar = (camino: string[]): string[] | null => {
+  const ultimo = camino[camino.length - 1];
+  if (camino.length === nodos.length) {
+    return vecinos.get(ultimo)?.includes(camino[0]) ? camino : null;
+  }
+  for (const v of vecinos.get(ultimo) ?? []) {
+    if (!camino.includes(v)) {
+      const encontrado = buscar([...camino, v]);
+      if (encontrado) return encontrado;
+    }
+  }
+  return null;
+};
+
+const circuito = buscar(["o0"]);
+if (!circuito) throw new Error("[Dodecaedro] no Hamilton circuit found");
+const enCircuito = new Set(
+  circuito.map((u, i) => {
+    const v = circuito[(i + 1) % circuito.length];
+    return [u, v].sort().join("|");
+  }),
+);
+
+const aristas: GraphEdge[] = pares.map(([a, b]) => ({
+  a,
+  b,
+  hl: enCircuito.has([a, b].sort().join("|")),
+}));
+
+const panels: Panel[] = [
+  {
+    nodeStyle: "dot",
+    nodes: nodos.map((n) => ({ ...n, label: "" })),
+    edges: aristas,
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={320}
+  height={320}
+  label="El dodecaedro aplanado, con 20 vértices y 30 aristas; el circuito resaltado visita cada vértice exactamente una vez"
+/>

@@ -1,0 +1,68 @@
+---
+/**
+ * Konigsberg - The seven bridges as a multigraph. Every land mass has odd
+ * degree, so there is no Euler circuit and no Euler path.
+ */
+import Grafo from "./Grafo.astro";
+import type { Panel } from "./geometria";
+
+const panels: Panel[] = [
+  {
+    nodes: [
+      {
+        id: "C",
+        x: 300,
+        y: 40,
+        note: "orilla norte · grado 3",
+        noteDy: -26,
+        hl: true,
+      },
+      {
+        id: "A",
+        x: 160,
+        y: 136,
+        note: "Kneiphof · grado 5",
+        noteDx: -22,
+        noteDy: 0,
+        noteAnchor: "end",
+        hl: true,
+      },
+      {
+        id: "D",
+        x: 440,
+        y: 136,
+        note: "este · grado 3",
+        noteDx: 22,
+        noteDy: 0,
+        noteAnchor: "start",
+        hl: true,
+      },
+      {
+        id: "B",
+        x: 300,
+        y: 232,
+        note: "orilla sur · grado 3",
+        noteDy: 28,
+        hl: true,
+      },
+    ],
+    edges: [
+      { a: "A", b: "C", bend: 16 },
+      { a: "A", b: "C", bend: -16 },
+      { a: "A", b: "B", bend: 16 },
+      { a: "A", b: "B", bend: -16 },
+      { a: "A", b: "D" },
+      { a: "C", b: "D" },
+      { a: "B", b: "D" },
+    ],
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={580}
+  height={280}
+  minWidth={480}
+  label="Multigrafo de los siete puentes de Königsberg: la isla tiene grado 5 y las otras tres regiones grado 3, todos impares"
+/>

@@ -1,0 +1,210 @@
+---
+/**
+ * CaminoExplorer - Build a sequence of vertices by clicking and see whether
+ * it is a path, a circuit, simple or not. The walked edges light up.
+ * The server renders the first example (a, d, c, f, e) already classified.
+ */
+import Grafo from "./Grafo.astro";
+import type { Panel } from "./geometria";
+import {
+  ARISTAS_CAMINO,
+  EJEMPLOS,
+  VERTICES_CAMINO,
+  clasificar,
+} from "./caminos";
+
+const inicial = EJEMPLOS[0];
+const resultado = clasificar(inicial);
+const recorridas = new Set(resultado.aristas);
+
+const posiciones: Record<string, [number, number]> = {
+  a: [40, 30],
+  b: [160, 30],
+  c: [280, 30],
+  d: [40, 140],
+  e: [160, 140],
+  f: [280, 140],
+};
+
+const panels: Panel[] = [
+  {
+    nodes: VERTICES_CAMINO.map((id) => ({
+      id,
+      x: posiciones[id][0],
+      y: posiciones[id][1],
+      hl: inicial.includes(id),
+    })),
+    edges: ARISTAS_CAMINO.map(([a, b]) => ({
+      a,
+      b,
+      hl: recorridas.has(`${a}-${b}`),
+    })),
+  },
+];
+---
+
+<grafos-camino data-inicial={inicial.join(",")}>
+  <div class="dibujo">
+    <Grafo
+      panels={panels}
+      width={320}
+      height={170}
+      maxWidth={400}
+      label="Grafo simple con vértices a, b, c, d, e, f; las aristas del camino elegido están resaltadas"
+    />
+  </div>
+
+  <p class="secuencia">
+    Secuencia: <strong data-out="secuencia">{inicial.join(", ")}</strong>
+  </p>
+  <p class="veredicto" aria-live="polite" data-out="veredicto">
+    {resultado.texto}
+  </p>
+
+  <div class="controles" hidden>
+    <div class="fila" role="group" aria-label="Agregar un vértice">
+      <span class="etiqueta">Agregar</span>
+      {VERTICES_CAMINO.map((v) => (
+        <button type="button" data-agregar={v}>
+          {v}
+        </button>
+      ))}
+      <button type="button" data-accion="deshacer">
+        Deshacer
+      </button>
+      <button type="button" data-accion="borrar">
+        Borrar
+      </button>
+    </div>
+    <div class="fila" role="group" aria-label="Ejemplos del texto">
+      <span class="etiqueta">Ejemplos</span>
+      {EJEMPLOS.map((ejemplo) => (
+        <button type="button" data-ejemplo={ejemplo.join(",")}>
+          {ejemplo.join(" ")}
+        </button>
+      ))}
+    </div>
+  </div>
+</grafos-camino>
+
+<script>
+  import { clasificar } from "./caminos";
+
+  class GrafosCamino extends HTMLElement {
+    private secuencia: string[] = [];
+
+    connectedCallback() {
+      this.secuencia = (this.dataset.inicial ?? "").split(",").filter(Boolean);
+      const controles = this.querySelector<HTMLElement>(".controles");
+      if (controles) controles.hidden = false;
+      this.addEventListener("click", (event) => {
+        const boton = (event.target as HTMLElement).closest<HTMLElement>(
+          "button",
+        );
+        if (!boton) return;
+        const { agregar, accion, ejemplo } = boton.dataset;
+        if (agregar) this.secuencia = [...this.secuencia, agregar];
+        if (accion === "deshacer") this.secuencia = this.secuencia.slice(0, -1);
+        if (accion === "borrar") this.secuencia = [];
+        if (ejemplo) this.secuencia = ejemplo.split(",");
+        this.mostrar();
+      });
+    }
+
+    mostrar() {
+      const { texto, aristas } = clasificar(this.secuencia);
+      const recorridas = new Set(aristas);
+      const visitados = new Set(this.secuencia);
+      this.querySelectorAll<SVGElement>("[data-edge]").forEach((arista) =>
+        arista.toggleAttribute(
+          "data-hl",
+          recorridas.has(arista.dataset.edge ?? ""),
+        ),
+      );
+      this.querySelectorAll<SVGElement>("[data-node]").forEach((nodo) =>
+        nodo.toggleAttribute("data-hl", visitados.has(nodo.dataset.node ?? "")),
+      );
+      const secuencia = this.querySelector('[data-out="secuencia"]');
+      if (secuencia) {
+        secuencia.textContent = this.secuencia.length
+          ? this.secuencia.join(", ")
+          : "(vacía)";
+      }
+      const veredicto = this.querySelector('[data-out="veredicto"]');
+      if (veredicto) veredicto.textContent = texto;
+    }
+  }
+
+  customElements.define("grafos-camino", GrafosCamino);
+</script>
+
+<style>
+  grafos-camino {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .secuencia,
+  .veredicto {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .secuencia strong {
+    color: var(--contrast);
+    font-family: var(--font-mono);
+  }
+
+  .veredicto {
+    min-height: 3em;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+
+  .controles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .controles[hidden] {
+    display: none;
+  }
+
+  .fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .etiqueta {
+    min-width: 5.5rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  button {
+    min-width: 2.25rem;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  button:hover {
+    border-color: var(--contrast);
+    color: var(--contrast);
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+</style>

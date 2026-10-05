@@ -19,6 +19,12 @@
   --good: color-mix(in oklab, #2ea043 75%, var(--text-color));
   --warn: color-mix(in oklab, #d29922 75%, var(--text-color));
   --bad: color-mix(in oklab, #e5534b 75%, var(--text-color));
+  /* Categorical hues for figures that need several distinct colors at once,
+     such as a graph coloring. They are labels, never the accent. */
+  --cat-1: color-mix(in oklab, #3b82f6 75%, var(--text-color));
+  --cat-2: color-mix(in oklab, #f97316 75%, var(--text-color));
+  --cat-3: color-mix(in oklab, #14b8a6 75%, var(--text-color));
+  --cat-4: color-mix(in oklab, #d946ef 75%, var(--text-color));
 
   --max-width: 720px;
 

@@ -1,0 +1,396 @@
+---
+/**
+ * RepresentacionExplorer - One graph and its three representations side by
+ * side: adjacency list, adjacency matrix and incidence matrix. Choosing a
+ * vertex highlights it, its edges and the rows and columns that store them.
+ *
+ * The server renders vertex c selected, so the figure is complete without
+ * JavaScript.
+ */
+import Grafo from "./Grafo.astro";
+import type { Panel } from "./geometria";
+
+const VERTICES = ["a", "b", "c", "d", "e"];
+const ARISTAS: [string, string][] = [
+  ["a", "b"],
+  ["a", "c"],
+  ["a", "e"],
+  ["c", "d"],
+  ["c", "e"],
+  ["d", "e"],
+];
+const inicial = "c";
+
+const vecinos = (v: string) =>
+  ARISTAS.flatMap(([x, y]) => (x === v ? [y] : y === v ? [x] : [])).sort();
+const adyacentes = (u: string, v: string) =>
+  ARISTAS.some(([x, y]) => (x === u && y === v) || (x === v && y === u));
+const incide = (v: string, [x, y]: [string, string]) => x === v || y === v;
+const toca = (v: string, i: number) => incide(v, ARISTAS[i]);
+const nombreArista = (i: number) => `e${i + 1}`;
+
+const panels: Panel[] = [
+  {
+    nodes: [
+      { id: "a", x: 70, y: 30 },
+      { id: "b", x: 22, y: 112 },
+      { id: "c", x: 160, y: 62 },
+      { id: "d", x: 190, y: 160 },
+      { id: "e", x: 92, y: 168 },
+    ].map((n) => ({ ...n, hl: n.id === inicial })),
+    edges: ARISTAS.map(([a, b], i) => ({
+      a,
+      b,
+      w: nombreArista(i),
+      hl: incide(inicial, [a, b]),
+    })),
+  },
+];
+
+const frase = (v: string) => {
+  const g = vecinos(v).length;
+  return `deg(${v}) = ${g}: ${g} vecinos en la lista, ${g} unos en la fila ${v} de cada matriz.`;
+};
+const uid = `repr-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<grafos-representacion data-inicial={inicial}>
+  <div class="selector" role="group" aria-label="Elegir un vértice" hidden>
+    <span class="selector-titulo">Vértice</span>
+    {VERTICES.map((v) => (
+      <button
+        type="button"
+        data-vertice={v}
+        aria-pressed={v === inicial ? "true" : "false"}
+      >
+        {v}
+      </button>
+    ))}
+  </div>
+
+  <div class="rejilla">
+    <section aria-labelledby={`${uid}-grafo`}>
+      <h4 id={`${uid}-grafo`}>Grafo</h4>
+      <Grafo
+        panels={panels}
+        width={210}
+        height={190}
+        maxWidth={250}
+        label="Grafo con vértices a, b, c, d, e y aristas e1 a e6"
+      />
+    </section>
+
+    <section aria-labelledby={`${uid}-lista`}>
+      <h4 id={`${uid}-lista`}>Lista de adyacencia</h4>
+      <table class="lista">
+        <tbody>
+          {VERTICES.map((v) => (
+            <tr data-fila={v} data-activo={v === inicial ? "" : undefined}>
+              <th scope="row">{v}</th>
+              <td>{vecinos(v).join(", ")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby={`${uid}-ady`}>
+      <h4 id={`${uid}-ady`}>Matriz de adyacencia</h4>
+      <table class="matriz">
+        <thead>
+          <tr>
+            <td></td>
+            {VERTICES.map((v) => (
+              <th
+                scope="col"
+                data-col={v}
+                data-activo={v === inicial ? "" : undefined}
+              >
+                {v}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {VERTICES.map((u) => (
+            <tr>
+              <th
+                scope="row"
+                data-fila={u}
+                data-activo={u === inicial ? "" : undefined}
+              >
+                {u}
+              </th>
+              {VERTICES.map((v) => (
+                <td
+                  data-fila={u}
+                  data-col={v}
+                  data-uno={adyacentes(u, v) ? "" : undefined}
+                  data-activo={u === inicial || v === inicial ? "" : undefined}
+                >
+                  {adyacentes(u, v) ? 1 : 0}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby={`${uid}-inc`}>
+      <h4 id={`${uid}-inc`}>Matriz de incidencia</h4>
+      <table class="matriz">
+        <thead>
+          <tr>
+            <td></td>
+            {ARISTAS.map((_, i) => (
+              <th
+                scope="col"
+                data-arista={nombreArista(i)}
+                data-activo={toca(inicial, i) ? "" : undefined}
+              >
+                {nombreArista(i)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {VERTICES.map((v) => (
+            <tr>
+              <th
+                scope="row"
+                data-fila={v}
+                data-activo={v === inicial ? "" : undefined}
+              >
+                {v}
+              </th>
+              {ARISTAS.map((arista, i) => (
+                <td
+                  data-fila={v}
+                  data-arista={nombreArista(i)}
+                  data-uno={incide(v, arista) ? "" : undefined}
+                  data-activo={v === inicial ? "" : undefined}
+                >
+                  {incide(v, arista) ? 1 : 0}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <p class="frase" aria-live="polite" data-out="frase">
+    {frase(inicial)}
+  </p>
+</grafos-representacion>
+
+<script>
+  class GrafosRepresentacion extends HTMLElement {
+    connectedCallback() {
+      const selector = this.querySelector<HTMLElement>(".selector");
+      if (selector) selector.hidden = false;
+      this.addEventListener("click", (event) => {
+        const boton = (event.target as HTMLElement).closest<HTMLElement>(
+          "button[data-vertice]",
+        );
+        if (boton?.dataset.vertice) this.elegir(boton.dataset.vertice);
+      });
+    }
+
+    private marcar(selector: string, activo: (el: HTMLElement) => boolean) {
+      this.querySelectorAll<HTMLElement>(selector).forEach((el) => {
+        el.toggleAttribute("data-activo", activo(el));
+      });
+    }
+
+    elegir(v: string) {
+      this.querySelectorAll<HTMLElement>("button[data-vertice]").forEach((b) =>
+        b.setAttribute("aria-pressed", String(b.dataset.vertice === v)),
+      );
+
+      const incidentes = new Set<string>();
+      let grado = 0;
+      this.querySelectorAll<SVGElement>("[data-edge]").forEach((arista) => {
+        const [x, y] = (arista.dataset.edge ?? "").split("-");
+        const toca = x === v || y === v;
+        arista.toggleAttribute("data-hl", toca);
+        if (toca) grado += 1;
+      });
+      this.querySelectorAll<SVGElement>("[data-node]").forEach((nodo) =>
+        nodo.toggleAttribute("data-hl", nodo.dataset.node === v),
+      );
+      this.querySelectorAll<HTMLElement>("td[data-arista][data-uno]").forEach(
+        (celda) => {
+          if (celda.dataset.fila === v && celda.dataset.arista) {
+            incidentes.add(celda.dataset.arista);
+          }
+        },
+      );
+
+      this.marcar(
+        "tr[data-fila], th[data-fila]",
+        (el) => el.dataset.fila === v,
+      );
+      this.marcar("th[data-col]", (el) => el.dataset.col === v);
+      this.marcar(
+        "td[data-col]",
+        (el) => el.dataset.fila === v || el.dataset.col === v,
+      );
+      this.marcar("th[data-arista]", (el) =>
+        incidentes.has(el.dataset.arista ?? ""),
+      );
+      this.marcar("td[data-arista]", (el) => el.dataset.fila === v);
+
+      const frase = this.querySelector('[data-out="frase"]');
+      if (frase) {
+        frase.textContent = `deg(${v}) = ${grado}: ${grado} vecinos en la lista, ${grado} unos en la fila ${v} de cada matriz.`;
+      }
+    }
+  }
+
+  customElements.define("grafos-representacion", GrafosRepresentacion);
+</script>
+
+<style>
+  grafos-representacion {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .selector {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .selector[hidden] {
+    display: none;
+  }
+
+  .selector-titulo {
+    margin-right: 4px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  button {
+    min-width: 2.25rem;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  button:hover {
+    border-color: var(--contrast);
+  }
+
+  button[aria-pressed="true"] {
+    border-color: var(--contrast);
+    color: var(--contrast);
+    font-weight: 600;
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .rejilla {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 24px;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  h4 {
+    margin: 0;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  table {
+    width: auto;
+    margin: 0;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th,
+  td {
+    padding: 3px 8px;
+    border: none;
+    color: var(--muted);
+    font-weight: 400;
+    text-align: center;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .lista td {
+    text-align: left;
+  }
+
+  .lista th,
+  .lista td {
+    color: var(--text-color);
+  }
+
+  td[data-uno] {
+    color: var(--text-color);
+  }
+
+  tr[data-activo] > *,
+  th[data-activo],
+  td[data-activo] {
+    background-color: color-mix(in oklab, var(--contrast) 12%, transparent);
+  }
+
+  tr[data-activo] > *,
+  th[data-activo],
+  td[data-activo][data-uno] {
+    color: var(--contrast);
+    font-weight: 600;
+  }
+
+  .frase {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 560px) {
+    .rejilla {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    th,
+    td {
+      transition: none;
+    }
+  }
+</style>

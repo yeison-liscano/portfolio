@@ -1,0 +1,47 @@
+---
+/**
+ * CircuitoEuler - The scimitars puzzle (every vertex has even degree).
+ * Step 1 is the first circuit from a, step 2 the subcircuit from d in what
+ * is left; splicing them at d gives an Euler circuit. Meant for <Stepper>.
+ */
+import Grafo from "./Grafo.astro";
+import type { GraphEdge, Panel } from "./geometria";
+
+const primero = ["a", "b", "d", "c", "b", "e", "i", "f", "e", "a"];
+const segundo = ["d", "g", "h", "j", "i", "h", "k", "g", "f", "d"];
+
+const curvas: Record<string, number> = { "e-i": -42, "d-g": 42 };
+
+const tramo = (vertices: string[], step: number): GraphEdge[] =>
+  vertices.slice(1).map((b, i) => {
+    const a = vertices[i];
+    return { a, b, step, bend: curvas[`${a}-${b}`] ?? 0 };
+  });
+
+const panels: Panel[] = [
+  {
+    nodes: [
+      { id: "a", x: 40, y: 25 },
+      { id: "e", x: 112, y: 97 },
+      { id: "b", x: 65, y: 129 },
+      { id: "d", x: 112, y: 154 },
+      { id: "c", x: 40, y: 220 },
+      { id: "f", x: 271, y: 129 },
+      { id: "i", x: 432, y: 97 },
+      { id: "h", x: 479, y: 129 },
+      { id: "g", x: 432, y: 154 },
+      { id: "j", x: 500, y: 25 },
+      { id: "k", x: 500, y: 220 },
+    ],
+    edges: [...tramo(primero, 1), ...tramo(segundo, 2)],
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={540}
+  height={245}
+  minWidth={480}
+  label="Grafo de las cimitarras: un circuito desde a y un subcircuito desde d cubren sus 18 aristas"
+/>

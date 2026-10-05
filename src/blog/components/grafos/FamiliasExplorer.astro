@@ -1,0 +1,272 @@
+---
+/**
+ * FamiliasExplorer - Pick a family (K_n, C_n, W_n, Q_n) and n; the drawing,
+ * vertex and edge counts, degrees and bipartition update. The sum of degrees
+ * is always twice the number of edges (handshake theorem).
+ *
+ * The server renders K_5 with the same functions the browser uses, so the
+ * figure is complete without JavaScript.
+ */
+import {
+  ALTO,
+  ANCHO,
+  FAMILIAS,
+  RANGOS,
+  marcado,
+  resumir,
+  type Familia,
+} from "./familias";
+
+const inicial: Familia = "K";
+const n = 5;
+const datos = resumir(inicial, n);
+const uid = `familias-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<grafos-familias>
+  <div class="controles" hidden>
+    <fieldset>
+      <legend>Familia</legend>
+      {FAMILIAS.map((familia) => (
+        <label class="opcion">
+          <input
+            type="radio"
+            name={`${uid}-familia`}
+            value={familia.id}
+            checked={familia.id === inicial}
+          />
+          {familia.nombre}
+        </label>
+      ))}
+    </fieldset>
+    <div class="deslizador">
+      <label for={`${uid}-n`}>
+        n = <output data-out="n">{n}</output>
+      </label>
+      <input
+        id={`${uid}-n`}
+        data-in="n"
+        type="range"
+        min={RANGOS[inicial].min}
+        max={RANGOS[inicial].max}
+        step="1"
+        value={n}
+      />
+    </div>
+  </div>
+
+  <div class="cuerpo">
+    <svg
+      viewBox={`0 0 ${ANCHO} ${ALTO}`}
+      role="img"
+      aria-label={`Dibujo del grafo ${datos.nombre}`}
+      data-out="svg"
+    >
+      <g data-out="dibujo" set:html={marcado(inicial, n)} />
+    </svg>
+    <dl class="datos" aria-live="polite">
+      <dt>Grafo</dt>
+      <dd data-out="nombre">{datos.nombre}</dd>
+      <dt>Vértices</dt>
+      <dd data-out="vertices">{datos.vertices}</dd>
+      <dt>Aristas</dt>
+      <dd data-out="aristas">{datos.aristas}</dd>
+      <dt>Grados</dt>
+      <dd data-out="grados">{datos.grados}</dd>
+      <dt>Suma de grados</dt>
+      <dd data-out="suma">{datos.suma}</dd>
+      <dt>¿Bipartito?</dt>
+      <dd data-out="bipartito">{datos.bipartito}</dd>
+    </dl>
+  </div>
+</grafos-familias>
+
+<script>
+  import { RANGOS, marcado, resumir, type Familia } from "./familias";
+
+  class GrafosFamilias extends HTMLElement {
+    connectedCallback() {
+      const controles = this.querySelector<HTMLElement>(".controles");
+      if (controles) controles.hidden = false;
+      this.addEventListener("input", (event) => this.update(event));
+    }
+
+    private familia(): Familia {
+      const marcada = this.querySelector<HTMLInputElement>(
+        'input[type="radio"]:checked',
+      );
+      return (marcada?.value ?? "K") as Familia;
+    }
+
+    private write(name: string, text: string) {
+      const out = this.querySelector(`[data-out="${name}"]`);
+      if (out) out.textContent = text;
+    }
+
+    update(event: Event) {
+      const familia = this.familia();
+      const slider = this.querySelector<HTMLInputElement>('[data-in="n"]');
+      if (!slider) return;
+      const { min, max } = RANGOS[familia];
+      const cambioFamilia =
+        (event.target as HTMLInputElement | null)?.type === "radio";
+      slider.min = String(min);
+      slider.max = String(max);
+      const n = Math.min(Math.max(Number(slider.value), min), max);
+      slider.value = String(n);
+      if (cambioFamilia) slider.focus({ preventScroll: true });
+
+      const datos = resumir(familia, n);
+      this.write("n", String(n));
+      this.write("nombre", datos.nombre);
+      this.write("vertices", String(datos.vertices));
+      this.write("aristas", String(datos.aristas));
+      this.write("grados", datos.grados);
+      this.write("suma", datos.suma);
+      this.write("bipartito", datos.bipartito);
+      const dibujo = this.querySelector('[data-out="dibujo"]');
+      if (dibujo) dibujo.innerHTML = marcado(familia, n);
+      this.querySelector('[data-out="svg"]')?.setAttribute(
+        "aria-label",
+        `Dibujo del grafo ${datos.nombre}`,
+      );
+    }
+  }
+
+  customElements.define("grafos-familias", GrafosFamilias);
+</script>
+
+<style>
+  grafos-familias {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .controles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+
+  .controles[hidden] {
+    display: none;
+  }
+
+  fieldset {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  legend {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .opcion {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .deslizador {
+    display: grid;
+    max-width: 32rem;
+    grid-template-columns: 5rem 1fr;
+    align-items: center;
+    gap: 16px;
+  }
+
+  output {
+    color: var(--contrast);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"],
+  input[type="radio"] {
+    accent-color: var(--contrast);
+  }
+
+  input[type="range"] {
+    width: 100%;
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 360px) minmax(14rem, 1fr);
+    align-items: center;
+    gap: 16px;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    color: var(--text-color);
+  }
+
+  .datos {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    margin: 0;
+    font-size: 0.85rem;
+  }
+
+  dt {
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  grafos-familias :global(.fam-arista) {
+    stroke: currentColor;
+    stroke-width: 1.25;
+  }
+
+  grafos-familias :global(.fam-nodo) {
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  grafos-familias :global(.fam-nodo[data-lado="0"]) {
+    fill: var(--contrast);
+    stroke: var(--contrast);
+  }
+
+  grafos-familias :global(.fam-nodo[data-lado="1"]) {
+    fill: var(--surface);
+  }
+
+  grafos-familias :global(.fam-etiqueta) {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  @media (max-width: 520px) {
+    .cuerpo {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

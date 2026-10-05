@@ -1,0 +1,327 @@
+---
+lang: "es"
+title: "Teoría de grafos II: grados, familias especiales y grafos bipartitos"
+pubDate: 2026-10-04
+description:
+  "Segunda parte de la serie sobre teoría de grafos: adyacencia, vecindad y
+  grado, el teorema del apretón de manos, las familias Kₙ, Cₙ, Wₙ y Qₙ, los
+  grafos bipartitos y cómo construir grafos nuevos a partir de otros."
+tags: ["math", "algorithms"]
+isDraft: true
+snippet:
+  language: "python"
+  code: |
+    # Teorema del apretón de manos: la suma de los grados es 2|E|
+    aristas = [("a", "b"), ("b", "c"), ("c", "a"), ("c", "d")]
+    grados = {}
+    for u, v in aristas:
+        grados[u] = grados.get(u, 0) + 1
+        grados[v] = grados.get(v, 0) + 1
+    assert sum(grados.values()) == 2 * len(aristas)
+---
+
+import Figure from "../components/blog/Figure.astro";
+import FamiliasExplorer from "./components/grafos/FamiliasExplorer.astro";
+import Operaciones from "./components/grafos/Operaciones.astro";
+import SerieGrafos from "./components/grafos/SerieGrafos.astro";
+
+Palabras clave: adyacencia, vecindad, grado, apretón de manos, grafo completo,
+ciclo, rueda, hipercubo, grafo bipartito, subgrafo
+
+En la [primera parte](/portfolio/blog/grafos-1-modelos/) vimos qué es un grafo y
+cómo se usa para modelar sistemas reales. Para razonar sobre esos modelos
+necesitamos un vocabulario preciso: qué vértices son vecinos, cuántas aristas
+llegan a cada uno, qué estructuras aparecen una y otra vez y cómo se obtiene un
+grafo a partir de otro. Esta parte presenta ese vocabulario y el primer teorema
+de la teoría de grafos, que cabe en una línea.
+
+## Adyacencia, incidencia y vecindad
+
+Dos vértices `u` y `v` de un grafo no dirigido `G` son **adyacentes** (o
+**vecinos**) si son los extremos de una arista `e` de `G`. Esa arista es
+**incidente** con `u` y con `v`, y decimos que `e` **conecta** a `u` y `v`.
+
+El conjunto de todos los vecinos de un vértice `v` se llama su **vecindad** y se
+escribe `N(v)`. Si `A` es un conjunto de vértices, `N(A)` es el conjunto de los
+vértices adyacentes a al menos un vértice de `A`, es decir, la unión de las
+vecindades de sus elementos:
+
+```text
+N(A) = ⋃ N(v), para todo v ∈ A
+```
+
+En la red de centros de datos de la parte I,
+`N(Denver) = {San Francisco, Los Ángeles, Chicago}`. En una red social, `N(v)`
+es la lista de amigos de `v` y `N(A)` es el conjunto de personas a las que un
+grupo `A` puede presentar a alguien.
+
+## Grado de un vértice
+
+El **grado** de un vértice `v` en un grafo no dirigido es el número de aristas
+incidentes con él, con una excepción: un lazo en `v` aporta **dos** al grado,
+porque `v` es sus dos extremos. El grado se escribe `deg(v)`.
+
+Un vértice de grado cero se llama **aislado**: no es adyacente a ningún vértice.
+Un vértice de grado uno se llama **colgante**: es adyacente a exactamente un
+vértice. En un grafo de red, un vértice aislado es una máquina desconectada y un
+vértice colgante es una máquina que depende de un único enlace.
+
+### El teorema del apretón de manos
+
+¿Qué obtenemos al sumar los grados de todos los vértices? Cada arista tiene dos
+extremos, así que aporta exactamente dos a la suma: uno por cada extremo, o dos
+al mismo vértice si es un lazo. Ese argumento demuestra el primer teorema de la
+teoría de grafos, conocido como **teorema (o lema) del apretón de manos** por la
+analogía entre una arista y un apretón de manos entre dos personas:
+
+> **Teorema del apretón de manos (Euler).** Sea `G = (V, E)` un grafo no
+> dirigido con `m` aristas. Entonces `2m = Σ deg(v)`, donde la suma recorre
+> todos los vértices `v ∈ V`. La igualdad se cumple aunque haya aristas
+> múltiples y lazos.
+
+El teorema permite contar aristas sin mirarlas. ¿Cuántas aristas tiene un grafo
+con 10 vértices, todos de grado 6? La suma de los grados es 60, así que
+`2m = 60` y el grafo tiene 30 aristas.
+
+De él sale una consecuencia menos obvia:
+
+> **Teorema.** Todo grafo no dirigido tiene un número par de vértices de grado
+> impar.
+
+**Demostración.** Separemos los vértices en `V1`, los de grado par, y `V2`, los
+de grado impar. Entonces `2m = Σ deg(v) para v ∈ V1 + Σ deg(v) para v ∈ V2`. El
+lado izquierdo es par, y la primera suma también lo es porque todos sus términos
+son pares. Entonces la segunda suma es par. Pero todos sus términos son impares,
+y una suma de números impares solo es par si tiene un número par de términos.
+Así que hay un número par de vértices de grado impar. ∎
+
+Por eso no existe un grafo con cinco vértices de grado 3: la suma de grados
+sería 15, un número impar. Y en cualquier reunión, el número de personas que
+dieron un número impar de apretones de manos es par.
+
+El mismo cálculo en Python, sobre el pseudografo de la parte I, que tiene una
+arista doble y un lazo:
+
+```python
+from collections import Counter
+
+aristas = [
+    ("SF", "LA"), ("SF", "DEN"), ("LA", "DEN"), ("CHI", "NY"),
+    ("DEN", "CHI"), ("DEN", "CHI"),  # arista de multiplicidad 2
+    ("DEN", "DEN"),                  # lazo: suma 2 al grado de Denver
+]
+
+grado = Counter()
+for u, v in aristas:
+    grado[u] += 1
+    grado[v] += 1
+
+print(dict(grado))
+print("suma de grados:", sum(grado.values()), "= 2 ·", len(aristas))
+print("grado impar:", [v for v, g in grado.items() if g % 2 == 1])
+```
+
+### Grados en grafos dirigidos
+
+En un grafo dirigido las aristas tienen sentido, y el vocabulario lo refleja. Si
+`(u, v)` es una arista, decimos que `u` es **adyacente a** `v` y que `v` es
+**adyacente desde** `u`. El vértice `u` es el **vértice inicial** de la arista y
+`v` es el **vértice terminal**. En un lazo, el vértice inicial y el terminal
+coinciden.
+
+Como las aristas son pares ordenados, el grado se separa en dos:
+
+- El **grado de entrada** `deg⁻(v)` es el número de aristas que terminan en `v`.
+- El **grado de salida** `deg⁺(v)` es el número de aristas que inician en `v`.
+
+Un lazo aporta uno a cada grado. Como cada arista tiene exactamente un vértice
+inicial y un vértice terminal, se cumple:
+
+> **Teorema.** En un grafo dirigido `G = (V, E)`, `Σ deg⁻(v) = Σ deg⁺(v) = |E|`.
+
+En el torneo de todos contra todos de la parte I, el grado de salida de un
+equipo es su número de victorias. Con `n` equipos se juegan `n(n − 1)/2`
+partidos, así que la suma de las victorias de todos los equipos es exactamente
+ese número, sin importar quién ganó cada partido.
+
+Muchas propiedades de un grafo dirigido no dependen del sentido de sus aristas.
+Al ignorar los sentidos se obtiene su **grafo no dirigido subyacente**, que
+tiene el mismo número de aristas.
+
+## Familias especiales de grafos
+
+Algunos grafos simples aparecen tantas veces, como ejemplos, contraejemplos y
+modelos, que tienen nombre propio:
+
+- El **grafo completo** Kₙ tiene `n` vértices y una arista entre cada par de
+  vértices distintos. Un grafo simple al que le falta al menos una de esas
+  aristas es **incompleto**.
+- El **ciclo** Cₙ, con `n ≥ 3`, tiene vértices `v1, v2, …, vn` y aristas
+  `{v1, v2}, {v2, v3}, …, {vn−1, vn}` y `{vn, v1}`.
+- La **rueda** Wₙ se obtiene al agregar a Cₙ un vértice nuevo, el centro,
+  conectado con cada uno de los `n` vértices del ciclo.
+- El **hipercubo** Qₙ (o `n`-cubo) tiene un vértice por cada cadena de `n` bits,
+  y dos vértices son adyacentes si sus cadenas difieren en exactamente un bit.
+
+El explorador dibuja cada familia para el `n` que elijas y comprueba el teorema
+del apretón de manos en cada caso.
+
+<Figure caption="Cada familia con el n que elijas. La suma de los grados siempre es el doble del número de aristas; en los grafos bipartitos, los vértices rellenos forman un lado de la bipartición y los huecos el otro.">
+  <FamiliasExplorer />
+</Figure>
+
+Los conteos de la tabla salen del teorema del apretón de manos. En Qₙ hay `2ⁿ`
+vértices y cada uno tiene grado `n` (se puede cambiar cualquiera de sus `n`
+bits), así que `2m = n · 2ⁿ` y `m = n · 2ⁿ⁻¹`. En Kₙ cada uno de los `n`
+vértices tiene grado `n − 1`, así que `m = n(n − 1)/2`.
+
+| Familia          | Vértices | Aristas      | Grados                            |
+| ---------------- | -------- | ------------ | --------------------------------- |
+| Kₙ               | `n`      | `n(n − 1)/2` | `n − 1` en todos                  |
+| Cₙ, `n ≥ 3`      | `n`      | `n`          | `2` en todos                      |
+| Wₙ, `n ≥ 3`      | `n + 1`  | `2n`         | `3` en el ciclo, `n` en el centro |
+| Qₙ               | `2ⁿ`     | `n · 2ⁿ⁻¹`   | `n` en todos                      |
+| Kₘ,ₙ (ver abajo) | `m + n`  | `mn`         | `n` en un lado, `m` en el otro    |
+
+Estas familias también son topologías de red. En una red de área local en
+**estrella** todos los equipos se conectan a un concentrador central, y su grafo
+es K₁,ₙ. En una red en **anillo** cada equipo se conecta con dos vecinos, y su
+grafo es Cₙ. Una red **híbrida** combina las dos, y su grafo es Wₙ. Los
+hipercubos se usan como redes de interconexión en computación paralela: Qₙ
+conecta `2ⁿ` procesadores, cada uno con solo `n` enlaces, y cualquier mensaje
+llega a su destino en a lo sumo `n` saltos.
+
+## Grafos bipartitos
+
+A veces los vértices de un grafo se dividen naturalmente en dos grupos y todas
+las aristas van de un grupo al otro: empleados y tareas, estudiantes y cursos,
+clientes y productos.
+
+Un grafo simple `G` es **bipartito** si su conjunto de vértices `V` se puede
+dividir en dos conjuntos disjuntos `V1` y `V2` de modo que cada arista conecta
+un vértice de `V1` con uno de `V2`. Es decir, ninguna arista une dos vértices
+del mismo lado. El par `(V1, V2)` se llama una **bipartición** de `V`.
+
+> **Teorema.** Un grafo simple es bipartito si y solo si se puede asignar uno de
+> dos colores a cada vértice de modo que dos vértices adyacentes nunca tengan el
+> mismo color.
+
+**Demostración.** Si `G` es bipartito con bipartición `(V1, V2)`, basta pintar
+`V1` de un color y `V2` del otro: como toda arista va de `V1` a `V2`, ninguna
+une dos vértices del mismo color. Recíprocamente, si `G` se puede colorear con
+dos colores sin que dos vecinos compartan color, sean `V1` los vértices del
+primer color y `V2` los del segundo. Son disjuntos, cubren `V`, y toda arista
+conecta un vértice de `V1` con uno de `V2`. ∎
+
+Hay un segundo criterio, basado en recorridos: **un grafo es bipartito si y solo
+si no tiene ciclos de longitud impar**. Al caminar por las aristas de un grafo
+bipartito se cambia de lado en cada paso, así que solo se puede volver al
+vértice inicial después de un número par de pasos. En el explorador se ve en los
+dos sentidos: C₆ es bipartito y C₅ no; ningún Kₙ con `n ≥ 3` lo es, porque tiene
+triángulos, y todo Qₙ lo es, porque cada arista cambia la paridad del número de
+unos de la cadena.
+
+El teorema de los dos colores da un algoritmo: pintar un vértice cualquiera,
+pintar a sus vecinos del otro color, a los vecinos de estos del primero, y así
+sucesivamente. Si en algún momento una arista une dos vértices del mismo color,
+el grafo no es bipartito.
+
+```python
+from collections import deque
+
+
+def bipartito(grafo):
+    """Devuelve un color 0/1 por vértice, o None si el grafo no es bipartito."""
+    color = {}
+    for inicio in grafo:
+        if inicio in color:
+            continue
+        color[inicio] = 0
+        cola = deque([inicio])
+        while cola:
+            u = cola.popleft()
+            for v in grafo[u]:
+                if v not in color:
+                    color[v] = 1 - color[u]
+                    cola.append(v)
+                elif color[v] == color[u]:
+                    return None  # una arista une dos vértices del mismo lado
+    return color
+
+
+def ciclo(n):
+    return {i: [(i - 1) % n, (i + 1) % n] for i in range(n)}
+
+
+print("C6:", bipartito(ciclo(6)))
+print("C5:", bipartito(ciclo(5)))
+
+q3 = {v: [v ^ (1 << bit) for bit in range(3)] for v in range(8)}
+lados = bipartito(q3)
+print("Q3, lado 0:", [format(v, "03b") for v in lados if lados[v] == 0])
+```
+
+### Grafos bipartitos completos
+
+El **grafo bipartito completo** Kₘ,ₙ tiene sus vértices divididos en dos
+conjuntos de `m` y `n` vértices, con una arista entre dos vértices si y solo si
+están en conjuntos distintos. Tiene `m + n` vértices y `mn` aristas. K₃,₃ va a
+tener un papel protagónico en la
+[parte VII](/portfolio/blog/grafos-7-planaridad-y-coloracion/): es el grafo del
+problema de las tres casas y los tres servicios, y no se puede dibujar en el
+plano sin cruces.
+
+## Grafos nuevos a partir de otros
+
+A menudo solo interesa una parte de un grafo, o hace falta modificarlo para
+resolver un problema. Si solo nos importan los centros de datos de Nueva York,
+Denver, Detroit y Atlanta, podemos borrar los demás vértices y las aristas que
+los tocan, y quedarnos con un grafo más pequeño.
+
+- Un **subgrafo** de `G = (V, E)` es un grafo `H = (W, F)` con `W ⊆ V` y
+  `F ⊆ E`. Es un **subgrafo propio** si `H ≠ G`.
+- El **subgrafo inducido** por un conjunto de vértices `W ⊆ V` es el grafo
+  `(W, F)`, donde `F` contiene **todas** las aristas de `E` cuyos dos extremos
+  están en `W`.
+- **Eliminar una arista** `e` produce `G − e = (V, E − {e})`, con los mismos
+  vértices. Eliminar un conjunto de aristas `E′` produce `G − E′`.
+- **Agregar una arista** `e` entre dos vértices de `G` produce
+  `G + e = (V, E ∪ {e})`.
+- **Eliminar un vértice** `v` produce `G − v`: se quitan `v` y todas las aristas
+  incidentes con él. Del mismo modo, `G − V′` elimina un conjunto de vértices
+  `V′` y las aristas que los tocan.
+- **Contraer una arista** `e = {u, v}` fusiona sus extremos en un vértice nuevo
+  `w`. Las aristas que no tocaban a `u` ni a `v` se conservan, y `w` queda
+  conectado con cada vecino de `u` o de `v`. El resultado tiene un vértice menos
+  y, en general, no es un subgrafo de `G`.
+- La **unión** de dos grafos simples `G1 = (V1, E1)` y `G2 = (V2, E2)` es el
+  grafo simple `G1 ∪ G2 = (V1 ∪ V2, E1 ∪ E2)`.
+
+<Figure caption="Tres operaciones sobre el mismo grafo G. Eliminar una arista conserva los vértices; eliminar un vértice se lleva sus aristas; contraer una arista fusiona sus extremos en w, que hereda los vecinos de ambos.">
+  <Operaciones />
+</Figure>
+
+Las operaciones no son un juego de notación: los algoritmos de grafos las usan
+todo el tiempo. Eliminar vértices y aristas sirve para estudiar qué pasa si
+falla una máquina o un enlace; la contracción de aristas está en el centro del
+algoritmo de Karger para cortes mínimos y de la caracterización de los grafos
+planares que veremos al final de la serie.
+
+## Conclusión
+
+El grado resume cuántas conexiones tiene cada vértice, y el teorema del apretón
+de manos convierte esa información local en un dato global: el número de
+aristas. Las familias Kₙ, Cₙ, Wₙ, Qₙ y Kₘ,ₙ dan ejemplos con estructura
+conocida, y la bipartición se puede verificar con dos colores. En la próxima
+parte veremos cómo representar un grafo en la memoria de un computador y cómo
+decidir si dos grafos dibujados de forma distinta son en realidad el mismo.
+
+<SerieGrafos actual={2} />
+
+## Referencias
+
+- Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
+  sección 10.2. McGraw-Hill.
+- Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
+  Notas de clase, Departamento de Matemáticas, Universidad Nacional de Colombia,
+  sede Medellín.

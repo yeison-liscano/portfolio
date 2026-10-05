@@ -1,0 +1,268 @@
+---
+lang: "es"
+title: "Teoría de grafos IV: caminos y conexidad"
+pubDate: 2026-10-04
+description:
+  "Cuarta parte de la serie sobre teoría de grafos: caminos, circuitos y caminos
+  simples; grafos conexos y componentes conexas; conexidad fuerte y débil en
+  grafos dirigidos, con un explorador para construir caminos y código para
+  encontrar componentes."
+tags: ["math", "algorithms"]
+isDraft: true
+snippet:
+  language: "python"
+  code: |
+    def conexo(grafo):
+        inicio = next(iter(grafo))
+        vistos, pila = {inicio}, [inicio]
+        while pila:
+            for v in grafo[pila.pop()]:
+                if v not in vistos:
+                    vistos.add(v)
+                    pila.append(v)
+        return len(vistos) == len(grafo)
+---
+
+import Figure from "../components/blog/Figure.astro";
+import CaminoExplorer from "./components/grafos/CaminoExplorer.astro";
+import Conexidad from "./components/grafos/Conexidad.astro";
+import SerieGrafos from "./components/grafos/SerieGrafos.astro";
+
+Palabras clave: camino, circuito, camino simple, grafo conexo, componente
+conexa, fuertemente conexo, débilmente conexo
+
+Muchas preguntas sobre redes son preguntas sobre recorridos. ¿Puede un mensaje
+ir de una computadora a otra a través de enlaces intermedios? ¿Por dónde pasa el
+camión de la basura para cubrir todas las calles? ¿Qué falla deja a una parte de
+la red incomunicada? Para responderlas necesitamos definir con precisión qué es
+un camino y cuándo un grafo está "en una sola pieza".
+
+## Caminos
+
+Informalmente, un camino es una sucesión de aristas que empieza en un vértice y
+viaja de vértice en vértice a lo largo de las aristas del grafo. La definición
+formal es esta:
+
+> **Definición.** Sea `n` un entero no negativo y `G` un grafo no dirigido. Un
+> **camino de longitud** `n` de `u` a `v` en `G` es una sucesión de `n` aristas
+> `e1, …, en` de `G` para la cual existe una sucesión
+> `x0 = u, x1, …, xn−1, xn = v` de vértices tal que `ei` tiene por extremos a
+> `xi−1` y `xi`, para `i = 1, …, n`.
+
+Algunas palabras más:
+
+- El camino es un **circuito** si empieza y termina en el mismo vértice
+  (`u = v`) y tiene longitud mayor que cero.
+- El camino **pasa por** los vértices `x1, …, xn−1` y **atraviesa** las aristas
+  `e1, …, en`.
+- Un camino o circuito es **simple** si no contiene la misma arista más de una
+  vez.
+- Un camino de longitud cero consiste en un solo vértice.
+
+Cuando el grafo es simple, una arista queda determinada por sus extremos, así
+que basta con escribir la sucesión de vértices `x0, x1, …, xn`. En un multigrafo
+esa sucesión no basta si hay aristas múltiples entre dos vértices consecutivos,
+porque no dice cuál de ellas se usó.
+
+La terminología de caminos es de las que más cambia entre libros. Esta serie
+sigue a Rosen, pero conviene reconocer las otras:
+
+| En esta serie (Rosen)         | Puede repetir aristas | Puede repetir vértices | En otros textos            |
+| ----------------------------- | --------------------- | ---------------------- | -------------------------- |
+| Camino                        | Sí                    | Sí                     | Paseo o recorrido (_walk_) |
+| Camino simple                 | No                    | Sí                     | Sendero (_trail_)          |
+| Camino sin vértices repetidos | No                    | No                     | Camino (_path_)            |
+
+El explorador usa el grafo simple del texto. Agrega vértices uno por uno, o
+carga uno de los ejemplos, y observa la clasificación:
+
+<Figure caption="Las aristas recorridas por la sucesión se resaltan. a, d, c, f, e es un camino simple de longitud 4; d, e, c, a no es un camino porque {e, c} no es arista; b, c, f, e, b es un circuito simple; a, b, e, d, a, b no es simple porque usa {a, b} dos veces.">
+  <CaminoExplorer />
+</Figure>
+
+En grafos dirigidos la definición es la misma, respetando el sentido de las
+aristas: un **camino de longitud** `n` de `u` a `v` es una sucesión de aristas
+`e1, …, en` tal que `e1` está asociada con `(x0, x1)`, `e2` con `(x1, x2)`, y
+así hasta `en`, asociada con `(xn−1, xn)`, con `x0 = u` y `xn = v`. El vértice
+terminal de cada arista es el inicial de la siguiente. Un camino dirigido que
+empieza y termina en el mismo vértice, con longitud mayor que cero, es un
+**circuito**.
+
+## Conexidad en grafos no dirigidos
+
+¿Cuándo pueden comunicarse todas las computadoras de una red, si los mensajes
+pueden pasar por computadoras intermedias? En el grafo de la red la pregunta es:
+¿hay un camino entre cada par de vértices?
+
+> **Definición.** Un grafo no dirigido es **conexo** si existe un camino entre
+> cada par de vértices distintos. Un grafo que no es conexo es **disconexo**.
+> **Desconectar** un grafo es eliminar vértices, aristas o ambos para producir
+> un subgrafo disconexo.
+
+Dos computadoras de la red pueden comunicarse si y solo si están en la misma
+pieza del grafo, y todas pueden comunicarse entre sí si y solo si el grafo es
+conexo. Además, en un grafo conexo los caminos se pueden elegir sin rodeos:
+
+> **Teorema.** Entre cada par de vértices distintos de un grafo no dirigido
+> conexo existe un camino simple.
+
+**Demostración.** Sean `u` y `v` dos vértices distintos. Como el grafo es
+conexo, hay al menos un camino de `u` a `v`; tomemos uno de longitud mínima,
+`x0 = u, x1, …, xn = v`. Si un vértice se repitiera, digamos `xi = xj` con
+`i < j`, podríamos borrar el tramo `xi+1, …, xj` y obtener un camino más corto,
+lo que contradice la elección. Entonces el camino no repite vértices y, por lo
+tanto, tampoco repite aristas. ∎
+
+### Componentes conexas
+
+Un grafo disconexo es la unión de varias piezas. Una **componente conexa** de
+`G` es un subgrafo conexo de `G` que no es subgrafo propio de otro subgrafo
+conexo de `G`; es decir, un subgrafo conexo **maximal**. Un grafo disconexo
+tiene dos o más componentes conexas, disjuntas, cuya unión es el grafo completo.
+
+<Figure caption="Arriba, H tiene tres componentes conexas: no hay camino de a a d. Abajo a la izquierda, un ciclo dirigido a → b → c → d → a conecta todo en ambos sentidos; a la derecha, la arista resaltada se invirtió y ninguna arista llega a a, así que el digrafo solo es débilmente conexo.">
+  <Conexidad />
+</Figure>
+
+Encontrar las componentes conexas es un recorrido: desde un vértice no visitado,
+una búsqueda en anchura (BFS) visita exactamente su componente. Se repite desde
+otro vértice no visitado hasta agotar el grafo, así que el costo total es
+`O(n + m)`:
+
+```python
+from collections import deque
+
+
+def alcanzables(grafo, inicio):
+    """Vértices a los que se llega desde inicio (búsqueda en anchura)."""
+    vistos = {inicio}
+    cola = deque([inicio])
+    while cola:
+        u = cola.popleft()
+        for v in grafo.get(u, []):
+            if v not in vistos:
+                vistos.add(v)
+                cola.append(v)
+    return vistos
+
+
+def componentes(grafo):
+    pendientes = set(grafo)
+    resultado = []
+    while pendientes:
+        componente = alcanzables(grafo, min(pendientes))
+        resultado.append(sorted(componente))
+        pendientes -= componente
+    return resultado
+
+
+H = {
+    "a": ["b", "c"], "b": ["a", "c"], "c": ["a", "b"],
+    "d": ["e"], "e": ["d"],
+    "f": ["g"], "g": ["f", "h"], "h": ["g"],
+}
+print(componentes(H))
+```
+
+Una medida natural en un grafo conexo es la **distancia** entre dos vértices: la
+longitud del camino más corto entre ellos. En el grafo de colaboración
+académica, la distancia de un matemático a Paul Erdős es su **número de Erdős**;
+en el grafo de Hollywood, la distancia de un actor a Kevin Bacon es su **número
+de Bacon**. Que casi todos los actores tengan un número de Bacon pequeño es una
+forma concreta del fenómeno de los "seis grados de separación". BFS calcula esas
+distancias: el orden en que visita los vértices es justamente el orden de
+distancia al vértice inicial.
+
+### Vértices y aristas de corte
+
+En una red no solo importa si está conectada, sino qué tan frágil es. Un vértice
+cuya eliminación (junto con sus aristas) aumenta el número de componentes
+conexas se llama **vértice de corte**; una arista cuya eliminación aumenta el
+número de componentes es una **arista de corte** o **puente**. En un grafo de
+red, un vértice de corte es un enrutador que, si falla, parte la red en dos, y
+un puente es un enlace sin respaldo. En la figura, el único vértice de `H₃` que
+es de corte es `g`, y todas las aristas de `H₂` y `H₃` son puentes.
+
+## Conexidad en grafos dirigidos
+
+En un grafo dirigido hay dos nociones de conexidad, según se respeten o no los
+sentidos de las aristas.
+
+> **Definición.** Un digrafo es **fuertemente conexo** si existe un camino de
+> `u` a `v` y un camino de `v` a `u` para cada par de vértices distintos `u` y
+> `v`. Es **débilmente conexo** si existe un camino entre cada par de vértices
+> en su grafo no dirigido subyacente.
+
+Todo digrafo fuertemente conexo es débilmente conexo, pero no al revés. En la
+figura, el digrafo de la derecha tiene el mismo grafo no dirigido subyacente que
+el de la izquierda, así que es débilmente conexo; pero como ninguna arista llega
+a `a`, desde ningún otro vértice se puede volver a `a`. En una red de enlaces
+unidireccionales, eso significa que `a` puede enviar mensajes a todos pero nadie
+puede responderle.
+
+Para verificar la conexidad fuerte no hace falta revisar cada par. Basta elegir
+un vértice `s` y comprobar dos cosas: que desde `s` se llega a todos los
+vértices, y que desde todos se llega a `s`. La segunda condición equivale a que
+desde `s` se llegue a todos en el grafo con las aristas invertidas. Si ambas se
+cumplen, de `u` a `v` siempre hay un camino que pasa por `s`.
+
+```python
+from collections import deque
+
+
+def alcanzables(grafo, inicio):
+    vistos = {inicio}
+    cola = deque([inicio])
+    while cola:
+        u = cola.popleft()
+        for v in grafo.get(u, []):
+            if v not in vistos:
+                vistos.add(v)
+                cola.append(v)
+    return vistos
+
+
+def invertir(grafo):
+    inverso = {v: [] for v in grafo}
+    for u, vecinos in grafo.items():
+        for v in vecinos:
+            inverso.setdefault(v, []).append(u)
+    return inverso
+
+
+def fuertemente_conexo(grafo):
+    todos = set(grafo)
+    s = next(iter(grafo))
+    return alcanzables(grafo, s) == todos and alcanzables(invertir(grafo), s) == todos
+
+
+izquierda = {"a": ["b", "c"], "b": ["c"], "c": ["d"], "d": ["a"]}
+derecha = {"a": ["b", "c", "d"], "b": ["c"], "c": ["d"], "d": []}
+print("izquierda:", fuertemente_conexo(izquierda))
+print("derecha:", fuertemente_conexo(derecha))
+```
+
+Los subgrafos fuertemente conexos maximales de un digrafo se llaman sus
+**componentes fuertemente conexas**. En el grafo web, por ejemplo, hay una
+componente fuertemente conexa gigante: un núcleo de páginas desde las que se
+puede llegar a cualquier otra del núcleo siguiendo enlaces.
+
+## Conclusión
+
+Un camino es una sucesión de aristas encadenadas; es simple si no repite aristas
+y es un circuito si vuelve a su origen. Un grafo no dirigido es conexo si hay un
+camino entre cada par de vértices, y si no lo es se parte en componentes conexas
+que una búsqueda en anchura encuentra en tiempo lineal. En los digrafos hay que
+distinguir entre conexidad fuerte y débil. En la próxima parte buscaremos
+caminos muy especiales: los que recorren cada arista exactamente una vez y los
+que visitan cada vértice exactamente una vez.
+
+<SerieGrafos actual={4} />
+
+## Referencias
+
+- Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
+  sección 10.4. McGraw-Hill.
+- Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
+  Notas de clase, Departamento de Matemáticas, Universidad Nacional de Colombia,
+  sede Medellín.

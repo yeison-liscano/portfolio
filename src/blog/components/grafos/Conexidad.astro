@@ -1,0 +1,87 @@
+---
+/**
+ * Conexidad - Top: an undirected graph H with three connected components.
+ * Bottom: a strongly connected digraph, and the same digraph with one edge
+ * reversed, which is only weakly connected because nothing reaches a.
+ */
+import Grafo from "./Grafo.astro";
+import type { Panel } from "./geometria";
+
+const digrafoNodos = [
+  { id: "a", x: 60, y: 30 },
+  { id: "b", x: 180, y: 30 },
+  { id: "c", x: 180, y: 120 },
+  { id: "d", x: 60, y: 120 },
+];
+
+const panels: Panel[] = [
+  {
+    x: 0,
+    y: 0,
+    w: 640,
+    h: 192,
+    title: "H no es conexo: tiene tres componentes conexas",
+    nodes: [
+      { id: "b", x: 110, y: 30 },
+      { id: "a", x: 110, y: 115 },
+      { id: "c", x: 200, y: 115 },
+      { id: "d", x: 270, y: 50 },
+      { id: "e", x: 370, y: 50 },
+      { id: "h", x: 440, y: 115 },
+      { id: "g", x: 530, y: 115 },
+      { id: "f", x: 530, y: 30 },
+    ],
+    edges: [
+      { a: "a", b: "b" },
+      { a: "b", b: "c" },
+      { a: "a", b: "c" },
+      { a: "d", b: "e" },
+      { a: "f", b: "g" },
+      { a: "g", b: "h" },
+    ],
+    labels: [
+      { x: 155, y: 148, text: "H₁" },
+      { x: 320, y: 80, text: "H₂" },
+      { x: 485, y: 148, text: "H₃" },
+    ],
+  },
+  {
+    x: 40,
+    y: 210,
+    w: 240,
+    h: 175,
+    title: "fuertemente conexo",
+    nodes: digrafoNodos,
+    edges: [
+      { a: "a", b: "b", dir: true },
+      { a: "b", b: "c", dir: true },
+      { a: "c", b: "d", dir: true },
+      { a: "d", b: "a", dir: true },
+      { a: "a", b: "c", dir: true },
+    ],
+  },
+  {
+    x: 360,
+    y: 210,
+    w: 240,
+    h: 175,
+    title: "solo débilmente conexo",
+    nodes: digrafoNodos.map((n) => ({ ...n, hl: n.id === "a" })),
+    edges: [
+      { a: "a", b: "b", dir: true },
+      { a: "b", b: "c", dir: true },
+      { a: "c", b: "d", dir: true },
+      { a: "a", b: "d", dir: true, hl: true },
+      { a: "a", b: "c", dir: true },
+    ],
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={640}
+  height={385}
+  minWidth={560}
+  label="Arriba, un grafo con tres componentes conexas. Abajo, un digrafo fuertemente conexo y el mismo digrafo con la arista entre a y d invertida, que solo es débilmente conexo"
+/>

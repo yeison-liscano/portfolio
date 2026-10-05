@@ -1,0 +1,92 @@
+---
+/**
+ * Planaridad - K4 drawn with a crossing, the same K4 with one edge rerouted
+ * outside (no crossings), and K3,3 (houses and utilities) drawn with the
+ * single crossing it can never avoid.
+ */
+import Grafo from "./Grafo.astro";
+import { ring, type Panel } from "./geometria";
+
+const W = 210;
+const H = 215;
+
+const cuadrado = [
+  { id: "a", x: 70, y: 66 },
+  { id: "b", x: 160, y: 66 },
+  { id: "c", x: 160, y: 156 },
+  { id: "d", x: 70, y: 156 },
+];
+
+const lados = [
+  { a: "a", b: "b" },
+  { a: "b", b: "c" },
+  { a: "c", b: "d" },
+  { a: "d", b: "a" },
+];
+
+const hexagono = ring(["C1", "A", "C2", "G", "C3", "E"], 135, 96, 52, -120);
+
+const panels: Panel[] = [
+  {
+    x: 0,
+    y: 0,
+    w: W,
+    h: H,
+    title: "K₄ con un cruce",
+    nodes: cuadrado,
+    edges: [
+      ...lados,
+      { a: "a", b: "c", hl: true },
+      { a: "b", b: "d", hl: true },
+    ],
+  },
+  {
+    x: 215,
+    y: 0,
+    w: W,
+    h: H,
+    title: "K₄ sin cruces",
+    nodes: cuadrado,
+    edges: [
+      ...lados,
+      { a: "a", b: "c" },
+      { a: "b", b: "d", bend: 100, hl: true },
+    ],
+  },
+  {
+    x: 430,
+    y: 0,
+    w: W,
+    h: H,
+    title: "K₃,₃: siempre un cruce",
+    nodes: hexagono,
+    edges: [
+      { a: "C1", b: "A" },
+      { a: "A", b: "C2" },
+      { a: "C2", b: "G" },
+      { a: "G", b: "C3" },
+      { a: "C3", b: "E" },
+      { a: "E", b: "C1" },
+      {
+        a: "C1",
+        b: "G",
+        via: [
+          { x: 40, y: 51 },
+          { x: 40, y: 180 },
+          { x: 161, y: 180 },
+        ],
+      },
+      { a: "A", b: "C3", hl: true },
+      { a: "C2", b: "E", hl: true },
+    ],
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={640}
+  height={215}
+  minWidth={560}
+  label="K4 dibujado con un cruce y redibujado sin cruces; K3,3 con el único cruce que ningún dibujo puede evitar"
+/>

@@ -1,0 +1,88 @@
+---
+/**
+ * Isomorfismo - Top: the pentagon and the pentagram are the same graph, C5
+ * (f maps u1 u2 u3 u4 u5 to v1 v3 v5 v2 v4). Bottom: C6 and two disjoint
+ * triangles share vertex count, edge count and degrees, yet differ: only
+ * one has triangles.
+ */
+import Grafo from "./Grafo.astro";
+import { cycleEdges, ring, type Panel } from "./geometria";
+
+const W = 300;
+const H = 175;
+
+const pentagono = ring(["u1", "u2", "u3", "u4", "u5"], 150, 82, 58);
+const estrella = ring(["v1", "v2", "v3", "v4", "v5"], 150, 82, 58);
+const hexagono = ring(["1", "2", "3", "4", "5", "6"], 150, 80, 56);
+const triangulos = [
+  ...ring(["1", "2", "3"], 90, 88, 46),
+  ...ring(["4", "5", "6"], 210, 88, 46),
+];
+
+const marcar = (pares: string[][]) => (e: { a: string; b: string }) => ({
+  ...e,
+  hl: pares.some(
+    ([x, y]) => (e.a === x && e.b === y) || (e.a === y && e.b === x),
+  ),
+});
+
+const panels: Panel[] = [
+  {
+    x: 0,
+    y: 0,
+    w: W,
+    h: H,
+    title: "C₅ dibujado como pentágono",
+    nodes: pentagono,
+    edges: cycleEdges(["u1", "u2", "u3", "u4", "u5"]).map(
+      marcar([["u1", "u2"]]),
+    ),
+  },
+  {
+    x: 340,
+    y: 0,
+    w: W,
+    h: H,
+    title: "el mismo C₅ dibujado como estrella",
+    nodes: estrella,
+    edges: cycleEdges(["v1", "v3", "v5", "v2", "v4"]).map(
+      marcar([["v1", "v3"]]),
+    ),
+  },
+  {
+    x: 0,
+    y: 195,
+    w: W,
+    h: H,
+    title: "C₆: conexo, sin triángulos",
+    nodes: hexagono,
+    edges: cycleEdges(["1", "2", "3", "4", "5", "6"]),
+  },
+  {
+    x: 340,
+    y: 195,
+    w: W,
+    h: H,
+    title: "dos K₃: no conexo, con triángulos",
+    nodes: triangulos,
+    edges: [
+      ...cycleEdges(["1", "2", "3"]).map(
+        marcar([
+          ["1", "2"],
+          ["2", "3"],
+          ["3", "1"],
+        ]),
+      ),
+      ...cycleEdges(["4", "5", "6"]),
+    ],
+  },
+];
+---
+
+<Grafo
+  panels={panels}
+  width={640}
+  height={370}
+  minWidth={560}
+  label="Arriba, el pentágono y la estrella son el mismo grafo C5. Abajo, C6 y dos triángulos tienen los mismos grados pero no son isomorfos"
+/>

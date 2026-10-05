@@ -1,0 +1,167 @@
+---
+/**
+ * DijkstraPasos - Dijkstra's algorithm from a to z, one vertex per step.
+ * The run happens at build time; step k adds one vertex to S (and the edge
+ * it was reached by) and shows the labels L(v) after that step.
+ * Meant for <Stepper>.
+ */
+import Grafo from "./Grafo.astro";
+import type { GraphEdge, Panel } from "./geometria";
+
+const posiciones: Record<string, [number, number]> = {
+  a: [40, 110],
+  b: [160, 36],
+  c: [160, 184],
+  d: [320, 36],
+  e: [320, 184],
+  z: [440, 110],
+};
+const VERTICES = Object.keys(posiciones);
+const PESOS: [string, string, number][] = [
+  ["a", "b", 4],
+  ["a", "c", 2],
+  ["b", "c", 1],
+  ["b", "d", 5],
+  ["c", "d", 8],
+  ["c", "e", 10],
+  ["d", "e", 2],
+  ["d", "z", 6],
+  ["e", "z", 3],
+];
+
+const peso = (u: string, v: string) =>
+  PESOS.find(([x, y]) => (x === u && y === v) || (x === v && y === u))?.[2];
+
+interface Paso {
+  vertice: string;
+  etiquetas: Record<string, number>;
+  fijos: string[];
+}
+
+const L: Record<string, number> = Object.fromEntries(
+  VERTICES.map((v) => [v, v === "a" ? 0 : Infinity]),
+);
+const previo: Record<string, string> = {};
+const S: string[] = [];
+const pasos: Paso[] = [];
+while (!S.includes("z")) {
+  const u = VERTICES.filter((v) => !S.includes(v)).reduce((m, v) =>
+    L[v] < L[m] ? v : m,
+  );
+  S.push(u);
+  VERTICES.filter((v) => !S.includes(v)).forEach((v) => {
+    const w = peso(u, v);
+    if (w !== undefined && L[u] + w < L[v]) {
+      L[v] = L[u] + w;
+      previo[v] = u;
+    }
+  });
+  pasos.push({ vertice: u, etiquetas: { ...L }, fijos: [...S] });
+}
+
+const pasoDe = (v: string) => S.indexOf(v) + 1;
+const arbol = (a: string, b: string) => previo[b] === a || previo[a] === b;
+
+const panels: Panel[] = [
+  {
+    nodes: VERTICES.map((id) => ({
+      id,
+      x: posiciones[id][0],
+      y: posiciones[id][1],
+      step: pasoDe(id),
+      ring: true,
+    })),
+    edges: [
+      ...PESOS.filter(([a, b]) => arbol(a, b)).map(([a, b]): GraphEdge => ({
+        a,
+        b,
+        halo: true,
+        step: pasoDe(previo[b] === a ? b : a),
+      })),
+      ...PESOS.map(([a, b, w]): GraphEdge => ({ a, b, w })),
+    ],
+  },
+];
+
+const mostrar = (valor: number) => (Number.isFinite(valor) ? valor : "∞");
+---
+
+<div class="dijkstra">
+  <Grafo
+    panels={panels}
+    width={480}
+    height={220}
+    minWidth={420}
+    label="Grafo ponderado con vértices a, b, c, d, e, z; la ruta más corta de a a z mide 13"
+  />
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Paso</th>
+        <th scope="col">Entra a S</th>
+        {VERTICES.map((v) => (
+          <th scope="col">L({v})</th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {pasos.map((paso, i) => (
+        <tr data-step={i + 1}>
+          <td>{i + 1}</td>
+          <td class="entra">{paso.vertice}</td>
+          {VERTICES.map((v) => (
+            <td
+              class:list={{
+                fijo: paso.fijos.includes(v),
+                nuevo: v === paso.vertice,
+              }}
+            >
+              {mostrar(paso.etiquetas[v])}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .dijkstra {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  table {
+    width: 100%;
+    min-width: 420px;
+    margin: 0;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th,
+  td {
+    padding: 4px 6px;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    font-weight: 400;
+    text-align: center;
+  }
+
+  th {
+    color: var(--muted);
+  }
+
+  td.fijo {
+    font-weight: 600;
+  }
+
+  td.nuevo,
+  td.entra {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>
