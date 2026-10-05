@@ -77,7 +77,15 @@ const { headings } = Astro.props;
       if (href === activeId) {
         li.classList.add("active");
         if (isDesktop()) {
-          li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          const aside = document.getElementById("toc-aside");
+          if (
+            aside &&
+            (li.offsetTop < aside.scrollTop ||
+              li.offsetTop + li.offsetHeight >
+                aside.scrollTop + aside.clientHeight)
+          ) {
+            aside.scrollTop = li.offsetTop - aside.clientHeight / 2;
+          }
         }
       } else {
         li.classList.remove("active");
@@ -149,7 +157,7 @@ const { headings } = Astro.props;
     border: none;
     color: var(--text-color);
     cursor: pointer;
-    padding: 2px;
+    padding: 12px;
     display: flex;
     align-items: center;
     opacity: 0.6;
@@ -179,7 +187,8 @@ const { headings } = Astro.props;
   }
 
   ul.open {
-    max-height: 600px;
+    max-height: min(60vh, 600px);
+    overflow-y: auto;
     padding: 8px 0;
   }
 
@@ -221,11 +230,11 @@ const { headings } = Astro.props;
   }
   .h-2 {
     font-size: 0.825rem;
-    padding-left: 28px;
+    padding-left: 16px;
   }
   .h-3 {
     font-size: 0.775rem;
-    padding-left: 44px;
+    padding-left: 28px;
   }
   .h-4 {
     font-size: 0.725rem;

@@ -9,13 +9,14 @@ type Props = Omit<
 
 export type { Props };
 
-const { pubDate, readingTime, title } = Astro.props;
+const { pubDate, readingTime, title, description } = Astro.props;
 const formattedDate = formatDate(pubDate);
 ---
 
 <div class="hero-container">
   <div class="hero-header">
     <h1>{title}</h1>
+    <p class="description">{description}</p>
     <div class="hero-meta">
       <time datetime={isoDate(pubDate)}>{formattedDate}</time>
       <span class="reading-time">{readingTime}</span>
@@ -51,6 +52,13 @@ const formattedDate = formatDate(pubDate);
     margin: 0;
   }
 
+  .description {
+    color: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1.7;
+    max-width: 60ch;
+  }
+
   .hero-meta {
     display: flex;
     flex-direction: column;
@@ -71,9 +79,9 @@ const formattedDate = formatDate(pubDate);
   .hero-divider {
     width: 100%;
     border: none;
-    border-top: 2px solid var(--contrast);
+    border-top: 1px solid var(--line);
     margin: 0;
-    opacity: 0.3;
+    opacity: 1;
   }
 
   @media screen and (min-width: 720px) {
