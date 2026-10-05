@@ -19,17 +19,31 @@ const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
   description="Articles on MCP servers, AI agents, application security, Python, algorithms and economics, with interactive diagrams and runnable examples."
 >
   <div class="blog-header">
-    <h1>Blog Posts</h1>
+    <span class="eyebrow">THE BLOG</span>
+    <h1>Ideas worth exploring.</h1>
     <p class="blog-subtitle">
-      Thoughts, tutorials, and insights on software engineering
+      Notes on software, security, and the ideas behind them. Explore a topic,
+      learn something new, and go a little deeper.
+    </p>
+  </div>
+  <div class="search-bar">
+    <label for="article-search">Find an article</label>
+    <input
+      id="article-search"
+      type="search"
+      placeholder="Search titles, topics, or descriptions…"
+      autocomplete="off"
+    />
+    <p id="results-count" role="status" aria-live="polite">
+      {allPosts.length} articles
     </p>
   </div>
   <div class="filter-bar" id="filter-bar">
-    <button class="filter-btn active" data-tag="all">
+    <button class="filter-btn active" data-tag="all" aria-pressed="true">
       All
     </button>
     {allTags.map((tag) => (
-      <button class="filter-btn" data-tag={tag}>
+      <button class="filter-btn" data-tag={tag} aria-pressed="false">
         {label(tag)}
       </button>
     ))}
@@ -48,150 +62,96 @@ const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
       />
     ))}
   </div>
+  <p id="empty-results" hidden>
+    No articles found. Try another search or topic.
+  </p>
 </Base>
 
 <style>
-  .blog-header {
-    margin-bottom: 32px;
-    margin-top: 0;
-    padding-bottom: 20px;
-    padding-top: 0;
-    border-bottom: 2px solid var(--contrast);
-    opacity: 1;
-    width: 100%;
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  @media screen and (max-width: 899px) {
-    .blog-header {
-      margin-top: 0;
-    }
-  }
-
-  h1 {
-    font-size: 2rem;
-    color: var(--text-color);
-    margin: 0 0 12px 0;
-    line-height: 1.2;
-    font-weight: 700;
-  }
-
-  .blog-subtitle {
-    font-size: 0.95rem;
-    color: var(--text-color);
-    opacity: 1;
-    margin: 0;
-    line-height: 1.5;
-    font-weight: 400;
-  }
-
+  .blog-header,
+  .search-bar,
+  .filter-bar,
   .posts-container {
-    display: flex;
-    flex-direction: column;
     width: 100%;
     max-width: 1000px;
-    margin: 0 auto;
-    align-items: center;
-    gap: 0;
   }
-
-  .posts-container > :first-child {
-    margin-top: 0;
+  .blog-header {
+    padding: 16px 0 32px;
   }
-
-  @media screen and (min-width: 720px) {
-    .posts-container {
-      gap: 0;
-    }
+  .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: var(--muted);
   }
-
-  @media screen and (min-width: 900px) {
-    .blog-header {
-      margin-top: 20px;
-      margin-bottom: 48px;
-      padding-bottom: 24px;
-    }
+  h1 {
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    letter-spacing: -0.045em;
+    line-height: 1.15;
+    margin: 14px 0 18px;
   }
-
-  @media screen and (min-width: 720px) {
-    h1 {
-      font-size: 3.5rem;
-      font-weight: 700;
-    }
-
-    .blog-header {
-      margin-bottom: 60px;
-      padding-bottom: 32px;
-      border-bottom-width: 3px;
-    }
-
-    .blog-subtitle {
-      font-size: 1.1rem;
-    }
+  .blog-subtitle {
+    max-width: 52ch;
+    color: var(--muted);
+    line-height: 1.75;
+    font-size: 1.05rem;
   }
-
-  @media screen and (min-width: 900px) {
-    h1 {
-      font-size: 4rem;
-      font-weight: 700;
-    }
-
-    .blog-subtitle {
-      font-size: 1.25rem;
-      font-weight: 400;
-    }
+  .search-bar {
+    margin: 8px 0 20px;
   }
-
+  .search-bar label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  input {
+    width: 100%;
+    padding: 14px 16px;
+    font: inherit;
+    color: var(--text-color);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  input::placeholder {
+    color: var(--muted);
+  }
+  #results-count {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 10px;
+  }
   .filter-bar {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    width: 100%;
-    max-width: 1000px;
-    margin: 0 auto 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
   }
-
   .filter-btn {
-    font-family: monospace;
+    font: inherit;
     font-size: 0.8rem;
-    padding: 6px 14px;
-    border: 1px solid var(--neutral);
-    border-radius: 20px;
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
     background: transparent;
-    color: var(--text-color);
+    color: var(--muted);
     cursor: pointer;
-    opacity: 0.7;
-    transition:
-      opacity 0.2s ease,
-      border-color 0.2s ease,
-      color 0.2s ease;
   }
-
-  .filter-btn:hover {
-    opacity: 1;
-    border-color: var(--contrast);
-    color: var(--contrast);
-  }
-
+  .filter-btn:hover,
   .filter-btn.active {
-    opacity: 1;
-    border-color: var(--contrast);
     color: var(--contrast);
-    font-weight: 600;
+    border-color: var(--contrast);
+    background: var(--surface);
   }
-
-  @media screen and (min-width: 720px) {
-    .filter-bar {
-      margin-bottom: 40px;
-    }
+  .posts-container {
+    display: flex;
+    flex-direction: column;
   }
-
-  @media screen and (min-width: 900px) {
-    .filter-bar {
-      margin-bottom: 48px;
-    }
+  #empty-results {
+    padding: 48px 0;
+    color: var(--muted);
   }
 </style>
 
@@ -205,18 +165,35 @@ const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
 
     if (!filterBar || !postsContainer) return;
 
+    const search = document.querySelector<HTMLInputElement>("#article-search");
+    let selectedTag = "all";
     function filterByTag(tag: string) {
+      selectedTag = tag;
       filterBar!.querySelectorAll(".filter-btn").forEach((b) => {
-        b.classList.toggle("active", (b as HTMLElement).dataset.tag === tag);
+        const active = (b as HTMLElement).dataset.tag === tag;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-pressed", String(active));
       });
 
+      const query = search?.value.trim().toLocaleLowerCase() ?? "";
+      let count = 0;
       posts.forEach((post) => {
         const show =
-          tag === "all" || (post.dataset.tags?.split(",") ?? []).includes(tag);
+          (tag === "all" ||
+            (post.dataset.tags?.split(",") ?? []).includes(tag)) &&
+          (post.querySelector(".description-container")?.textContent ?? "")
+            .toLocaleLowerCase()
+            .includes(query);
+        if (show) count++;
         post.classList.toggle("visible", show);
         post.style.display = show ? "" : "none";
       });
 
+      const status = document.getElementById("results-count");
+      if (status)
+        status.textContent = `${count} ${count === 1 ? "article" : "articles"}`;
+      const empty = document.getElementById("empty-results");
+      if (empty) empty.hidden = count > 0;
       const url = new URL(window.location.href);
       if (tag === "all") {
         url.searchParams.delete("tag");
@@ -242,9 +219,17 @@ const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
       filterByTag(tagBtn.dataset.filterTag);
     });
 
+    search?.addEventListener("input", () => filterByTag(selectedTag));
+
+    const allTagsFromButtons = () =>
+      Array.from(filterBar.querySelectorAll<HTMLElement>("[data-tag]")).map(
+        (button) => button.dataset.tag,
+      );
     const initialTag = new URLSearchParams(window.location.search).get("tag");
     if (initialTag) {
-      filterByTag(initialTag);
+      filterByTag(
+        allTagsFromButtons().includes(initialTag) ? initialTag : "all",
+      );
     }
   });
 </script>

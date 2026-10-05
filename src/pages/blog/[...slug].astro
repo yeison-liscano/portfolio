@@ -6,10 +6,15 @@ import { blogPostingSchema } from "../../utils/schema";
 const { BASE_URL } = import.meta.env;
 
 export async function getStaticPaths() {
-  const posts = await getCollection("blog", ({ data }) => !data.isDraft);
+  const posts = (await getCollection("blog", ({ data }) => !data.isDraft)).sort(
+    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+  );
   return posts.map((post) => ({
     params: { slug: post.id },
-    props: { post, allPosts: posts },
+    props: {
+      post,
+      allPosts: posts,
+    },
   }));
 }
 
@@ -18,6 +23,8 @@ const { Content, headings } = await render(post);
 
 const currentIndex = allPosts.findIndex((p) => p.id === post.id);
 const nextPost = allPosts[(currentIndex + 1) % allPosts.length];
+const previousPost =
+  allPosts[(currentIndex - 1 + allPosts.length) % allPosts.length];
 
 // Rendered by src/pages/og/[slug].png.ts.
 const image = `og/${post.id}.png`;
@@ -39,31 +46,64 @@ const jsonLd = blogPostingSchema(
   jsonLd={jsonLd}
 >
   <Content />
-  <div class="next-post">
-    <p>Next post:</p>
-    <a href={`${BASE_URL}blog/${nextPost.id}/`}>{nextPost.data.title}</a>
-  </div>
+  <nav class="next-post" aria-label="More articles">
+    {allPosts.length > 1 && (
+      <a href={`${BASE_URL}blog/${previousPost.id}/`}>
+        <span>← Previous article</span>
+        {previousPost.data.title}
+      </a>
+    )}
+    {allPosts.length > 2 && (
+      <a href={`${BASE_URL}blog/${nextPost.id}/`}>
+        <span>Next article →</span>
+        {nextPost.data.title}
+      </a>
+    )}
+    <a class="all-articles" href={`${BASE_URL}blog/`}>
+      Browse all articles
+    </a>
+  </nav>
 </Post>
 
 <style>
   .next-post {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--text-color);
+    display: grid;
+    gap: 16px;
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
   }
-
-  .next-post p {
-    margin-bottom: 0.5rem;
-    color: var(--text-color);
-  }
-
   .next-post a {
-    color: var(--contrast);
-    text-decoration: none;
+    display: block;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text-color);
     font-weight: 500;
+    line-height: 1.5;
   }
-
   .next-post a:hover {
-    text-decoration: underline;
+    border-color: var(--contrast);
+  }
+  .next-post span {
+    display: block;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+    font-weight: 400;
+  }
+  .next-post .all-articles {
+    grid-column: 1 / -1;
+    border: none;
+    background: transparent;
+    padding: 8px 0;
+    color: var(--contrast);
+    font-size: 0.9rem;
+  }
+  @media (min-width: 720px) {
+    .next-post {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 </style>

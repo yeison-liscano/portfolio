@@ -163,3 +163,15 @@ ul {
     animation-delay: var(--delay, 0ms);
   }
 }
+
+:focus-visible {
+  outline: 2px solid var(--contrast);
+  outline-offset: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
