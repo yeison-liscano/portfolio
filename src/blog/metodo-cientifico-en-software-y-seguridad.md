@@ -4,23 +4,21 @@ title: "Método científico aplicado al desarrollo de software y la seguridad"
 pubDate: 2026-10-19
 description:
   "Cómo tratar los supuestos de seguridad como hipótesis falsables: el ciclo del
-  método científico en el trabajo diario, cuándo el p-value ayuda y cuándo no, y
-  un registro de premisas para convertir creencias en pruebas repetibles."
-tags: ["security", "statistics"]
+  método científico en el trabajo diario, sus límites y un registro de premisas
+  para convertir creencias en pruebas repetibles."
+tags: ["security", "programming"]
 isDraft: false
 snippet:
   language: "python"
   code: |
-    from scipy.stats import binomtest
-
-    def mcnemar_exacto(a, b):
-        solo_a = sum(x and not y for x, y in zip(a, b))
-        solo_b = sum(y and not x for x, y in zip(a, b))
-        return binomtest(solo_a, solo_a + solo_b, 0.5).pvalue
+    def test_token_expira_a_los_15_minutos():
+        token = emitir_token(ttl_segundos=900)
+        reloj.avanzar(segundos=901)
+        assert api.get("/me", token=token).status == 401
 ---
 
-Palabras clave: método científico, falsabilidad, hipótesis, p-value, McNemar,
-threat modeling, registro de premisas
+Palabras clave: método científico, falsabilidad, hipótesis, threat modeling,
+registro de premisas
 
 En seguridad tomamos decisiones apoyadas en supuestos: "este servicio no es
 alcanzable desde fuera de la VPC", "nuestro SAST detecta inyecciones", "el token
@@ -56,13 +54,15 @@ Cada supuesto de un threat model ("el atacante no tiene acceso al bucket", "el
 token expira en 15 minutos") puede convertirse en una verificación automática
 sobre la infraestructura o en un test en el pipeline de CI. Así el modelo deja
 de ser un documento que envejece y pasa a ser una batería de pruebas que puede
-fallar.
+fallar. El test del inicio de este artículo es exactamente eso: la hipótesis "el
+token expira a los 15 minutos" escrita de forma que pueda ser refutada.
 
 ### Medir las herramientas en lugar de creerles
 
 "Nuestro SAST detecta inyecciones" es una afirmación empírica. Para evaluarla
-puedes sembrar vulnerabilidades conocidas en un corpus de prueba y medir el
-recall y la tasa de falsos positivos de cada herramienta.
+puedes sembrar vulnerabilidades conocidas en un corpus de prueba y comprobar
+cuáles detecta la herramienta y cuáles no. Lo que no detecta es información
+valiosa sobre sus límites.
 
 ### Cambios con línea base
 
@@ -78,99 +78,27 @@ desmienta, en lugar de quedarse con la primera explicación plausible. Y un
 hallazgo que no puedes reproducir con una prueba de concepto mínima no está
 establecido todavía.
 
-## ¿Entra el p-value en juego?
+### Un contraejemplo vale más que mil confirmaciones
 
-Sí, pero solo en una parte del trabajo. El p-value es la probabilidad de
-observar datos al menos tan extremos como los tuyos **si la hipótesis nula fuera
-cierta**. No es la probabilidad de que tu hipótesis sea verdadera ni de que el
-resultado sea "casualidad". Ese malentendido es el más común.
-
-### Cuándo sí aplica
-
-Aplica cuando hay variabilidad y muestreo, y necesitas distinguir señal de
-ruido:
-
-- **Comparar herramientas** sobre el mismo corpus de vulnerabilidades.
-- **Medir una mitigación**: si bajó el tiempo medio de remediación o fue
-  variación normal entre sprints.
-- **Detección de anomalías**: la nula es "este tráfico se comporta como la línea
-  base".
-- **Benchmarks y tests intermitentes**: separar un cambio real de rendimiento
-  del ruido de ejecución.
-
-### Cuándo no aplica
-
-- **Afirmaciones deterministas**: "este endpoint es alcanzable sin
-  autenticación" se confirma o se refuta con un solo caso. Una prueba de
-  concepto que funciona vale más que cualquier estadística. Es la falsación de
-  Popper, sin p-values.
-- **El adversario no muestrea al azar**: un atacante busca precisamente el caso
-  raro, así que el supuesto de datos aleatorios bajo la nula suele romperse.
-
-### Ejemplo: comparar dos SAST con McNemar
-
-Siembras 40 vulnerabilidades y ejecutas ambas herramientas sobre las mismas.
-Como las muestras están pareadas, lo que importa son los casos **discordantes**:
-los que detecta una herramienta y la otra no. El test exacto de McNemar es un
-binomial sobre esos casos.
-
-```python
-from scipy.stats import binomtest
-
-
-def mcnemar_exacto(a: list[bool], b: list[bool]) -> float:
-    """p-value bilateral; a[i] y b[i] indican si cada SAST detectó la vuln i."""
-    solo_a = sum(x and not y for x, y in zip(a, b))
-    solo_b = sum(y and not x for x, y in zip(a, b))
-    return binomtest(solo_a, solo_a + solo_b, 0.5).pvalue
-```
-
-Con estos resultados hipotéticos, A detecta 31 de 40 y B detecta 22. Hay 12
-casos que solo detecta A y 3 que solo detecta B, así que el p-value exacto es
-`2 * P(X >= 12)` con `X ~ Binomial(15, 0.5)`, que da aproximadamente 0.035. Con
-α = 0.05 hay evidencia de que la diferencia no es ruido. Dos advertencias: son
-datos inventados para ilustrar el cálculo, y 40 vulnerabilidades sembradas por
-una sola persona es un corpus pequeño y sesgado hacia lo que esa persona
-imaginó.
-
-## Cero hallazgos: la regla del tres
-
-Si ejecutas 300 pruebas independientes y no encuentras nada, no puedes concluir
-que la tasa de fallo es cero. Con la **regla del tres**, el límite superior al
-95 % de confianza es aproximadamente `3 / n`, es decir, cerca de 1 %. Es una
-forma honesta de decir "no encontramos evidencia con este método" en lugar de
-"está limpio".
-
-## Trampas frecuentes
-
-1. **Comparaciones múltiples**: si corres 40 reglas o escáneres y reportas el
-   que dio p < 0.05, probablemente sea un falso positivo. Se corrige con
-   Bonferroni o controlando la tasa de falsos descubrimientos (FDR).
-2. **Significancia no es relevancia**: con muestras enormes, diferencias
-   triviales salen significativas. Reporta el tamaño del efecto y el intervalo
-   de confianza, no solo el p-value.
-3. **Independencia violada**: las vulnerabilidades se agrupan por módulo y por
-   autor. Tratarlas como independientes infla la confianza.
-4. **Falacia de la tasa base**: con sensibilidad de 99 %, tasa de falsos
-   positivos de 1 % y una prevalencia de un ataque por cada 10 000 eventos, la
-   probabilidad de que una alerta sea real es de apenas 1 %. Es el teorema de
-   Bayes, y es donde un enfoque bayesiano suele encajar mejor con la evaluación
-   de riesgo que el frecuentista.
-5. **P-hacking**: decidir el análisis después de ver los datos. Se evita
-   escribiendo la hipótesis, la predicción y el criterio de refutación **antes**
-   de ejecutar la prueba.
+Algunas afirmaciones de seguridad son deterministas: "este endpoint es
+alcanzable sin autenticación" se confirma o se refuta con un solo caso. Una
+prueba de concepto que funciona basta. Es la idea de falsación de Popper
+aplicada directamente: ninguna cantidad de pruebas favorables demuestra que el
+sistema es seguro, pero un solo caso adverso demuestra que no lo es.
 
 ## Límites que conviene recordar
 
 - **Las pruebas refutan, no demuestran.** Como señaló Dijkstra, probar un
   programa puede mostrar que hay errores, nunca que no los hay. La conclusión
-  legítima es "no encontramos evidencia de X con este método".
+  legítima es "no encontramos evidencia de X con este método", no "X no existe".
 - **El adversario se adapta.** El sistema no es estacionario: lo que fue cierto
-  ayer puede dejar de serlo cuando el atacante cambia de táctica.
+  ayer puede dejar de serlo cuando el atacante cambia de táctica, así que las
+  hipótesis necesitan revalidarse de forma continua.
 - **Goodhart.** Cuando una métrica se vuelve objetivo, deja de ser buena
   métrica. "Número de vulnerabilidades cerradas" es el ejemplo clásico.
-- **Sesgo de confirmación.** Es el riesgo principal, y la mejor defensa es el
-  registro previo de predicciones.
+- **Sesgo de confirmación.** Es el riesgo principal. La mejor defensa es
+  escribir la hipótesis, la predicción y el criterio de refutación **antes** de
+  ejecutar la prueba, para no ajustarlos después de ver el resultado.
 
 ## Un método práctico para empezar: el registro de premisas
 
@@ -188,9 +116,8 @@ aprendido algo que una creencia sin verificar nunca te habría dicho.
 
 ## Resumen
 
-El método científico es el marco general: hipótesis falsable, predicción,
-experimento y revisión. La estadística, incluido el p-value, es la herramienta
-para el subconjunto de preguntas donde hay ruido. Para lo determinista basta un
-contraejemplo, y para lo adversarial hay que desconfiar de los supuestos
-estadísticos. Lo que importa es el hábito: escribir qué esperas, qué te haría
-cambiar de opinión, y buscar activamente esa evidencia.
+El método científico es un marco simple: formular hipótesis falsables, predecir
+qué debería ocurrir, ponerlas a prueba, registrar todos los resultados y
+someterlos a revisión. Aplicado a la seguridad, convierte los supuestos
+implícitos en pruebas repetibles. Lo que importa es el hábito: escribir qué
+esperas, qué te haría cambiar de opinión, y buscar activamente esa evidencia.
