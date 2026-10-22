@@ -1,0 +1,293 @@
+---
+lang: "es"
+title: "Los cuatro tipos de análisis de datos: qué información usa cada uno"
+pubDate: 2026-10-21
+description:
+  "Análisis descriptivo, predictivo, diagnóstico y prescriptivo aplicados a un
+  mismo problema: qué pregunta responde cada fase, qué datos necesita, cómo se
+  usan y por qué existen dos formas de ordenarlas."
+tags: ["statistics", "data-science"]
+isDraft: false
+snippet:
+  language: "python"
+  code: |
+    tasa = clientes["abandono"].mean()            # ¿qué está sucediendo?
+    riesgo = modelo.predict_proba(X)[:, 1]        # ¿qué va a suceder?
+    efecto = control.mean() - cupon.mean()        # ¿por qué sucede?
+    plan = optimizar(riesgo, efecto, presupuesto) # ¿qué debo hacer?
+---
+
+import Figure from "../components/blog/Figure.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import FlujoAnalitico from "./components/tipos-de-analisis/FlujoAnalitico.astro";
+import PruebaAB from "./components/tipos-de-analisis/PruebaAB.astro";
+import AsignacionCupones from "./components/tipos-de-analisis/AsignacionCupones.astro";
+import DosOrdenes from "./components/tipos-de-analisis/DosOrdenes.astro";
+
+Palabras clave: análisis descriptivo, análisis predictivo, análisis diagnóstico,
+análisis prescriptivo, prueba A/B, optimización
+
+El análisis de datos suele dividirse en cuatro tipos, y cada uno responde una
+pregunta distinta: **qué está sucediendo**, **qué va a suceder**, **por qué
+sucede** y **qué debo hacer**. Lo que más los diferencia no es la herramienta,
+sino la información que necesitan y lo que entregan a la fase siguiente.
+
+Para que las diferencias sean concretas, este artículo sigue un solo problema de
+principio a fin: una tienda en línea con 1900 clientes activos quiere que menos
+clientes dejen de comprar, lo que se conoce como **abandono** o _churn_. Las
+fases aparecen en el orden en que las presenta la diapositiva que dio origen a
+este artículo: descriptivo, predictivo, diagnóstico y prescriptivo. Al final
+explico por qué otro orden muy citado intercambia la segunda y la tercera.
+
+<Figure caption="Una tienda en línea que quiere perder menos clientes recorre las cuatro fases. Cada salida alimenta la fase siguiente, y la decisión final produce los datos con los que empieza la próxima vuelta.">
+  <Stepper
+    label="Fases del análisis de datos"
+    lang="es"
+    steps={[
+      "Descriptivo: los pedidos y las quejas del trimestre muestran que el 28 % de los clientes no volvió a comprar, y que entre quienes se quejaron la cifra sube al 40 %.",
+      "Predictivo: con ese historial etiquetado, un clasificador estima la probabilidad de que cada cliente se vaya en los próximos 90 días.",
+      "Diagnóstico: una prueba A/B responde si intervenir cambia ese riesgo. El cupón reduce el abandono en 6 puntos porcentuales.",
+      "Prescriptivo: riesgo, efecto, presupuesto y costos entran a una optimización que decide a quién dar cupón. Ejecutar la decisión genera datos nuevos y el ciclo vuelve a empezar.",
+    ]}
+  >
+    <FlujoAnalitico />
+  </Stepper>
+</Figure>
+
+## 1. Análisis descriptivo: ¿qué está sucediendo?
+
+**Qué información usa.** Los datos que la organización ya tiene: pedidos,
+visitas, registros de soporte, logs y transacciones. Casi siempre son tablas
+históricas, aunque también pueden ser eventos, texto o series de tiempo. No hace
+falta etiquetar nada ni generar datos nuevos.
+
+**Cómo la usa.**
+
+1. **Limpia y perfila** los datos: valores nulos, duplicados, tipos y rangos
+   imposibles. Un análisis descriptivo sobre datos sucios describe los errores
+   de captura, no el negocio.
+2. Hace **análisis exploratorio de datos (EDA)**: distribuciones, medias y
+   medianas, valores atípicos, agrupaciones por segmento y tendencias en el
+   tiempo.
+3. Calcula **correlaciones** entre variables (Pearson para relaciones lineales,
+   Spearman para relaciones monótonas) para ver qué se mueve junto con qué.
+4. Comunica el resultado con tableros, reportes y gráficos.
+
+En la tienda, este análisis muestra que el 28 % de los clientes del trimestre
+pasado no volvió a comprar en los 90 días siguientes. La cifra sube al 40 %
+entre quienes registraron una queja y al 60 % entre quienes llevan más de 60
+días sin comprar. Los días desde la última compra y el número de quejas se
+mueven junto con el abandono.
+
+La diapositiva pregunta en esta fase "¿qué está sucediendo y por qué?", y la
+segunda mitad merece cuidado: una correlación sugiere un "por qué", pero no lo
+demuestra. Que los clientes con quejas se vayan más puede deberse a la queja, a
+un producto defectuoso que causó ambas cosas o a cualquier otra variable que no
+medimos. El descriptivo produce **hipótesis**, y las fases siguientes las ponen
+a prueba. Si te interesa la frontera entre describir una muestra y sacar
+conclusiones sobre una población, la explico en
+[estadística descriptiva e inferencial](/portfolio/blog/inferential-vs-descriptive-statistics/).
+
+## 2. Análisis predictivo: ¿qué va a suceder?
+
+**Qué información usa.** Un histórico **etiquetado**: cada fila es una
+observación pasada con sus **variables de entrada** (_features_) y el
+**resultado que ocurrió después** (_target_). En la tienda, cada fila es un
+cliente en una fecha, con variables como días desde la última compra, número de
+pedidos, ticket promedio y quejas, y una etiqueta que dice si dejó de comprar en
+los 90 días siguientes. La calidad, la cantidad y la representatividad de esos
+datos pesan más que la elección del algoritmo.
+
+**Cómo la usa.**
+
+- **Regresión** cuando el resultado es un número: las ventas del próximo mes o
+  el margen que dejará un cliente durante el año.
+- **Clasificación** cuando el resultado es una categoría: se va o se queda,
+  fraude o no fraude.
+- **Pronóstico** cuando el resultado es una serie de tiempo: la demanda de cada
+  semana.
+
+El flujo típico es dividir los datos en entrenamiento, validación y prueba,
+entrenar el modelo, medirlo con métricas como RMSE, precisión, _recall_ o AUC, y
+desplegarlo para puntuar datos nuevos. Dos detalles importan mucho cuando la
+predicción alimenta decisiones. Primero, la división debe respetar el tiempo:
+entrenar con trimestres antiguos y evaluar con el más reciente, y no usar
+variables que se miden después del resultado (_data leakage_). Segundo, las
+probabilidades deben estar **calibradas**: si el modelo dice 40 %, cerca de 4 de
+cada 10 de esos clientes deberían irse, porque la fase prescriptiva usará esa
+cifra como probabilidad y no solo como ranking.
+
+El resultado en la tienda es un riesgo por cliente: la probabilidad de que se
+vaya en los próximos 90 días. Pero predecir no es explicar. El modelo puede
+acertar usando variables que el negocio no controla, y aprende asociaciones del
+pasado: no dice qué pasaría si la tienda cambiara algo. Esa pregunta es la de la
+fase siguiente.
+
+## 3. Análisis diagnóstico: ¿por qué sucedió esto?
+
+**Qué información usa.** Además de los datos históricos, información **generada
+a propósito** para aislar una causa: un grupo de control y uno de tratamiento,
+una asignación al azar entre ambos y una sola variable que cambia. También usa
+las hipótesis que dejó el descriptivo y el contexto de lo que pasó en el
+periodo, como campañas, cambios de precio o fallas del sitio.
+
+**Cómo la usa.**
+
+1. Convierte una hipótesis en algo que se puede refutar: "un cupón del 15 %
+   reduce el abandono".
+2. Diseña un **experimento** o **prueba A/B**: reparte a los clientes al azar,
+   da el cupón solo a uno de los grupos y mide la diferencia. El azar es lo que
+   permite hablar de causa, porque reparte por igual entre los dos grupos todo
+   lo que no medimos.
+3. Decide el tamaño de la muestra **antes** de empezar, con un cálculo de
+   potencia, y no mira los resultados a mitad de camino para detenerse cuando le
+   convienen.
+4. Analiza la diferencia con estadística inferencial: intervalos de confianza,
+   valores p y tamaño del efecto.
+
+En la tienda, el trimestre anterior se repartió al azar a 1800 clientes: 900
+recibieron el cupón y 900 no.
+
+<Figure caption="La prueba A/B del cupón. Sin cupón se fue el 28 % del grupo; con cupón, el 22 %. La diferencia es de 6 puntos porcentuales y su intervalo de confianza del 95 %, de 2 a 10 puntos, no incluye el cero, así que el efecto no se explica solo por el azar.">
+  <PruebaAB />
+</Figure>
+
+El cálculo cabe en unas pocas líneas, usando la aproximación normal para la
+diferencia de dos proporciones:
+
+```python
+from math import sqrt
+
+n = 900
+p_control, p_cupon = 252 / n, 198 / n  # 0.28 y 0.22
+efecto = p_control - p_cupon  # 0.06: 6 puntos porcentuales
+error = sqrt(p_control * (1 - p_control) / n + p_cupon * (1 - p_cupon) / n)
+bajo, alto = efecto - 1.96 * error, efecto + 1.96 * error  # 0.020 y 0.100
+```
+
+Cuando no se puede experimentar, por costo, por ética o porque el hecho ya
+ocurrió, se usan métodos de inferencia causal sobre datos observacionales, como
+diferencias en diferencias, regresión discontinua o emparejamiento. Sus
+conclusiones dependen de supuestos más fuertes que los de un experimento.
+
+Hay un matiz que la fase siguiente necesita: el efecto de 6 puntos es un
+**promedio**. El mismo cupón puede retener a muchos clientes que acaban de
+quejarse y casi a ninguno de los que ya se fueron mentalmente. Medir el efecto
+por segmento exige experimentos más grandes o modelos de _uplift_, porque con
+900 clientes por grupo los intervalos de cada segmento serían muy anchos. En el
+ejemplo supongo que esos efectos ya están bien estimados.
+
+## 4. Análisis prescriptivo: ¿qué debo hacer?
+
+**Qué información usa.** Las salidas de las fases anteriores más la descripción
+del **problema de decisión**:
+
+- **Predicciones**: el riesgo de cada segmento y el margen que dejará cada
+  cliente que se quede, que también es una predicción.
+- **Efectos causales**: cuánto cambia el resultado si se actúa, medido en el
+  diagnóstico.
+- **Recursos**: presupuesto, personal, inventario o capacidad.
+- **Objetivo**: qué se maximiza o minimiza, como el beneficio neto.
+- **Restricciones**: límites de capacidad, normas, plazos y costos de cada
+  acción.
+
+| Segmento               | Clientes | Riesgo (predictivo) | Efecto del cupón (diagnóstico) | Margen por cliente | Neto por cupón |
+| ---------------------- | -------: | ------------------: | -----------------------------: | -----------------: | -------------: |
+| Queja reciente         |      200 |                40 % |                          15 pp |               $150 |        +$17,50 |
+| Nuevos sin 2.ª compra  |      400 |                35 % |                           8 pp |                $90 |         +$2,20 |
+| Inactivos 60+ días     |      300 |                60 % |                           2 pp |               $100 |         −$3,00 |
+| Sensibles al precio    |      350 |                25 % |                          10 pp |                $80 |         +$3,00 |
+| Mayoristas             |      150 |                15 % |                           4 pp |               $400 |        +$11,00 |
+| Frecuentes satisfechos |      500 |                 5 % |                         0,4 pp |               $160 |         −$4,36 |
+
+Cada cupón cuesta $5. El neto por cupón es el margen que protege, efecto por
+margen, menos ese costo: para el segmento con queja reciente,
+0,15 × $150 − $5 = $17,50.
+
+**Cómo la usa.** Formula el problema como una **optimización**. Si `k_i` es el
+número de cupones para el segmento _i_:
+
+```text
+maximizar   Σ k_i · (efecto_i · margen_i − costo)
+sujeto a    Σ k_i · costo ≤ presupuesto
+            0 ≤ k_i ≤ clientes_i
+```
+
+Es un problema de **programación lineal**. Como todos los cupones cuestan lo
+mismo, su solución es sencilla: llenar primero los segmentos con mayor neto por
+cupón y no dar cupones donde el neto es negativo, igual que en la mochila
+fraccionaria. Con más tipos de acción, costos distintos o restricciones enteras
+se usan programación entera, simulación o aprendizaje por refuerzo. Las tres
+palabras de la diapositiva corresponden a familias de estos problemas:
+**asignación** (repartir recursos), **decisión** (elegir entre acciones bajo
+incertidumbre) y **planificación** (ordenar acciones en el tiempo, como rutas,
+turnos o producción).
+
+<Figure caption="Mueve el presupuesto y cambia de estrategia. Con $2500, la estrategia óptima retiene a 51 clientes y deja $5600 de beneficio neto; repartir por riesgo retiene a 36 y deja $2600, porque gasta $1500 en clientes inactivos a los que el cupón casi no cambia.">
+  <AsignacionCupones />
+</Figure>
+
+El explorable muestra la lección central de la fase: **el riesgo dice quién se
+va; el efecto dice a quién puedes retener**. Los inactivos tienen el riesgo más
+alto, pero el cupón casi no los mueve. Los frecuentes satisfechos se quedarían
+de todos modos. Una estrategia que solo usa la predicción gasta el presupuesto
+en ellos. Fíjate también en que, con presupuesto de sobra, la estrategia óptima
+deja dinero sin gastar: el objetivo es el beneficio neto, no repartir todos los
+cupones.
+
+Esta es la fase más valiosa y también la más difícil, porque exige modelar bien
+tanto los datos como el negocio. Un error en el margen, en el costo o en una
+restricción produce una decisión precisa y equivocada.
+
+## ¿Cuál es el orden correcto?
+
+El orden más citado no es el de la diapositiva. El modelo de madurez analítica
+de Gartner pone el **diagnóstico en segundo lugar** y el **predictivo en
+tercero**. Las dos versiones son coherentes, porque ordenan con criterios
+distintos.
+
+<Figure caption="Las mismas cuatro fases en dos órdenes. Gartner va de mirar atrás a mirar adelante. La presentación va de observar asociaciones a intervenir y, al final, decidir.">
+  <DosOrdenes />
+</Figure>
+
+- **Gartner ordena por madurez y valor para el negocio.** Primero se entiende el
+  pasado (qué pasó y por qué) y luego se mira al futuro (qué pasará y qué
+  hacer). En ese modelo, el diagnóstico suele ser trabajo sobre los datos que ya
+  existen: desglosar un indicador por segmento, comparar periodos y buscar la
+  causa raíz. Es más fácil que entrenar un modelo, por eso va antes.
+- **La presentación ordena por lo que exige cada fase.** Como define el
+  diagnóstico con experimentos y pruebas A/B, sigue una escalera parecida a la
+  de causalidad de Judea Pearl: primero la **asociación** (observar datos, que
+  es lo que hacen la correlación y la predicción), luego la **intervención**
+  (cambiar algo y medir qué pasa) y al final la **decisión**, que necesita saber
+  qué pasa si se interviene. Miguel Hernán y sus coautores proponen una división
+  similar de las tareas de la ciencia de datos: descripción, predicción e
+  inferencia causal.
+
+La elección práctica depende de la pregunta. Para medir la madurez de un equipo
+o planear qué capacidades construir primero, el orden de Gartner funciona bien.
+Para decidir qué evidencia necesita una decisión, el orden de la presentación es
+más preciso: una predicción, por buena que sea, no reemplaza a un experimento
+cuando la pregunta es qué pasa si actúo.
+
+## Resumen
+
+| Fase         | Pregunta               | Información que usa                                 | Cómo la usa                                       | Resultado                      |
+| ------------ | ---------------------- | --------------------------------------------------- | ------------------------------------------------- | ------------------------------ |
+| Descriptivo  | ¿Qué está sucediendo?  | Datos históricos que ya existen                     | Limpieza, EDA, correlación, tableros              | Línea base e hipótesis         |
+| Predictivo   | ¿Qué va a suceder?     | Histórico etiquetado: variables y resultado         | Regresión, clasificación, pronóstico              | Probabilidades y pronósticos   |
+| Diagnóstico  | ¿Por qué sucedió esto? | Datos generados con grupos asignados al azar        | Experimentos, pruebas A/B, inferencia causal      | Efectos causales con su margen |
+| Prescriptivo | ¿Qué debo hacer?       | Predicciones, efectos, recursos, objetivos, límites | Optimización: asignación, decisión, planificación | Una acción concreta            |
+
+Cada fase depende de lo que entrega la anterior, y la decisión final cierra el
+ciclo: al ejecutarse, produce los datos que la próxima vuelta del análisis
+descriptivo va a resumir.
+
+## Referencias
+
+- Hernán, M. A., Hsu, J., & Healy, B. (2019). A second chance to get causal
+  inference right: A classification of data science tasks. _Chance_.
+  [doi:10.1080/09332480.2019.1579578](https://doi.org/10.1080/09332480.2019.1579578)
+- Pearl, J., & Mackenzie, D. (2018). _The Book of Why: The New Science of Cause
+  and Effect_. Basic Books.
+- Gartner (2012). _Analytic Ascendancy Model_.

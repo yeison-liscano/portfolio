@@ -59,9 +59,31 @@ const {
       <Footer />
     </div>
     <div class="font-controls" role="group" aria-label="Text size">
-      <button type="button" id="reading-mode" aria-pressed="false" aria-label="Reading mode" title="Reading mode (eye care)">☾</button>
-      <button type="button" id="font-up" aria-label="Increase font size" title="Increase font size">A<sup>+</sup></button>
-      <button type="button" id="font-down" aria-label="Reduce font size" title="Reduce font size">A<sup>-</sup></button>
+      <button
+        type="button"
+        id="reading-mode"
+        aria-pressed="false"
+        aria-label="Reading mode"
+        title="Reading mode (eye care)"
+      >
+        ☾
+      </button>
+      <button
+        type="button"
+        id="font-up"
+        aria-label="Increase font size"
+        title="Increase font size"
+      >
+        A<sup>+</sup>
+      </button>
+      <button
+        type="button"
+        id="font-down"
+        aria-label="Reduce font size"
+        title="Reduce font size"
+      >
+        A<sup>-</sup>
+      </button>
     </div>
     <PyodideRunner />
   </body>
@@ -75,13 +97,17 @@ const {
   let step = 1;
   try {
     const saved = Number(localStorage.getItem(KEY));
-    if (Number.isInteger(saved) && saved >= 0 && saved < STEPS.length) step = saved;
+    if (Number.isInteger(saved) && saved >= 0 && saved < STEPS.length)
+      step = saved;
   } catch {}
 
   const up = document.getElementById("font-up") as HTMLButtonElement;
   const down = document.getElementById("font-down") as HTMLButtonElement;
   const applyStep = () => {
-    document.documentElement.style.setProperty("--post-scale", String(STEPS[step]));
+    document.documentElement.style.setProperty(
+      "--post-scale",
+      String(STEPS[step]),
+    );
     up.disabled = step === STEPS.length - 1;
     down.disabled = step === 0;
     try {
@@ -101,7 +127,9 @@ const {
   // Reading mode: warm, low-contrast sepia palette to ease eye strain. It
   // pins the light theme underneath so code blocks and diagrams stay legible.
   const root = document.documentElement;
-  const readingBtn = document.getElementById("reading-mode") as HTMLButtonElement;
+  const readingBtn = document.getElementById(
+    "reading-mode",
+  ) as HTMLButtonElement;
   let themeBefore: string | null = null;
   const pinLight = () => {
     if (root.getAttribute("data-theme") !== "light") {
@@ -114,7 +142,10 @@ const {
       themeBefore = root.getAttribute("data-theme");
       root.setAttribute("data-reading", "on");
       pinLight();
-      themeWatcher.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+      themeWatcher.observe(root, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
     } else {
       themeWatcher.disconnect();
       root.removeAttribute("data-reading");

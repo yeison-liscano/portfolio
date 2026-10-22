@@ -1,0 +1,242 @@
+---
+/**
+ * PruebaAB - The diagnostic phase as an experiment: customers are split at
+ * random, only the treatment group gets the coupon, and the difference in
+ * churn is reported with its 95% confidence interval (normal approximation
+ * for two proportions). All numbers are computed here from the counts.
+ */
+const id = "prueba-ab";
+
+const N = 900;
+const CONTROL = 252;
+const TRATAMIENTO = 198;
+const Z = 1.96;
+
+const pc = CONTROL / N;
+const pt = TRATAMIENTO / N;
+const efecto = pc - pt;
+const se = Math.sqrt((pc * (1 - pc)) / N + (pt * (1 - pt)) / N);
+const [low, high] = [efecto - Z * se, efecto + Z * se];
+
+const pct = (v: number) => `${(v * 100).toFixed(0)} %`;
+const pp = (v: number) => (v * 100).toFixed(1).replace(".", ",");
+
+// Churn bars: 0 to 40 %.
+const BAR_X = 352;
+const BAR_W = 180;
+const bar = (p: number) => (p / 0.4) * BAR_W;
+const grupos = [
+  { nombre: "control", detalle: "sin cupón", p: pc, n: CONTROL, cy: 62 },
+  {
+    nombre: "tratamiento",
+    detalle: "cupón del 15 %",
+    p: pt,
+    n: TRATAMIENTO,
+    cy: 140,
+  },
+];
+
+// Effect axis: -2 to 12 percentage points.
+const AX0 = 150;
+const AX1 = 600;
+const MIN = -0.02;
+const MAX = 0.12;
+const ax = (v: number) => AX0 + ((v - MIN) / (MAX - MIN)) * (AX1 - AX0);
+const ticks = [-0.02, 0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12];
+const AXIS_Y = 262;
+---
+
+<svg
+  viewBox="0 0 640 300"
+  role="img"
+  aria-label={`De ${2 * N} clientes asignados al azar, el grupo de control abandona en un ${pct(pc)} y el grupo con cupón en un ${pct(pt)}. El cupón reduce el abandono ${pp(efecto)} puntos porcentuales, con un intervalo de confianza del 95 % entre ${pp(low)} y ${pp(high)}; el intervalo no incluye el cero.`}
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <rect x="0" y="78" width="136" height="48" rx="4" class="box"></rect>
+  <text x="68" y="94" class="label">
+    {2 * N} clientes
+  </text>
+  <text x="68" y="111" class="sub" text-anchor="middle">
+    trimestre anterior
+  </text>
+
+  {grupos.map((g) => (
+    <line
+      x1="136"
+      y1="102"
+      x2="174"
+      y2={g.cy}
+      marker-end={`url(#${id}-arrow)`}
+      class="flow"
+    />
+  ))}
+  <text x="68" y="142" class="sub" text-anchor="middle">
+    reparto al azar
+  </text>
+
+  <text x={BAR_X} y="20" class="title">
+    abandono en 90 días
+  </text>
+
+  {grupos.map((g) => (
+    <g>
+      <rect x="178" y={g.cy - 22} width="150" height="44" rx="4" class="box" />
+      <text x="253" y={g.cy - 8} class="label">
+        {g.nombre}
+      </text>
+      <text x="253" y={g.cy + 9} class="sub" text-anchor="middle">
+        {g.detalle} · {N}
+      </text>
+      <line x1={BAR_X} x2={BAR_X + BAR_W} y1={g.cy} y2={g.cy} class="track" />
+      <rect
+        x={BAR_X}
+        y={g.cy - 9}
+        width={bar(g.p)}
+        height="18"
+        rx="2"
+        class:list={["bar", { accent: g.p === pt }]}
+      />
+      <text x={BAR_X + bar(g.p) + 8} y={g.cy} class="value">
+        {pct(g.p)} ({g.n})
+      </text>
+    </g>
+  ))}
+
+  <text x={AX0} y="200" class="title accent">
+    efecto del cupón: {pp(efecto)} pp menos de abandono
+  </text>
+  <text x={AX0} y="218" class="sub">
+    intervalo de confianza del 95 %: {pp(low)} a {pp(high)} pp
+  </text>
+
+  <line x1={AX0} x2={AX1} y1={AXIS_Y} y2={AXIS_Y} class="axis"></line>
+  <line
+    x1={ax(0)}
+    x2={ax(0)}
+    y1={AXIS_Y - 20}
+    y2={AXIS_Y + 6}
+    class="zero"
+  ></line>
+  <text x={ax(0)} y={AXIS_Y - 26} class="sub" text-anchor="middle">
+    sin efecto
+  </text>
+  <line x1={ax(low)} x2={ax(high)} y1={AXIS_Y} y2={AXIS_Y} class="ci"></line>
+  <line
+    x1={ax(low)}
+    x2={ax(low)}
+    y1={AXIS_Y - 8}
+    y2={AXIS_Y + 8}
+    class="ci"
+  ></line>
+  <line
+    x1={ax(high)}
+    x2={ax(high)}
+    y1={AXIS_Y - 8}
+    y2={AXIS_Y + 8}
+    class="ci"
+  ></line>
+  <circle cx={ax(efecto)} cy={AXIS_Y} r="5" class="estimate"></circle>
+  {ticks.map((t) => (
+    <text x={ax(t)} y={AXIS_Y + 24} class="tick">
+      {Math.round(t * 100)}
+    </text>
+  ))}
+  <text x={AX1} y={AXIS_Y + 24} class="tick unit" dx="22">
+    pp
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 540px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .sub,
+  .tick {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .tick {
+    text-anchor: middle;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .flow,
+  .axis {
+    stroke: var(--muted);
+    stroke-width: 1.2;
+  }
+
+  .track {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .bar {
+    fill: var(--muted);
+  }
+
+  .bar.accent,
+  .estimate {
+    fill: var(--contrast);
+  }
+
+  .value {
+    fill: currentColor;
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .zero {
+    stroke: var(--muted);
+    stroke-width: 1.2;
+    stroke-dasharray: 3 3;
+  }
+
+  .ci {
+    stroke: var(--contrast);
+    stroke-width: 3;
+  }
+
+  .accent {
+    fill: var(--contrast);
+  }
+</style>
