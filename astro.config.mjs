@@ -3,6 +3,7 @@ import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import rehypeExternalLinks from "rehype-external-links";
+import { rehypeTableScroll } from "./src/utils/rehypeTableScroll";
 
 // https://astro.build/config
 export default defineConfig({
@@ -30,6 +31,7 @@ export default defineConfig({
           class: "external-link",
         },
       ],
+      rehypeTableScroll,
     ],
     syntaxHighlight: "shiki",
     shikiConfig: {
