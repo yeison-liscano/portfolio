@@ -1,0 +1,380 @@
+---
+/**
+ * AsignacionCupones - Explorable for the prescriptive phase: choose a budget
+ * and a strategy, and see which segments get coupons and what that is worth.
+ * The server renders the resting state (budget $2.500, optimal strategy)
+ * with the same functions the browser uses.
+ */
+import {
+  COSTO_CUPON,
+  PRESUPUESTO_MAX,
+  SEGMENTOS,
+  asignar,
+  dinero,
+  miles,
+  netoPorCupon,
+  porcentaje,
+} from "./asignacion";
+
+const PRESUPUESTO = 2500;
+const inicial = asignar(PRESUPUESTO, "optima");
+const otra = asignar(PRESUPUESTO, "riesgo");
+const uid = `cupones-${Math.random().toString(36).slice(2, 8)}`;
+
+const MAX_CLIENTES = Math.max(...SEGMENTOS.map((s) => s.clientes));
+const TRACK_X = 214;
+const TRACK_W = 300;
+const ROW = 46;
+const TOP = 30;
+const W = 640;
+const H = TOP + SEGMENTOS.length * ROW;
+const largo = (clientes: number) => (clientes / MAX_CLIENTES) * TRACK_W;
+
+const netoTexto = (v: number) => {
+  const text = Math.abs(v).toFixed(2).replace(".", ",");
+  return v > 0 ? `+$${text}` : `−$${text}`;
+};
+---
+
+<asignacion-cupones>
+  <div class="controls">
+    <label for={`${uid}-budget`}>
+      Presupuesto para cupones{" "}
+      <output data-out="budget">{dinero(PRESUPUESTO)}</output>
+    </label>
+    <input
+      id={`${uid}-budget`}
+      data-in="budget"
+      type="range"
+      min="0"
+      max={PRESUPUESTO_MAX}
+      step="250"
+      value={PRESUPUESTO}
+    />
+    <fieldset>
+      <legend>Estrategia</legend>
+      <label>
+        <input
+          type="radio"
+          name={`${uid}-strategy`}
+          value="optima"
+          data-in="strategy"
+          checked
+        />
+        Óptima: más beneficio neto por cupón
+      </label>
+      <label>
+        <input
+          type="radio"
+          name={`${uid}-strategy`}
+          value="riesgo"
+          data-in="strategy"
+        />
+        Por riesgo: primero quien más probabilidad tiene de irse
+      </label>
+    </fieldset>
+  </div>
+
+  <div class="chart">
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label="Seis segmentos de clientes. La longitud de cada barra es el número de clientes y la parte resaltada son los que reciben cupón."
+    >
+      <text x="0" y="12" class="head">
+        segmento
+      </text>
+      <text x={TRACK_X} y="12" class="head">
+        clientes · con cupón
+      </text>
+      <text x={W} y="12" class="head" text-anchor="end">
+        cupones
+      </text>
+
+      {SEGMENTOS.map((s, i) => {
+        const y = TOP + i * ROW;
+        const neto = netoPorCupon(s);
+        return (
+          <g class:list={["row", { loss: neto <= 0 }]}>
+            <text x="0" y={y + 10} class="name">
+              {s.nombre}
+            </text>
+            <text x="0" y={y + 27} class="sub">
+              riesgo {porcentaje(s.riesgo)} · neto/cupón {netoTexto(neto)}
+            </text>
+            <rect
+              x={TRACK_X}
+              y={y + 6}
+              width={largo(s.clientes)}
+              height="18"
+              rx="2"
+              class="track"
+            />
+            <rect
+              x={TRACK_X}
+              y={y + 6}
+              width={largo(inicial.cupones[i])}
+              height="18"
+              rx="2"
+              class="fill"
+              data-out="fill"
+              data-max={MAX_CLIENTES}
+            />
+            <text x={W} y={y + 15} class="count" text-anchor="end">
+              <tspan data-out="count">{miles(inicial.cupones[i])}</tspan> de{" "}
+              {miles(s.clientes)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  </div>
+
+  <dl class="stats">
+    <div>
+      <dt>Cupones entregados</dt>
+      <dd data-out="coupons">{miles(inicial.costo / COSTO_CUPON)}</dd>
+    </div>
+    <div>
+      <dt>Clientes que se quedan</dt>
+      <dd data-out="retained">{miles(inicial.retenidos)}</dd>
+    </div>
+    <div>
+      <dt>Margen protegido</dt>
+      <dd data-out="margin">{dinero(inicial.margen)}</dd>
+    </div>
+    <div>
+      <dt>Beneficio neto</dt>
+      <dd data-out="net">{dinero(inicial.neto)}</dd>
+    </div>
+  </dl>
+
+  <p class="result" aria-live="polite" data-out="summary">
+    Con el mismo presupuesto, la estrategia por riesgo deja un beneficio neto de{" "}
+    {dinero(otra.neto)}.
+  </p>
+</asignacion-cupones>
+
+<script>
+  import {
+    COSTO_CUPON,
+    SEGMENTOS,
+    asignar,
+    dinero,
+    miles,
+    type Estrategia,
+  } from "./asignacion";
+
+  const TRACK_W = 300;
+
+  class AsignacionCupones extends HTMLElement {
+    connectedCallback() {
+      this.addEventListener("input", () => this.update());
+      this.update();
+    }
+
+    private presupuesto(): number {
+      const input = this.querySelector<HTMLInputElement>('[data-in="budget"]');
+      return Number(input?.value ?? 0);
+    }
+
+    private estrategia(): Estrategia {
+      const checked = this.querySelector<HTMLInputElement>(
+        '[data-in="strategy"]:checked',
+      );
+      return checked?.value === "riesgo" ? "riesgo" : "optima";
+    }
+
+    private set(name: string, text: string) {
+      const element = this.querySelector(`[data-out="${name}"]`);
+      if (element) element.textContent = text;
+    }
+
+    update() {
+      const presupuesto = this.presupuesto();
+      const estrategia = this.estrategia();
+      const otra: Estrategia = estrategia === "optima" ? "riesgo" : "optima";
+      const r = asignar(presupuesto, estrategia);
+      const alternativa = asignar(presupuesto, otra);
+
+      const fills = this.querySelectorAll<SVGRectElement>('[data-out="fill"]');
+      const counts = this.querySelectorAll('[data-out="count"]');
+      SEGMENTOS.forEach((_, i) => {
+        const max = Number(fills[i]?.dataset.max ?? 1);
+        fills[i]?.setAttribute("width", String((r.cupones[i] / max) * TRACK_W));
+        if (counts[i]) counts[i].textContent = miles(r.cupones[i]);
+      });
+
+      this.set("budget", dinero(presupuesto));
+      this.set("coupons", miles(r.costo / COSTO_CUPON));
+      this.set("retained", miles(r.retenidos));
+      this.set("margin", dinero(r.margen));
+      this.set("net", dinero(r.neto));
+
+      const nombre = otra === "riesgo" ? "por riesgo" : "óptima";
+      const sinGastar = presupuesto - r.costo;
+      const resto =
+        estrategia === "optima" && sinGastar >= 1
+          ? ` Quedan ${dinero(sinGastar)} sin gastar: ningún segmento restante devuelve más de lo que cuesta el cupón.`
+          : "";
+      this.set(
+        "summary",
+        `Con el mismo presupuesto, la estrategia ${nombre} deja un beneficio neto de ${dinero(alternativa.neto)}.${resto}`,
+      );
+    }
+  }
+
+  customElements.define("asignacion-cupones", AsignacionCupones);
+</script>
+
+<style>
+  asignacion-cupones {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.9rem;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--contrast);
+  }
+
+  input[type="radio"] {
+    accent-color: var(--contrast);
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  fieldset {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  legend {
+    margin-bottom: 6px;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  fieldset label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  output,
+  dd {
+    color: var(--contrast);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chart {
+    overflow-x: auto;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    min-width: 520px;
+    height: auto;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .head {
+    fill: var(--muted);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .name {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    dominant-baseline: middle;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 10.5px;
+    dominant-baseline: middle;
+  }
+
+  .loss .sub {
+    fill: var(--bad);
+  }
+
+  .track {
+    fill: var(--surface);
+    stroke: var(--line);
+  }
+
+  .fill {
+    fill: var(--contrast);
+    transition: width 0.25s ease;
+  }
+
+  .count {
+    fill: currentColor;
+    font-size: 11.5px;
+    dominant-baseline: middle;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+  }
+
+  .stats div {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+
+  dt {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  dd {
+    margin: 4px 0 0;
+    font-size: 1.05rem;
+  }
+
+  .result {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 560px) {
+    .stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fill {
+      transition: none;
+    }
+  }
+</style>

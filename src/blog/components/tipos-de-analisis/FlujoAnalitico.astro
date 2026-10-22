@@ -1,0 +1,264 @@
+---
+/**
+ * FlujoAnalitico - The four phases applied to one online store that wants
+ * fewer customers to leave. Each row is a phase: what goes in, the technique,
+ * and what comes out; each output feeds the next phase, and the decision
+ * produces new data for the first one. Steps are marked for <Stepper>.
+ */
+const id = "flujo-analitico";
+
+interface Fase {
+  nombre: string;
+  pregunta: string;
+  entrada: [string, string];
+  tecnica: [string, string];
+  salida: [string, string];
+  /** Label of the connector that brings this phase its input. */
+  llega?: string;
+}
+
+const FASES: Fase[] = [
+  {
+    nombre: "1 · Descriptivo",
+    pregunta: "¿Qué está sucediendo?",
+    entrada: ["pedidos, visitas y", "quejas del trimestre"],
+    tecnica: ["EDA · correlación", "resúmenes y gráficos"],
+    salida: ["abandono del 28 %;", "40 % tras una queja"],
+  },
+  {
+    nombre: "2 · Predictivo",
+    pregunta: "¿Qué va a suceder?",
+    entrada: ["historial etiquetado:", "variables + ¿se fue?"],
+    tecnica: ["clasificación", "modelo entrenado"],
+    salida: ["riesgo por cliente:", "p(irse en 90 días)"],
+    llega: "variables que se mueven con el abandono",
+  },
+  {
+    nombre: "3 · Diagnóstico",
+    pregunta: "¿Por qué sucedió esto?",
+    entrada: ["cupón o sin cupón,", "asignado al azar"],
+    tecnica: ["prueba A/B", "experimento"],
+    salida: ["el cupón baja el", "abandono 6 pp"],
+    llega: "¿cambia el riesgo si intervenimos?",
+  },
+  {
+    nombre: "4 · Prescriptivo",
+    pregunta: "¿Qué debo hacer?",
+    entrada: ["riesgo + efecto +", "presupuesto y costos"],
+    tecnica: ["optimización", "programación lineal"],
+    salida: ["a quién dar cupón", "y cuántos dar"],
+    llega: "efecto del cupón en cada segmento",
+  },
+];
+
+const TOP = 60;
+const ROW_H = 56;
+const GAP = 46;
+const IN_X = 148;
+const BOX_W = 172;
+const TEC_X = 346;
+const TEC_W = 156;
+const OUT_X = 528;
+const LOOP_Y = 20;
+const LOOP_X = 712;
+const LOOP_IN_X = 136;
+
+const rowY = (i: number) => TOP + i * (ROW_H + GAP);
+const H = rowY(FASES.length - 1) + ROW_H + 8;
+const inCx = IN_X + BOX_W / 2;
+const tecCx = TEC_X + TEC_W / 2;
+const outCx = OUT_X + BOX_W / 2;
+---
+
+<svg
+  viewBox={`0 0 724 ${H}`}
+  role="img"
+  aria-label="Cuatro filas, una por fase. Descriptivo: los pedidos y quejas muestran un abandono del 28 %. Predictivo: un clasificador estima el riesgo de cada cliente. Diagnóstico: una prueba A/B mide que un cupón baja el abandono 6 puntos. Prescriptivo: la optimización combina riesgo, efecto y presupuesto para decidir a quién dar cupón; esa decisión genera datos nuevos para la fase descriptiva."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x={inCx} y={TOP - 12} class="head">
+    entrada
+  </text>
+  <text x={tecCx} y={TOP - 12} class="head">
+    técnica
+  </text>
+  <text x={outCx} y={TOP - 12} class="head">
+    salida
+  </text>
+
+  {FASES.map((fase, i) => {
+    const y = rowY(i);
+    const mid = y + ROW_H / 2;
+    const prevBottom = rowY(i - 1) + ROW_H;
+    const elbow = prevBottom + GAP / 2;
+    return (
+      <g data-step={i + 1}>
+        {fase.llega && (
+          <g>
+            <path
+              d={`M ${outCx} ${prevBottom} V ${elbow} H ${inCx} V ${y - 2}`}
+              marker-end={`url(#${id}-arrow)`}
+              class="link"
+            />
+            <text x={tecCx} y={elbow - 8} class="edge">
+              {fase.llega}
+            </text>
+          </g>
+        )}
+
+        <text x="0" y={mid - 9} class="phase">
+          {fase.nombre}
+        </text>
+        <text x="0" y={mid + 10} class="question">
+          {fase.pregunta}
+        </text>
+
+        <rect x={IN_X} y={y} width={BOX_W} height={ROW_H} rx="4" class="box" />
+        <text x={inCx} y={mid - 9} class="line">
+          {fase.entrada[0]}
+        </text>
+        <text x={inCx} y={mid + 9} class="line">
+          {fase.entrada[1]}
+        </text>
+
+        <line
+          x1={IN_X + BOX_W}
+          y1={mid}
+          x2={TEC_X - 2}
+          y2={mid}
+          marker-end={`url(#${id}-arrow)`}
+          class="link"
+        />
+
+        <rect
+          x={TEC_X}
+          y={y + 6}
+          width={TEC_W}
+          height={ROW_H - 12}
+          rx="22"
+          class="box technique"
+        />
+        <text x={tecCx} y={mid - 7} class="line strong">
+          {fase.tecnica[0]}
+        </text>
+        <text x={tecCx} y={mid + 9} class="line muted">
+          {fase.tecnica[1]}
+        </text>
+
+        <line
+          x1={TEC_X + TEC_W}
+          y1={mid}
+          x2={OUT_X - 2}
+          y2={mid}
+          marker-end={`url(#${id}-arrow)`}
+          class="link"
+        />
+
+        <rect x={OUT_X} y={y} width={BOX_W} height={ROW_H} rx="4" class="box" />
+        <text x={outCx} y={mid - 9} class="line">
+          {fase.salida[0]}
+        </text>
+        <text x={outCx} y={mid + 9} class="line">
+          {fase.salida[1]}
+        </text>
+      </g>
+    );
+  })}
+
+  <g data-step={FASES.length}>
+    <path
+      d={`M ${OUT_X + BOX_W} ${rowY(FASES.length - 1) + ROW_H / 2} H ${LOOP_X} V ${LOOP_Y} H ${LOOP_IN_X} V ${rowY(0) + ROW_H / 2} H ${IN_X - 2}`}
+      marker-end={`url(#${id}-arrow)`}
+      class="link loop"
+    />
+    <text x={tecCx} y={LOOP_Y - 8} class="edge">
+      la decisión se ejecuta y genera datos nuevos
+    </text>
+  </g>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 620px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .head {
+    fill: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-anchor: middle;
+    text-transform: uppercase;
+  }
+
+  .phase {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .question {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    dominant-baseline: middle;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .technique {
+    stroke-width: 2;
+  }
+
+  .line {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .line.strong {
+    font-weight: 600;
+  }
+
+  .line.muted,
+  .edge {
+    fill: var(--muted);
+  }
+
+  .edge {
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .link {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .loop {
+    stroke-dasharray: 5 4;
+  }
+</style>
