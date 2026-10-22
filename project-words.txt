@@ -55,7 +55,9 @@ Gonthier
 HPACK
 Haejy
 Haken
+Healy
 Heawood
+Hernán
 Hierholzer
 Hipercubo
 Hopcroft
@@ -127,6 +129,7 @@ PyPI
 Pydantic
 Pyodide
 RBAC
+RMSE
 Representacion
 Rivest
 SAMEORIGIN
@@ -172,9 +175,12 @@ aenter
 aexit
 aiofiles
 aiohttp
+analisis
+analitico
 aplazuen
 arbol
 asgi
+asignacion
 astro
 astrojs
 asyncio
@@ -211,6 +217,7 @@ contraejemplos
 conv
 cowsay
 cuasipolinomial
+cupon
 currentcolor
 cvzf
 cybercriminals
@@ -360,6 +367,9 @@ planaridad
 polinomial
 popcount
 popleft
+prescriptiva
+prescriptivo
+presentacion
 printenv
 problema
 problematis
@@ -423,6 +433,7 @@ subnetworks
 subpackages
 subshell
 subtyping
+tecnica
 thresholding
 timsort
 tokyo

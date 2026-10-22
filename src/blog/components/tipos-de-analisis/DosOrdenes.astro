@@ -1,0 +1,226 @@
+---
+/**
+ * DosOrdenes - The same four analytics in two orders. Gartner ranks them by
+ * maturity and business value; the presentation ranks them by what each
+ * needs: observing associations, intervening, then deciding.
+ */
+const FASES = {
+  descriptivo: "Descriptivo",
+  diagnostico: "Diagnóstico",
+  predictivo: "Predictivo",
+  prescriptivo: "Prescriptivo",
+} as const;
+type Fase = keyof typeof FASES;
+
+const GARTNER: Fase[] = [
+  "descriptivo",
+  "diagnostico",
+  "predictivo",
+  "prescriptivo",
+];
+const PRESENTACION: Fase[] = [
+  "descriptivo",
+  "predictivo",
+  "diagnostico",
+  "prescriptivo",
+];
+
+const TOP = 56;
+const STEP = 48;
+const PILL_H = 34;
+const LEFT_X = 116;
+const RIGHT_X = 396;
+const PILL_W = 148;
+
+const cy = (row: number) => TOP + row * STEP + PILL_H / 2;
+const links = GARTNER.map((fase, row) => ({
+  fase,
+  from: cy(row),
+  to: cy(PRESENTACION.indexOf(fase)),
+}));
+
+// Brackets: [first row, last row, title, subtitle].
+const left: [number, number, string, string][] = [
+  [0, 1, "retrospectiva", "mirar atrás"],
+  [2, 3, "prospectiva", "mirar adelante"],
+];
+const right: [number, number, string, string][] = [
+  [0, 1, "observar", "asociación"],
+  [2, 2, "intervenir", "causalidad"],
+  [3, 3, "decidir", "optimización"],
+];
+const top = (row: number) => TOP + row * STEP + 2;
+const bottom = (row: number) => TOP + row * STEP + PILL_H - 2;
+const middle = (a: number, b: number) => (top(a) + bottom(b)) / 2;
+---
+
+<svg
+  viewBox="0 0 660 252"
+  role="img"
+  aria-label="Gartner ordena las fases como descriptivo, diagnóstico, predictivo y prescriptivo. La presentación intercambia diagnóstico y predictivo: primero observar asociaciones, luego intervenir con experimentos y al final decidir."
+  class="diagram"
+>
+  <text x={LEFT_X + PILL_W / 2} y="16" class="title" text-anchor="middle">
+    Gartner
+  </text>
+  <text x={LEFT_X + PILL_W / 2} y="34" class="sub" text-anchor="middle">
+    madurez y valor
+  </text>
+  <text x={RIGHT_X + PILL_W / 2} y="16" class="title" text-anchor="middle">
+    La presentación
+  </text>
+  <text x={RIGHT_X + PILL_W / 2} y="34" class="sub" text-anchor="middle">
+    lo que exige cada fase
+  </text>
+
+  {links.map(({ fase, from, to }) => (
+    <line
+      x1={LEFT_X + PILL_W}
+      y1={from}
+      x2={RIGHT_X}
+      y2={to}
+      class:list={["link", { moved: from !== to }]}
+      data-fase={fase}
+    />
+  ))}
+
+  {GARTNER.map((fase, row) => (
+    <g>
+      <rect
+        x={LEFT_X}
+        y={TOP + row * STEP}
+        width={PILL_W}
+        height={PILL_H}
+        rx="17"
+        class:list={["pill", { moved: PRESENTACION[row] !== fase }]}
+      />
+      <text x={LEFT_X + 18} y={cy(row)} class="num">
+        {row + 1}
+      </text>
+      <text x={LEFT_X + 36} y={cy(row)} class="name">
+        {FASES[fase]}
+      </text>
+    </g>
+  ))}
+
+  {PRESENTACION.map((fase, row) => (
+    <g>
+      <rect
+        x={RIGHT_X}
+        y={TOP + row * STEP}
+        width={PILL_W}
+        height={PILL_H}
+        rx="17"
+        class:list={["pill", { moved: GARTNER[row] !== fase }]}
+      />
+      <text x={RIGHT_X + 18} y={cy(row)} class="num">
+        {row + 1}
+      </text>
+      <text x={RIGHT_X + 36} y={cy(row)} class="name">
+        {FASES[fase]}
+      </text>
+    </g>
+  ))}
+
+  {left.map(([a, b, title, sub]) => (
+    <g>
+      <path
+        d={`M ${LEFT_X - 6} ${top(a)} h -6 V ${bottom(b)} h 6`}
+        class="bracket"
+      />
+      <text x={LEFT_X - 18} y={middle(a, b) - 7} class="note" text-anchor="end">
+        {title}
+      </text>
+      <text x={LEFT_X - 18} y={middle(a, b) + 9} class="sub" text-anchor="end">
+        {sub}
+      </text>
+    </g>
+  ))}
+
+  {right.map(([a, b, title, sub]) => (
+    <g>
+      <path
+        d={`M ${RIGHT_X + PILL_W + 6} ${top(a)} h 6 V ${bottom(b)} h -6`}
+        class="bracket"
+      />
+      <text x={RIGHT_X + PILL_W + 18} y={middle(a, b) - 7} class="note">
+        {title}
+      </text>
+      <text x={RIGHT_X + PILL_W + 18} y={middle(a, b) + 9} class="sub">
+        {sub}
+      </text>
+    </g>
+  ))}
+
+  <text x="330" y="246" class="sub" text-anchor="middle">
+    las líneas resaltadas marcan las fases que cambian de lugar
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .note {
+    fill: currentColor;
+    font-size: 11px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .pill {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .pill.moved {
+    stroke: var(--contrast);
+  }
+
+  .num {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .name {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    dominant-baseline: middle;
+  }
+
+  .link {
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .link.moved {
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .bracket {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.2;
+  }
+</style>
