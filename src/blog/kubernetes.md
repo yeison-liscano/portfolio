@@ -30,11 +30,12 @@ maintain the desired state of your applications and improve their reliability.
   cluster) and worker nodes (run the applications).
 - **Namespace**: A namespace is a way to divide cluster resources between
   multiple users or teams. It provides a scope for names, allowing you to create
-  isolated environments within the same cluster. Namespaces help organize
-  resources and prevent naming conflicts.
+  separately named resources within the same cluster. A namespace alone is not a
+  security boundary; access and network isolation require policies. Namespaces
+  help organize resources and prevent naming conflicts.
   - **Kube-system**: The `kube-system` namespace is used for Kubernetes system
-    components and add-ons. It contains essential services like the Kubernetes
-    dashboard, DNS, and other system-level resources.
+    components and add-ons, often including cluster DNS. An optional dashboard
+    is not guaranteed to be installed there.
 
 ## Nodes
 
@@ -42,12 +43,12 @@ A node is a worker machine in Kubernetes. It can be a physical or virtual
 machine and runs the necessary services to execute pods (containers). Each node
 is managed by the control plane.
 
-### Nodes Master
+### Control Plane Nodes
 
-The master node is responsible for managing the cluster. It runs the control
-plane components, including the API server, scheduler, and controller manager.
-The master node makes decisions about the cluster's state and ensures that the
-desired state is maintained.
+The control plane manages the cluster through the API server, scheduler and
+controllers. It can run across multiple machines for availability, and etcd may
+run on separate machines. Controllers continually reconcile actual and desired
+state; they do not guarantee uninterrupted availability.
 
 #### Controller Manager
 
@@ -77,12 +78,12 @@ configuration data and state. It provides a reliable and consistent way to store
 and retrieve cluster information, ensuring that the control plane components
 have access to the latest state of the cluster.
 
-### Nodes Worker
+### Worker Nodes
 
 Worker nodes are the machines where your applications run. They host the pods
 and provide the necessary resources (CPU, memory, storage) for your containers.
-Worker nodes communicate with the master node to receive instructions and report
-their status.
+Worker nodes communicate with the control plane to receive instructions and
+report their status.
 
 #### Kubelet
 
@@ -93,12 +94,11 @@ pods and reports back to the API server.
 
 #### Kube-proxy
 
-Kube-proxy is a network proxy that runs on each worker node and maintains
-network rules. It implements service abstractions by maintaining network rules
-on the host machine and allowing communication between pods across the cluster.
-Kube-proxy enables service discovery and load balancing by managing iptables
-rules or using IPVS (IP Virtual Server) to route traffic to the appropriate
-pods.
+Kube-proxy implements Service traffic forwarding using node network rules. The
+available backends depend on Kubernetes version and OS; Linux options include
+iptables and nftables. Some network implementations replace kube-proxy. Pod
+networking is supplied by the cluster network implementation, and DNS-based
+service discovery is typically provided by CoreDNS.
 
 #### Container Runtime
 
@@ -134,12 +134,18 @@ StatefulSets.
 
 Pods go through several phases during their lifecycle:
 
-- **Pending**: The pod has been created but not yet scheduled on a node.
-- **Running**: The pod is running on a node and all containers are created.
-- **Succeeded**: All containers in the pod have terminated successfully.
-- **Failed**: One or more containers in the pod have terminated with a non-zero
-  exit code.
+- **Pending**: Accepted, but one or more containers are not ready to run; this
+  includes scheduling and image-download time.
+- **Running**: Bound to a node, all containers created, and at least one
+  running, starting or restarting. This does not imply application readiness.
+- **Succeeded**: All containers terminated successfully and will not restart.
+- **Failed**: All containers terminated, at least one in failure, without
+  automatic restart.
 - **Unknown**: The state of the pod could not be determined.
+
+`CrashLoopBackOff` is a displayed container restart condition, not a Pod phase.
+See the
+[Pod lifecycle reference](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/).
 
 ### Multi-Container Pods
 
@@ -152,7 +158,10 @@ tightly coupled applications. Common patterns include:
   container.
 - **Adapter pattern**: A container transforms the output of the main container.
 
-Example of a multi-container pod:
+The following is a configuration sketch: replace the example application image
+and supply a Fluent Bit configuration that tails `/var/log/app`. Both containers
+must mount the shared volume; merely adding a logger does not configure log
+collection.
 
 ```yaml
 apiVersion: v1
@@ -165,8 +174,11 @@ spec:
       image: my-app:latest
       ports:
         - containerPort: 8080
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/app
     - name: sidecar-logger
-      image: fluent-bit:latest
+      image: fluent/fluent-bit:latest
       volumeMounts:
         - name: shared-logs
           mountPath: /var/log/app
@@ -205,7 +217,8 @@ spec:
 
 NodePort exposes the service on a port on each node. External traffic can reach
 the service by accessing `<NodeIP>:<NodePort>`. This is useful for simple
-external access but is not recommended for production use.
+external access when routing and firewall rules permit it. It can also be used
+behind an external load balancer in production.
 
 ```yaml
 apiVersion: v1
@@ -224,10 +237,10 @@ spec:
 
 ### LoadBalancer
 
-LoadBalancer exposes the service externally using a cloud provider's load
-balancer. This is the recommended way to expose services to external traffic in
-production environments. It automatically provisions a load balancer and assigns
-a public IP address.
+A LoadBalancer Service requests an external load balancer from a supporting
+controller or provider. Without one, its external address can remain pending.
+The address may be public or internal depending on configuration. HTTP routing
+may instead use an Ingress or Gateway implementation.
 
 ```yaml
 apiVersion: v1
@@ -246,8 +259,9 @@ spec:
 ## Deployments
 
 Deployments are higher-level resources that manage the creation and scaling of
-pods. They ensure that a specified number of pod replicas are running at all
-times and provide declarative updates for pods and ReplicaSets.
+pods through ReplicaSets. They work toward the requested replica count and
+provide declarative updates; failures or insufficient capacity can leave fewer
+replicas available.
 
 ### What Deployments Manage
 
@@ -264,9 +278,10 @@ it with the desired state.
 
 ### Rolling Updates
 
-Deployments support rolling updates, which allow you to update your application
-without downtime. The deployment gradually replaces old pods with new ones,
-ensuring that your application remains available during the update.
+Deployments support rolling updates that gradually replace old Pods. Avoiding
+downtime also requires sufficient capacity, meaningful readiness probes,
+graceful shutdown and compatible application versions; the strategy alone is not
+a guarantee.
 
 ```yaml
 apiVersion: apps/v1
@@ -329,7 +344,12 @@ data:
 ### Secrets
 
 Secrets store sensitive data like passwords, API keys, and tokens. They are
-stored separately from ConfigMaps and can be encrypted at rest in etcd.
+stored separately from ConfigMaps. Base64 is encoding, not encryption; upstream
+Kubernetes stores Secrets unencrypted in etcd unless encryption at rest is
+configured. Restrict access with RBAC. In a manifest, `data` requires base64
+strings, while `stringData` accepts plain strings. `kubectl apply` does not
+expand shell variables embedded in YAML. See the
+[Secrets documentation](https://kubernetes.io/docs/concepts/configuration/secret/).
 
 ```yaml
 apiVersion: v1
@@ -337,9 +357,9 @@ kind: Secret
 metadata:
   name: app-secret
 type: Opaque
-data:
-  DATABASE_PASSWORD: $DATABASE_PASSWORD # base64 encoded
-  API_KEY: $API_KEY # base64 encoded
+stringData:
+  DATABASE_PASSWORD: "example-only-not-a-real-password"
+  API_KEY: "example-only-not-a-real-key"
 ```
 
 To use ConfigMaps and Secrets in pods, you can mount them as environment
@@ -392,7 +412,7 @@ kubectl get events
 ### Managing Pods
 
 ```bash
-# List all pods
+# List pods in the current namespace; add -A for all namespaces
 kubectl get pods
 
 # Get pods with more details
@@ -442,7 +462,7 @@ kubectl get services
 # Describe a service
 kubectl describe service <service-name>
 
-# Access a service externally
+# Expose the Service on local loopback for testing
 kubectl port-forward service/<service-name> 8080:80
 ```
 
@@ -484,7 +504,10 @@ kubectl config set-context --current --namespace=my-namespace
 ## Practical Example: Deploying a Simple Application
 
 Let's walk through deploying a simple web application with Kubernetes. This
-example includes a Deployment, a Service, and a ConfigMap.
+example includes a Deployment, a Service, and a ConfigMap. The ConfigMap values
+appear in the container environment; the stock nginx page does not use
+`APP_NAME` or `LOG_LEVEL`. Replace `latest` with a tested version or digest for
+reproducible deployments.
 
 First, create a file named `app-manifest.yaml`:
 
@@ -593,8 +616,9 @@ kubectl logs -n my-app-ns -l app=web-app
 # Port forward to test locally
 kubectl port-forward -n my-app-ns service/web-app-service 8080:80
 
-# Update the deployment image
-kubectl set image deployment/web-app -n my-app-ns web-app=nginx:1.19
+# In another terminal, update to an image tag you have tested
+# Replace TESTED_TAG before running this command.
+kubectl set image deployment/web-app -n my-app-ns web-app=nginx:TESTED_TAG
 
 # Monitor rollout
 kubectl rollout status deployment/web-app -n my-app-ns

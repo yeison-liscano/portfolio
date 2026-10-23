@@ -8,11 +8,11 @@ tags: ["python", "tools"]
 snippet:
   language: "docker"
   code: |
-    FROM python:3.7
+    FROM python:3.14-slim
     WORKDIR /app
     COPY requirements.txt /app
     RUN pip install --no-cache-dir --upgrade -r requirements.txt
-    COPY /app /app
+    COPY . /app
     CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
 ---
 
@@ -20,7 +20,9 @@ Virtual environments are used to create an isolated environment for Python
 projects. This means that each project can have its own dependencies, regardless
 of what dependencies every other project has. First of all let's review how to
 install, update, and uninstall packages in a virtual environment with pip. Note:
-The command specified below are for linux (ubuntu) and MAC OS.
+The shell examples below target Linux and macOS. Create and activate an
+environment first (`python3 -m venv .venv`, then `source .venv/bin/activate`);
+`python -m pip` then targets that environment. Braced names are placeholders.
 
 > Contains a specific Python interpreter and software libraries and binaries
 > which are needed to support a project (library or application). These are by
@@ -32,29 +34,31 @@ The command specified below are for linux (ubuntu) and MAC OS.
 
 To freeze the packages installed in the virtual environment, you can use the
 `freeze` command. This will create a `requirements.txt` file with all the
-packages installed in the virtual environment and their respective versions
+installed distributions and their versions (some packaging tools are omitted by
+default). This is an environment snapshot, not a dependency resolver or a
+cross-platform lockfile.
 
 ```bash
-pip3 freeze > requirements.txt
+python -m pip freeze > requirements.txt
 ```
 
 ## Installing packages (PIP)
 
 ```bash
-pip3 install {package_name}
-pip3 install -r requirements.txt
+python -m pip install {package_name}
+python -m pip install -r requirements.txt
 ```
 
 ## Uninstalling packages
 
 ```bash
-pip3 uninstall {package_name}
+python -m pip uninstall {package_name}
 ```
 
 ## Updating packages
 
 ```bash
-pip3 install --upgrade {package_name}
+python -m pip install --upgrade {package_name}
 ```
 
 ## Creating a virtual environment
@@ -89,8 +93,8 @@ in the target location.
 # where the virtual environment info will be store (environment name).
 python3 -m venv {env_name}
 source {env_name}/bin/activate
-pip3 install -r requirements.txt
-pip3 freeze > requirements.txt
+python -m pip install -r requirements.txt
+python -m pip freeze > requirements.txt
 deactivate
 ```
 
@@ -117,7 +121,7 @@ that Pipenv seeks to solve are multi-faceted:
   files.
 
 ```bash
-pip3 install pipenv
+python -m pip install pipenv
 cd {project_dir}
 pipenv install -r requirements.txt
 pipenv uninstall {package_name}
@@ -135,7 +139,7 @@ Install all the packages in the Pipfile.lock file (replicates the environment)
 ```bash
 pipenv install --ignore-pipfile
 pipenv graph # shows the dependency graph
-pipenv check # checks for security vulnerabilities
+pipenv check --scan # vulnerability scan; may require service credentials
 exit
 ```
 
@@ -148,7 +152,7 @@ exit
 
 ```bash
 # basic usage
-pip3 install virtualenv
+python -m pip install virtualenv
 cd project_folder
 virtualenv venv
 source venv/bin/activate
@@ -157,8 +161,8 @@ deactivate
 
 # specify the python version, note that the python version must be installed
 # in the system.
-virtualenv --python=/usr/bin/python2.7 {env_name}
-lsvirtualenv # list all the virtual environments
+virtualenv --python=python3.14 {env_name}
+# lsvirtualenv belongs to the separate virtualenvwrapper package
 source {env_name}/bin/activate
 pip install -r requirements.txt # All other pip commands work as usual
 deactivate
@@ -173,25 +177,33 @@ be rm -rf venv.)
 Different projects may require different versions of Python. To isolate the
 versions of Python, you can use `pyenv` or `pyenv-virtualenv`.
 
-### pyenv (does not work on windows)
+### pyenv
 
-It allows you to create virtual environments for different versions of python.
-`pyenv install --list` to see all the versions of python available.
-`pyenv versions` to see all the versions of python installed.
-`pyenv virtualenvs` to see all the virtual environments created.
-`pyenv global {version}` to set the global version of python.
-`pyenv local {version}` to set the local version of python.
-`pyenv shell {version}` to set the shell version of python.
+`pyenv` installs and selects Python interpreters; it does not create virtual
+environments by itself. Install it using the
+[official instructions](https://github.com/pyenv/pyenv#installation), including
+shell initialization and build dependencies. It is not installed with pip.
+Upstream pyenv targets Unix-like systems; Windows users can use WSL or the
+separate pyenv-win project.
 
 ```bash
-pip3 install pyenv
+pyenv install --list
 pyenv install {version}
-pyenv virtualenv {env_name}
-pyenv activate {env_name}
-pyenv deactivate
+pyenv versions
+pyenv local {version}
+python -m venv .venv
+source .venv/bin/activate
 ```
 
+`pyenv global` sets the user-wide default, while `pyenv local` writes the
+project's `.python-version`.
+
 ### pyenv-virtualenv
+
+The optional
+[pyenv-virtualenv plugin](https://github.com/pyenv/pyenv-virtualenv) adds
+`pyenv virtualenv`, `pyenv virtualenvs`, and activation commands. Install and
+initialize that plugin before using these commands.
 
 ```bash
 pyenv install {version}
@@ -201,14 +213,15 @@ pyenv local {env_name}
 
 ### Anaconda
 
-Anaconda is a free and open-source distribution of the Python and R programming
-languages for scientific computing, that aims to simplify package management and
-deployment.
+Anaconda Distribution bundles Python and scientific-computing packages. Conda is
+an open-source environment and package manager, but Anaconda Distribution and
+its hosted repositories have separate terms; free use depends on eligibility.
+Check the
+[Anaconda terms](https://www.anaconda.com/legal/terms/terms-of-service). Install
+the current distribution for your operating system from the official site before
+running the following Conda examples.
 
 ```bash
-wget -O anaconda.sh https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
-bash anaconda.sh
-#source ~/.bashrc
 conda info
 conda create --name {env_name} python={version}
 conda activate {env_name}
@@ -218,7 +231,7 @@ conda update {package_name}
 conda remove {package_name}
 conda deactivate
 conda remove --name {env_name} --all
-conda create --name {env_name} --clone {env_name} # clone an environment
+conda create --name {new_env} --clone {source_env} # clone an environment
 conda env export > environment.yml # export an environment
 conda env create -f environment.yml # create an environment from a yml file
 conda env list
@@ -232,7 +245,7 @@ conda list # list all the packages installed in the current environment
 # list all the packages installed in the current environment with their versions
 conda list --explicit
 # install a package from a specific channel
-conda install --channel {conda-forge} {package_name}
+conda install --channel conda-forge {package_name}
 conda list --revisions # list all the revisions of the environment
  # install a specific revision of the environment
 conda install --revision {revision_number}
@@ -267,81 +280,91 @@ host. To install docker on ubuntu, follow
 [this](https://docs.docker.com/engine/install/ubuntu/) tutorial.
 
 <!-- ```bash
-docker run -it --rm -v $(pwd):/app -w /app python:3.7 bash
+docker run -it --rm -v $(pwd):/app -w /app python:3.14-slim bash
 ``` -->
 
-#### Dockering a python script
+#### Containerizing a Python script
 
 ```docker
 # Dockerfile
-FROM python:3.7
-WORKDIR ["/app"]
+FROM python:3.14-slim
+WORKDIR /app
 COPY ["requirements.txt", "/app"]
-RUN ["pip", "install", "--no-cache-dir", "upgrade", "-r", "requirements.txt"]
-COPY ["app.py", "/app"] # copy the app.py file to the /app directory if you want to run the app
+RUN python -m pip install --no-cache-dir -r requirements.txt
+COPY app.py /app/app.py
 CMD ["python", "app.py"]
 ```
 
-Alternatively, you can use docker-compose to build and run the docker container.
+Alternatively, you can use docker compose to build and run the docker container.
 
-```docker
-# docker-compose.yml
+```yaml
+# compose.yaml
 services:
-    app-csv:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        volumes:
-            - .:/app
+  app-csv:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
 ```
 
 ```bash
-docker-compose build
-docker-compose up -d
-docker-compose ps
-docker-compose logs
-docker-compose exec app-csv bash
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose logs
+docker compose exec app-csv bash
 cd /app
 python3 app.py
 exit
-docker-compose down
+docker compose down
 ```
 
-#### Dockering a flask app
+#### Containerizing an ASGI app
+
+This assumes `app.py` exports an ASGI application named `app` (for example,
+FastAPI) and `requirements.txt` includes Uvicorn and the framework. A Flask app
+uses WSGI and needs a WSGI server or an ASGI adapter. The Dockerfile syntax is
+documented in the
+[Dockerfile reference](https://docs.docker.com/reference/dockerfile/).
 
 ```docker
 # Dockerfile
-FROM python:3.7
-WORKDIR ["/app"]
+FROM python:3.14-slim
+WORKDIR /app
 COPY ["requirements.txt", "/app"]
-RUN ["pip", "install", "--no-cache-dir", "upgrade", "-r", "requirements.txt"]
-COPY ["/app", "/app"]
+RUN python -m pip install --no-cache-dir -r requirements.txt
+COPY . /app
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
 ```
 
-```docker
-# docker-compose.yml
+```yaml
+# compose.yaml
 services:
-    app-flask:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        volumes:
-            - .:/app
-        ports:
-            - "80:80"
+  app-asgi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "80:80"
 ```
 
 ```bash
-docker-compose build
-docker-compose up -d
-docker-compose ps
+docker compose build
+docker compose up -d
+docker compose ps
 ```
 
-### Recommendations
+### Choosing a tool
 
-- Use `mamba` to manage the versions of Python.
-- Use `pipenv` to manage the packages of your project.
+- Use `venv` and pip for a simple Python-only project.
+- Use Pipenv when you want a Pipfile and lockfile workflow.
+- Use Conda or Mamba when managing Python together with native dependencies.
+- Use pyenv when you need to install and select multiple Python interpreters.
+
+These are alternative workflows; you do not need to stack all of them.
 
 #### Divide and conquer
 

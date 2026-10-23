@@ -95,7 +95,7 @@ son pares. Entonces la segunda suma es par. Pero todos sus términos son impares
 y una suma de números impares solo es par si tiene un número par de términos.
 Así que hay un número par de vértices de grado impar. ∎
 
-Por eso no existe un grafo con cinco vértices de grado 3: la suma de grados
+Por eso no existe un grafo de exactamente cinco vértices, todos de grado 3: la suma de grados
 sería 15, un número impar. Y en cualquier reunión, el número de personas que
 dieron un número impar de apretones de manos es par.
 
@@ -146,7 +146,9 @@ ese número, sin importar quién ganó cada partido.
 
 Muchas propiedades de un grafo dirigido no dependen del sentido de sus aristas.
 Al ignorar los sentidos se obtiene su **grafo no dirigido subyacente**, que
-tiene el mismo número de aristas.
+conserva las aristas si mantenemos los lazos y las aristas paralelas. Algunas
+bibliotecas simplifican el resultado y fusionan arcos opuestos, en cuyo caso el
+número de aristas puede disminuir.
 
 ## Familias especiales de grafos
 
@@ -186,7 +188,8 @@ vértices tiene grado `n − 1`, así que `m = n(n − 1)/2`.
 Estas familias también son topologías de red. En una red de área local en
 **estrella** todos los equipos se conectan a un concentrador central, y su grafo
 es K₁,ₙ. En una red en **anillo** cada equipo se conecta con dos vecinos, y su
-grafo es Cₙ. Una red **híbrida** combina las dos, y su grafo es Wₙ. Los
+grafo es Cₙ. Una red que combina ese anillo con un centro unido a todos sus vértices tiene
+grafo Wₙ; «híbrida» también puede referirse a otras combinaciones. Los
 hipercubos se usan como redes de interconexión en computación paralela: Qₙ
 conecta `2ⁿ` procesadores, cada uno con solo `n` enlaces, y cualquier mensaje
 llega a su destino en a lo sumo `n` saltos.
@@ -293,7 +296,9 @@ los tocan, y quedarnos con un grafo más pequeño.
 - **Contraer una arista** `e = {u, v}` fusiona sus extremos en un vértice nuevo
   `w`. Las aristas que no tocaban a `u` ni a `v` se conservan, y `w` queda
   conectado con cada vecino de `u` o de `v`. El resultado tiene un vértice menos
-  y, en general, no es un subgrafo de `G`.
+  y, en general, no es un subgrafo de `G`. En esta ilustración se elimina la
+  arista contraída y se fusionan las aristas paralelas para mantener un grafo
+  simple; algoritmos como Karger conservan esas multiplicidades.
 - La **unión** de dos grafos simples `G1 = (V1, E1)` y `G2 = (V2, E2)` es el
   grafo simple `G1 ∪ G2 = (V1 ∪ V2, E1 ∪ E2)`.
 

@@ -38,19 +38,20 @@ this model is crucial for grasping how data moves across networks.
    network.
 
 2. **Transport Layer**: Responsible for end-to-end communication between
-   devices, this layer ensures that data is delivered reliably and in the
-   correct order. Two primary protocols operate at this layer: TCP (Transmission
-   Control Protocol) provides reliable, ordered delivery with error checking,
-   making it suitable for applications like email and file transfer where
-   accuracy matters. UDP (User Datagram Protocol) offers faster but unreliable
-   delivery, making it ideal for real-time applications like video streaming and
-   online gaming where speed matters more than perfection.
+   applications. Reliability and ordering depend on the protocol. Two common
+   protocols are: TCP (Transmission Control Protocol) provides reliable, ordered
+   delivery with error checking, making it suitable for applications like email
+   and file transfer where accuracy matters. UDP (User Datagram Protocol) sends
+   datagrams without built-in delivery or ordering guarantees. It has less
+   protocol overhead, but is not universally faster; applications can add
+   reliability above it.
 
 3. **Internet Layer**: This layer handles routing—determining the best path for
    data packets to travel across networks. The Internet Protocol (IP) is the
-   primary protocol here, responsible for addressing and fragmenting data into
-   packets. Every device connected to the internet has an IP address, which is
-   used to identify and route data to the correct destination.
+   primary protocol here, providing addressing and best-effort packet delivery.
+   Addresses identify interfaces, which can have multiple addresses; many
+   devices share a public IPv4 address through NAT. IPv4 permits router
+   fragmentation, while IPv6 routers do not fragment packets.
 
 4. **Link Layer**: Also called the network interface or data link layer, this
    layer manages the physical transmission of data over network media. Protocols
@@ -81,7 +82,9 @@ protocols interact.
 3. **Session Layer**: This layer manages sessions between applications. It
    establishes, maintains, and terminates connections between computers. Think
    of it as the layer that keeps conversations between applications organized—it
-   handles things like user login sessions and dialogue control.
+   models dialogue control and synchronization. Web login sessions are normally
+   implemented at the application layer; OSI is a conceptual model, not a
+   literal mapping of every modern protocol.
 
 4. **Transport Layer**: Providing end-to-end communication and error recovery,
    this layer is equivalent to the TCP/IP transport layer. It includes protocols
@@ -127,13 +130,14 @@ to each device on a network that uses IP for communication.
 
 ### IPv4
 
-IPv4 (Internet Protocol version 4) is the most widely used version. An IPv4
-address consists of four octets separated by dots, each octet ranging from 0
-to 255. For example: `192.168.1.1`. This gives us a theoretical maximum of about
-4.3 billion unique addresses, which seemed sufficient when IPv4 was designed in
-1981 but is now insufficient for the number of internet-connected devices.
+IPv4 (Internet Protocol version 4) uses 32-bit addresses. An IPv4 address
+consists of four octets separated by dots, each octet ranging from 0 to 255. For
+example: `192.168.1.1`. This gives us a theoretical maximum of about 4.3 billion
+unique addresses, which seemed sufficient when IPv4 was designed in 1981 but is
+now insufficient for the number of internet-connected devices.
 
-IP addresses are divided into classes and ranges:
+Modern networks use classless prefixes (CIDR), rather than the historical class
+A/B/C system. RFC 1918 reserves these private IPv4 ranges:
 
 - **Private ranges**: Used for internal networks and not routable on the public
   internet
@@ -173,8 +177,9 @@ While IP addresses are essential for routing, humans prefer to use memorable
 names. The Domain Name System (DNS) is the protocol that translates
 human-friendly domain names into IP addresses.
 
-When you type `www.example.com` into your browser, here's what happens behind
-the scenes:
+For an uncached name, a simplified DNS lookup proceeds as follows. Browser,
+operating-system and resolver caches can skip some or all of these queries;
+aliases can require additional lookups:
 
 1. Your computer queries a DNS resolver (usually provided by your ISP)
 2. The resolver queries a root nameserver, which directs it to the appropriate
@@ -201,16 +206,18 @@ purposes:
 
 ### TCP (Transmission Control Protocol)
 
-TCP is a **connection-oriented** protocol that guarantees reliable delivery:
+TCP is a **connection-oriented** protocol providing a reliable, ordered byte
+stream while a connection succeeds. A connection can still fail or time out; TCP
+does not guarantee that an application processed a message.
 
 - Establishes a connection before sending data (three-way handshake)
-- Ensures all data arrives in the correct order
+- Presents received bytes to the application in order
 - Detects and retransmits lost packets
 - Provides flow control and error checking
-- Slower due to overhead, but more reliable
+- Adds acknowledgment, congestion-control and retransmission overhead
 
-TCP is ideal for applications where accuracy is critical: web browsing (HTTP),
-email (SMTP, POP3, IMAP), file transfer (FTP), and secure shell access (SSH).
+TCP is used by applications such as HTTP/1.1 and HTTP/2, email (SMTP, POP3,
+IMAP), file transfer (FTP), and secure shell access (SSH).
 
 ### UDP (User Datagram Protocol)
 
@@ -219,32 +226,33 @@ UDP is a **connectionless** protocol that prioritizes speed over reliability:
 - No connection establishment required
 - Sends data immediately without guaranteeing delivery
 - No automatic retransmission of lost packets
-- Minimal overhead, making it faster
-- Lower latency
+- Small datagram headers
+- Latency and throughput depend on the application and network
 
 UDP is preferred for real-time applications: video and audio streaming, online
 gaming, VoIP, and DNS queries.
 
 **Summary table:**
 
-| Feature     | TCP                       | UDP                     |
-| ----------- | ------------------------- | ----------------------- |
-| Connection  | Connection-oriented       | Connectionless          |
-| Reliability | Guaranteed delivery       | Best effort             |
-| Order       | In-order delivery         | No ordering guarantee   |
-| Speed       | Slower (reliable)         | Faster (lightweight)    |
-| Overhead    | Higher                    | Lower                   |
-| Use Cases   | Web, email, file transfer | Streaming, gaming, VoIP |
+| Feature     | TCP                                       | UDP                     |
+| ----------- | ----------------------------------------- | ----------------------- |
+| Connection  | Connection-oriented                       | Connectionless          |
+| Reliability | Reliable byte stream; connection can fail | No delivery guarantee   |
+| Order       | In-order delivery                         | No ordering guarantee   |
+| Speed       | Workload-dependent                        | Workload-dependent      |
+| Overhead    | Higher                                    | Lower                   |
+| Use Cases   | Web, email, file transfer                 | Streaming, gaming, VoIP |
 
 ## HTTP/HTTPS: Brief Overview
 
 HTTP (HyperText Transfer Protocol) is the foundation of the World Wide Web. It's
-an application-layer protocol built on TCP that defines how messages are
-formatted and transmitted between web clients (browsers) and servers.
+an application-layer protocol that defines communication between clients and
+servers. HTTP/1.1 and HTTP/2 commonly use TCP; HTTP/3 uses QUIC over UDP. See
+[RFC 9114](https://www.rfc-editor.org/rfc/rfc9114.html).
 
-HTTPS is the secure version of HTTP, using TLS/SSL encryption to protect data in
-transit. This encryption prevents attackers from intercepting and reading
-sensitive information like passwords and credit card numbers.
+HTTPS protects HTTP with TLS, providing encryption, integrity and server
+authentication when certificates are correctly validated. SSL is obsolete. HTTPS
+does not make a malicious endpoint trustworthy or conceal all traffic metadata.
 
 HTTP/HTTPS are request-response protocols:
 
@@ -253,8 +261,8 @@ HTTP/HTTPS are request-response protocols:
 3. Server sends an HTTP response (with status code and body)
 
 For a deeper dive into web protocols and how modern web frameworks handle HTTP,
-see our article on [WSGI vs ASGI](/blog/wsgi-vs-asgi)—it explores how Python web
-applications process HTTP requests at scale.
+see our article on [WSGI vs ASGI](/portfolio/blog/wsgi-vs-asgi-protocols/)—it
+explores how Python web applications process HTTP requests at scale.
 
 ## Common Network Tools
 
@@ -303,7 +311,7 @@ useful for troubleshooting DNS issues.
 # Look up A record for example.com
 nslookup example.com
 
-# Output:
+# Illustrative output; actual addresses change:
 # Server:  8.8.8.8
 # Address: 8.8.8.8#53
 #
@@ -323,14 +331,14 @@ statistics. It's essential for understanding what network activity is happening
 on your system.
 
 ```bash
-# List all listening ports and established connections
+# Linux (net-tools): list listening TCP/UDP sockets and process IDs
 netstat -tulpn
 
 # Output columns:
 # Proto  Local Address  Foreign Address  State
 # tcp    0.0.0.0:22     0.0.0.0:*        LISTEN
 # tcp    0.0.0.0:80     0.0.0.0:*        LISTEN
-# tcp6   ::1:3000       ::1:54321        ESTABLISHED
+# Use netstat -tunap for both listening and non-listening sockets.
 
 # Find what's listening on a specific port
 netstat -tulpn | grep 8080
@@ -366,7 +374,8 @@ returning to these fundamental concepts repeatedly.
   Approach_ (8th ed.). Pearson.
 - Internet Engineering Task Force (IETF). (1981). _RFC 791: Internet Protocol_.
   Retrieved from <https://tools.ietf.org/html/rfc791>
-- Internet Engineering Task Force (IETF). (1981). _RFC 793: Transmission Control
-  Protocol_. Retrieved from <https://tools.ietf.org/html/rfc793>
+- Internet Engineering Task Force (IETF). (2022).
+  [RFC 9293: Transmission Control Protocol](https://www.rfc-editor.org/rfc/rfc9293.html),
+  which supersedes RFC 793.
 - Cloudflare Learning Center. (2026). _Network Fundamentals_. Retrieved from
-  <https://learning.cloudflare.com/>
+  <https://www.cloudflare.com/learning/network-layer/what-is-a-computer-network/>

@@ -1,7 +1,0 @@
-
-# Commit title: [class]\[type]([scope]): #[issue-number] [title]
-#
-# class: config | content | style | all | job | doc
-# type: rever | feat | perf | fix | refac | test | style
-# scope: front | back | infra | conf | build | cross
-#

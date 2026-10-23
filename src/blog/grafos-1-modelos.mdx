@@ -13,8 +13,11 @@ snippet:
   code: |
     # G = (V, E): cada vértice con la lista de sus vecinos
     red = {
+        "San Francisco": ["Los Ángeles", "Denver"],
+        "Los Ángeles": ["San Francisco", "Denver"],
         "Denver": ["San Francisco", "Los Ángeles", "Chicago"],
         "Chicago": ["Denver", "Nueva York"],
+        "Nueva York": ["Chicago"],
     }
 ---
 
@@ -159,20 +162,20 @@ clásicos que trae el capítulo, agrupados por área:
 
 En un **grafo de conocidos** cada persona es un vértice y una arista une a dos
 personas que se conocen. No hacen falta aristas múltiples ni lazos, así que es
-un grafo simple. El grafo de conocidos de toda la humanidad tendría más de seis
-mil millones de vértices y probablemente más de un billón de aristas.
+un grafo simple. Su tamaño depende de la población y de qué entendamos por
+«conocerse»; no hay un censo completo de esas relaciones.
 
 En un **grafo de influencia** la relación ya no es simétrica: que Deborah pueda
 influir en Brian no significa que Brian pueda influir en Deborah, así que las
 aristas son dirigidas. En un **grafo de colaboración** dos personas quedan
 unidas si trabajaron juntas. El **grafo de Hollywood**, que une a dos actores si
-actuaron en la misma película o programa, tenía más de 2,9 millones de vértices
-a comienzos de 2018. El grafo de colaboración académica en matemáticas tenía más
-de 400 000 vértices y 675 000 aristas en 2004.
+actuaron en la misma película o programa, es un ejemplo. El grafo de
+colaboración académica une a quienes firman juntos una publicación; sus conteos
+dependen de la base bibliográfica y de la fecha de consulta.
 
 Los **grafos de llamadas** son multigrafos dirigidos: importa quién llamó a
-quién y cuántas veces. Un grafo de llamadas estudiado en AT&T, con veinte días
-de llamadas, tenía unos 290 millones de vértices y 4000 millones de aristas.
+quién y cuántas veces. Para interpretar su tamaño hay que especificar el
+operador, la ventana temporal y si los vértices representan teléfonos o personas.
 
 ### Redes de información y de software
 
@@ -198,15 +201,13 @@ necesita un grafo mixto.
 En ecología, un **grafo de superposición de nichos** une a dos especies que
 compiten por los mismos recursos. En biología molecular, un **grafo de
 interacción entre proteínas** une a dos proteínas que interactúan en la célula.
-Las células de levadura tienen más de 6000 proteínas y se conocen más de 80 000
-interacciones entre ellas; las células humanas tienen más de 100 000 proteínas y
-quizá hasta 1 000 000 de interacciones. Por eso estos grafos se estudian por
-**módulos**: grupos pequeños de proteínas que cumplen juntas una función.
+Los conteos varían según se distingan genes, isoformas o modificaciones de una
+proteína, y según el método de detección. Estos grafos pueden estudiarse por
+**módulos**: grupos de proteínas que participan en una función común.
 
 En una **red semántica** los vértices son palabras y las aristas unen palabras
-de significado parecido. Con el Corpus Nacional Británico, de 100 millones de
-palabras, se construyó un grafo de unos 100 000 sustantivos y 500 000 aristas.
-Alrededor de la palabra _mouse_ aparecen dos vecindarios separados: el de los
+de significado parecido. Una palabra polisémica como _mouse_ puede conectar
+vecindarios semánticos diferentes: el de los
 animales y el del hardware, que es justo la información que necesita un programa
 de comprensión del lenguaje para decidir de qué ratón se habla.
 
@@ -219,8 +220,8 @@ que solo salen aristas, y uno sin victorias es un vértice al que solo llegan.
 
 ## Un modelo en detalle: ejecución concurrente
 
-Un programa se ejecuta más rápido si algunas de sus instrucciones corren al
-mismo tiempo. La restricción es que ninguna instrucción puede ejecutarse antes
+Un programa puede ejecutarse más rápido si algunas instrucciones corren en
+paralelo y el ahorro supera el costo de coordinación. La restricción es que ninguna instrucción puede ejecutarse antes
 de que estén listos los resultados que necesita. Esa dependencia se representa
 con un **grafo de precedencia**: cada declaración es un vértice y hay una arista
 de una declaración a otra si la segunda no puede ejecutarse antes de que termine
@@ -248,7 +249,8 @@ sobrescribe la `e` que escribió `S5`, así que debe ir después de `S3`, `S4` y
 
 La primera ronda ejecuta todo lo que no tiene predecesores; cada ronda siguiente
 ejecuta todo lo que ya tiene listos sus predecesores. El grafo responde dos
-preguntas de diseño a la vez: cuántos procesadores sirven de algo (dos, porque
+preguntas para este modelo, suponiendo instrucciones de igual duración,
+procesadores disponibles y coordinación sin costo: cuántos procesadores sirven de algo (dos, porque
 ninguna ronda tiene más de dos declaraciones) y cuál es el mínimo de rondas
 (cuatro, el largo de la cadena más larga). El mismo cálculo en Python:
 
@@ -272,6 +274,8 @@ pendientes = set(vertices)
 numero = 1
 while pendientes:
     listas = {v for v in pendientes if predecesores[v] <= ronda.keys()}
+    if not listas:
+        raise ValueError("El grafo contiene un ciclo")
     for v in listas:
         ronda[v] = numero
     pendientes -= listas

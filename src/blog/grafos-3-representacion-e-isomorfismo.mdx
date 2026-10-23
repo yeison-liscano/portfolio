@@ -81,13 +81,17 @@ Tres propiedades salen de la definición. La matriz de un grafo no dirigido es
 **simétrica**, porque `{vi, vj}` y `{vj, vi}` son la misma arista. La diagonal
 de un grafo simple es cero, porque no hay lazos. Y la suma de la fila `i` es el
 grado de `vi`. La matriz depende del orden elegido para los vértices: con `n`
-vértices hay `n!` órdenes posibles y, en general, `n!` matrices distintas para
-el mismo grafo.
+vértices hay `n!` órdenes posibles, pero no necesariamente `n!` matrices
+distintas: las simetrías pueden producir la misma matriz. En Kₙ todos los
+órdenes dan la misma matriz.
 
-La definición se extiende sin cambios a otros tipos de grafos. En un multigrafo,
+La representación se adapta a otros tipos de grafos. En un multigrafo,
 la entrada `(i, j)` es el número de aristas entre `vi` y `vj`; un lazo en `vi`
-se registra en la diagonal. En un grafo dirigido, `a_ij = 1` si hay una arista
-de `vi` a `vj`, y la matriz deja de ser simétrica.
+se registra una vez en la diagonal con la convención de conteo de recorridos,
+así que la suma de fila no cuenta dos veces ese lazo como exige el grado.
+Otras convenciones ponen un 2 por lazo: hay que declarar cuál se usa. En un
+grafo dirigido simple, `a_ij = 1` si hay un arco de `vi` a `vj`; la matriz
+puede ser asimétrica, aunque es simétrica si todos los arcos tienen su opuesto.
 
 ## Matrices de incidencia
 
@@ -100,9 +104,10 @@ m_ij = 1   si la arista ej es incidente con vi
 m_ij = 0   en caso contrario
 ```
 
-Cada columna tiene exactamente dos unos, los de los dos extremos de su arista
-(un lazo deja un solo uno). Las aristas múltiples aparecen como columnas
-idénticas. La suma de una fila vuelve a ser el grado del vértice.
+Sin lazos, cada columna tiene dos unos y la suma de fila es el grado. Con la
+definición binaria anterior, un lazo deja un solo uno y esa igualdad falla: se
+debe contar el lazo dos veces aparte o usar la convención de incidencia con 2
+para los lazos. Las aristas paralelas producen columnas idénticas.
 
 El explorador muestra el mismo grafo en las tres representaciones. Al elegir un
 vértice se resaltan sus aristas en el dibujo, su entrada en la lista, su fila y
@@ -119,17 +124,17 @@ La elección depende de si el grafo es **denso** (muchas aristas, cerca de
 `n²/2`) o **disperso** (pocas aristas, cerca de `n`), y de qué operaciones se
 repiten más:
 
-| Operación                   | Lista de adyacencia | Matriz de adyacencia |
-| --------------------------- | ------------------- | -------------------- |
-| Memoria                     | `O(n + m)`          | `O(n²)`              |
-| ¿Son `u` y `v` adyacentes?  | `O(deg(u))`         | `O(1)`               |
-| Recorrer los vecinos de `u` | `O(deg(u))`         | `O(n)`               |
-| Agregar una arista          | `O(1)`              | `O(1)`               |
+| Operación                   | Lista de adyacencia                      | Matriz de adyacencia |
+| --------------------------- | ---------------------------------------- | -------------------- |
+| Memoria                     | `O(n + m)`                               | `O(n²)`              |
+| ¿Son `u` y `v` adyacentes?  | `O(deg(u))`                              | `O(1)`               |
+| Recorrer los vecinos de `u` | `O(deg(u))`                              | `O(n)`               |
+| Agregar una arista          | `O(1)` amortizado, sin buscar duplicados | `O(1)`               |
 
-La mayoría de los grafos reales son dispersos. En el grafo de llamadas de AT&T
-de la parte I, con unos 290 millones de vértices, una matriz de adyacencia
-tendría del orden de `8 × 10¹⁶` entradas, casi todas en cero, mientras que las
-listas de adyacencia solo guardan las 4000 millones de aristas. Por eso las
+Muchos grafos de redes son dispersos. En un ejemplo hipotético con 290 millones
+de vértices y 4000 millones de aristas, una matriz densa tendría
+`8,41 × 10¹⁶` entradas. Las listas guardan los vértices y las aristas, con dos
+entradas de vecino por arista no dirigida sin lazo. Por eso las
 bibliotecas de grafos, como NetworkX, usan listas (diccionarios) por defecto. La
 matriz conviene en grafos pequeños o densos, y cuando se quiere aprovechar el
 álgebra lineal.
@@ -142,7 +147,7 @@ exactamente cuando `vi — vk — vj` es un recorrido de dos aristas. Así que
 `(A²)_ij` es el número de caminos de longitud 2 de `vi` a `vj`, y en general
 **la entrada `(i, j)` de `Aʳ` es el número de caminos de longitud `r` de `vi` a
 `vj`** (caminos que pueden repetir vértices; los definimos con cuidado en la
-parte IV). En la diagonal de `A²` aparece el grado de cada vértice: un camino de
+parte IV). Para un grafo simple no dirigido, en la diagonal de `A²` aparece el grado de cada vértice: un camino de
 longitud 2 de `v` a `v` es ir a un vecino y volver.
 
 ```python
@@ -200,7 +205,7 @@ Decidir si dos grafos son isomorfos es difícil en general. Con `n` vértices ha
 `n!` biyecciones posibles, y revisar cada una deja de ser práctico muy rápido:
 con 20 vértices ya son más de `2 × 10¹⁸`. No se conoce un algoritmo de tiempo
 polinomial para el problema general; en 2015 László Babai anunció uno de tiempo
-cuasipolinomial, el mayor avance en décadas.
+cuasipolinomial; véase su [artículo original](https://arxiv.org/abs/1512.03547).
 
 Demostrar que dos grafos **no** son isomorfos suele ser más fácil. Basta
 encontrar una propiedad que se conserve bajo isomorfismos y que solo uno de los

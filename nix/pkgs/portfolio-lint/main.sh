@@ -23,15 +23,6 @@ function _lint_secrets {
   gitleaks --verbose detect --log-opts="HEAD...HEAD^"
 }
 
-function _lint_commit {
-  local commitlint_config="${1}"
-  local commitlint_parser="${2}"
-
-  echo "[INFO] Linting Commit messages"
-
-  git log -1 --pretty=%B HEAD | commitlint --parser-preset "${commitlint_parser}" --config "${commitlint_config}"
-}
-
 function _lint_nix {
   local target="${1}"
   local files_tmp
@@ -82,14 +73,11 @@ function _lint_shell {
 }
 
 function main {
-  local commitlint_config="${1}"
-  local commitlint_parser="${2}"
   local target
 
   target="$(git rev-parse --show-toplevel)"
 
   _lint_secrets
-  _lint_commit "${commitlint_config}" "${commitlint_parser}"
   _lint_nix "${target}"
   _lint_shell "${target}"
   portfolio-markdownlint

@@ -49,7 +49,7 @@ un cruce, pero si una de las diagonales rodea el cuadrado por fuera, el cruce
 desaparece. Para demostrar que un grafo **no** es planar hay que descartar todos
 los dibujos posibles a la vez, y para eso hace falta un argumento.
 
-<Figure caption="A la izquierda, K₄ con sus dos diagonales cruzadas. En el centro, la diagonal resaltada rodea el cuadrado y el mismo grafo queda sin cruces, así que K₄ es planar. A la derecha, K₃,₃: casas C1, C2, C3 y servicios A, G, E. Una de las tres conexiones largas puede ir por fuera, pero las dos resaltadas siempre se cruzan.">
+<Figure caption="A la izquierda, K₄ con sus dos diagonales cruzadas. En el centro, la diagonal resaltada rodea el cuadrado y el mismo grafo queda sin cruces, así que K₄ es planar. A la derecha, K₃,₃: casas C1, C2, C3 y servicios A, G, E. Una de las tres conexiones largas puede ir por fuera, y las dos resaltadas se cruzan en este dibujo. La imposibilidad de eliminar todos los cruces se demuestra abajo.">
   <Planaridad />
 </Figure>
 
@@ -89,7 +89,7 @@ ambos casos `v − e + f` no cambia.
 El **grado de una región** es el número de aristas en su frontera, contando dos
 veces una arista que se recorre dos veces al rodearla. Cada arista toca dos
 regiones o la misma región dos veces, así que la suma de los grados de las
-regiones es `2e`. En un grafo simple con al menos tres vértices, cada región
+regiones es `2e`. En una representación planar de un grafo simple conexo con al menos tres vértices, cada región
 tiene grado al menos 3. De ahí salen tres desigualdades:
 
 > **Corolario 1.** Si `G` es un grafo planar simple conexo con `e` aristas y
@@ -147,8 +147,8 @@ lineal, `O(n)`, con el algoritmo de Hopcroft y Tarjan (1974).
 Al pintar un mapa, dos regiones que comparten frontera deben tener colores
 distintos (dos regiones que solo se tocan en un punto no cuentan como vecinas).
 Un mapa se convierte en un grafo, su **grafo dual**: cada región es un vértice y
-dos vértices son adyacentes si sus regiones comparten frontera. El grafo dual de
-un mapa en el plano es planar, y pintar el mapa es colorear los vértices de ese
+dos vértices son adyacentes si sus regiones comparten frontera. Para regiones conexas de un mapa plano, este grafo de adyacencia es planar
+(omitiendo lazos y fusionando aristas paralelas del dual), y pintar el mapa es colorear los vértices de ese
 grafo.
 
 > **Definición.** Una **coloración** de un grafo simple es una asignación de un
@@ -163,7 +163,8 @@ Algunos valores salen de inmediato:
 - `χ(Kₙ) = n`: todos los vértices son vecinos entre sí, así que todos necesitan
   colores distintos.
 - `χ(G) ≤ 2` si y solo si `G` es bipartito, por el teorema de los dos colores de
-  la parte II. En particular, `χ(Kₘ,ₙ) = 2` y `χ(Qₙ) = 2`.
+  la parte II. En particular, `χ(Kₘ,ₙ) = 2` para `m, n ≥ 1` y
+  `χ(Qₙ) = 2` para `n ≥ 1`.
 - `χ(Cₙ) = 2` si `n` es par y `3` si `n` es impar: un ciclo impar no es
   bipartito, y basta usar un tercer color en un solo vértice.
 

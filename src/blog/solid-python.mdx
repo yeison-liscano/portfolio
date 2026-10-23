@@ -20,8 +20,8 @@ import Figure from "../components/blog/Figure.astro";
 import DependencyInversion from "./components/solid-python/DependencyInversion.astro";
 
 The SOLID principles are five design guidelines that help developers write code
-that is more understandable, flexible, and maintainable. Coined by Robert C.
-Martin, these principles form the foundation of object-oriented design and are
+that is more understandable, flexible, and maintainable. Popularized by Robert C.
+Martin, these principles bring together ideas from several authors and are
 applicable across programming languages, including Python. This article explores
 each principle with practical Python examples that demonstrate how to apply them
 in real-world scenarios.
@@ -30,7 +30,8 @@ in real-world scenarios.
 
 > A class should have only one reason to change.
 
-In other words, a class should have only one responsibility or job. This
+A reason to change corresponds to a responsibility to an actor or stakeholder
+group. It does not mean a class must have only one method. This
 principle helps to keep classes small, focused, and maintainable. When a class
 has multiple responsibilities, changes to one responsibility can inadvertently
 break another, making the code harder to test and understand.
@@ -40,7 +41,11 @@ notifications. If the authentication logic needs to change, and the email logic
 also needs to change, the class becomes a point of conflict. By separating these
 concerns into distinct classes, each can evolve independently.
 
-Here's a before-and-after example:
+Here's a before-and-after example. The password comparison is a deliberately
+simplified stand-in for authentication, not a password-storage design. Real
+applications should use a password-hashing library's verification function and
+store salted password hashes, as described in the
+[OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
 
 ```python
 # BEFORE: Violates SRP
@@ -422,13 +427,13 @@ from outside.
 ```python
 # BEFORE: Violates DIP
 class EmailService:
-    def send(self, email: str, message: str):
-        print(f"Sending email to {email}: {message}")
+    def send(self, contact: str, message: str):
+        print(f"Sending email to {contact}: {message}")
 
 
 class SMSService:
-    def send(self, phone: str, message: str):
-        print(f"Sending SMS to {phone}: {message}")
+    def send(self, contact: str, message: str):
+        print(f"Sending SMS to {contact}: {message}")
 
 
 class Notifier:
@@ -455,18 +460,18 @@ class NotificationService(ABC):
 
 
 class EmailService(NotificationService):
-    def send(self, email: str, message: str):
-        print(f"Sending email to {email}: {message}")
+    def send(self, contact: str, message: str):
+        print(f"Sending email to {contact}: {message}")
 
 
 class SMSService(NotificationService):
-    def send(self, phone: str, message: str):
-        print(f"Sending SMS to {phone}: {message}")
+    def send(self, contact: str, message: str):
+        print(f"Sending SMS to {contact}: {message}")
 
 
 class PushNotificationService(NotificationService):
-    def send(self, device_id: str, message: str):
-        print(f"Sending push notification to {device_id}: {message}")
+    def send(self, contact: str, message: str):
+        print(f"Sending push notification to {contact}: {message}")
 
 
 class Notifier:

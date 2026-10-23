@@ -34,10 +34,7 @@ sino la información que necesitan y lo que entregan a la fase siguiente.
 
 Para que las diferencias sean concretas, este artículo sigue un solo problema de
 principio a fin: una tienda en línea con 1900 clientes activos quiere que menos
-clientes dejen de comprar, lo que se conoce como **abandono** o _churn_. Las
-fases aparecen en el orden en que las presenta la diapositiva que dio origen a
-este artículo: descriptivo, predictivo, diagnóstico y prescriptivo. Al final
-explico por qué otro orden muy citado intercambia la segunda y la tercera.
+clientes dejen de comprar, lo que se conoce como **abandono** o _churn_.
 
 <Figure caption="Una tienda en línea que quiere perder menos clientes recorre las cuatro fases. Cada salida alimenta la fase siguiente, y la decisión final produce los datos con los que empieza la próxima vuelta.">
   <Stepper
@@ -79,7 +76,7 @@ entre quienes registraron una queja y al 60 % entre quienes llevan más de 60
 días sin comprar. Los días desde la última compra y el número de quejas se
 mueven junto con el abandono.
 
-La diapositiva pregunta en esta fase "¿qué está sucediendo y por qué?", y la
+Buscamos responder a la pregunta "¿qué está sucediendo y por qué?", y la
 segunda mitad merece cuidado: una correlación sugiere un "por qué", pero no lo
 demuestra. Que los clientes con quejas se vayan más puede deberse a la queja, a
 un producto defectuoso que causó ambas cosas o a cualquier otra variable que no
@@ -217,11 +214,7 @@ Es un problema de **programación lineal**. Como todos los cupones cuestan lo
 mismo, su solución es sencilla: llenar primero los segmentos con mayor neto por
 cupón y no dar cupones donde el neto es negativo, igual que en la mochila
 fraccionaria. Con más tipos de acción, costos distintos o restricciones enteras
-se usan programación entera, simulación o aprendizaje por refuerzo. Las tres
-palabras de la diapositiva corresponden a familias de estos problemas:
-**asignación** (repartir recursos), **decisión** (elegir entre acciones bajo
-incertidumbre) y **planificación** (ordenar acciones en el tiempo, como rutas,
-turnos o producción).
+se usan programación entera, simulación o aprendizaje por refuerzo.
 
 <Figure caption="Mueve el presupuesto y cambia de estrategia. Con $2500, la estrategia óptima retiene a 51 clientes y deja $5600 de beneficio neto; repartir por riesgo retiene a 36 y deja $2600, porque gasta $1500 en clientes inactivos a los que el cupón casi no cambia.">
   <AsignacionCupones />
@@ -241,10 +234,10 @@ restricción produce una decisión precisa y equivocada.
 
 ## ¿Cuál es el orden correcto?
 
-El orden más citado no es el de la diapositiva. El modelo de madurez analítica
-de Gartner pone el **diagnóstico en segundo lugar** y el **predictivo en
-tercero**. Las dos versiones son coherentes, porque ordenan con criterios
-distintos.
+El modelo de madurez analítica de Gartner pone el **diagnóstico en segundo
+lugar**
+y el **predictivo en tercero**. Las dos versiones son coherentes, porque
+ordenan con criterios distintos.
 
 <Figure caption="Las mismas cuatro fases en dos órdenes. Gartner va de mirar atrás a mirar adelante. La presentación va de observar asociaciones a intervenir y, al final, decidir.">
   <DosOrdenes />
@@ -282,12 +275,3 @@ cuando la pregunta es qué pasa si actúo.
 Cada fase depende de lo que entrega la anterior, y la decisión final cierra el
 ciclo: al ejecutarse, produce los datos que la próxima vuelta del análisis
 descriptivo va a resumir.
-
-## Referencias
-
-- Hernán, M. A., Hsu, J., & Healy, B. (2019). A second chance to get causal
-  inference right: A classification of data science tasks. _Chance_.
-  [doi:10.1080/09332480.2019.1579578](https://doi.org/10.1080/09332480.2019.1579578)
-- Pearl, J., & Mackenzie, D. (2018). _The Book of Why: The New Science of Cause
-  and Effect_. Basic Books.
-- Gartner (2012). _Analytic Ascendancy Model_.

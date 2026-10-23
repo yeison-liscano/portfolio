@@ -2,15 +2,16 @@
 title: gRPC
 pubDate: 2026-03-22
 description:
-  "An introduction to gRPC: how it works, why it outperforms REST for
-  microservices, and how to define services with Protocol Buffers. Includes
-  Python examples."
+  "An introduction to gRPC: how it works, its trade-offs against REST APIs, and
+  how to define services with Protocol Buffers. Includes Python examples."
 tags: ["programming", "web"]
 isDraft: true
 snippet:
-  language: "python"
+  language: "proto"
   code: |
     syntax = "proto3";
+    message HelloRequest { string name = 1; }
+    message HelloReply { string message = 1; }
     service Greeter {
       rpc SayHello (HelloRequest) returns (HelloReply) {}
     }
@@ -20,42 +21,37 @@ snippet:
 
 gRPC is a modern, open-source, high-performance remote procedure call (RPC)
 framework developed by Google that enables seamless communication between
-clients and servers across different programming languages and platforms. Unlike
-traditional HTTP-based APIs like REST, gRPC uses Protocol Buffers (protobuf) as
-its interface definition language and builds on HTTP/2 for efficient,
-bidirectional communication.
+clients and servers across languages. It commonly uses Protocol Buffers for
+service definitions and message serialization, and native gRPC uses HTTP/2. REST
+is an architectural style, not a competing transport protocol; REST APIs can
+also use HTTP/2 or HTTP/3 and typed schemas.
 
-The name "gRPC" stands for "gRPC Remote Procedure Call," with the 'g' originally
-standing for "Google." It was introduced to address limitations in REST APIs for
-distributed systems, particularly in microservice architectures where
-performance, efficiency, and scalability are critical. Today, gRPC is widely
-adopted by companies like Google, Netflix, Cisco, and countless others to power
-their internal and customer-facing services.
+gRPC provides generated client and server interfaces for distributed services.
+Its name is not a reliable expansion of «Google RPC»: the project has used
+different meanings for the letter g across releases.
 
 At its core, gRPC allows you to define services as if you were calling functions
 locally, even though the code runs on a different machine. This abstraction
-simplifies distributed systems development and reduces the conceptual overhead
-of network communication.
+simplifies call syntax, but a remote call still has latency, deadlines and
+partial-failure behavior that a local call does not.
 
 ## Why use gRPC?
 
 ### Performance
 
-gRPC operates over HTTP/2, which introduces several performance improvements
-over HTTP/1.1. HTTP/2 uses binary framing instead of text, multiplexing instead
-of sequential requests, and header compression via HPACK. These features combine
-to dramatically reduce bandwidth usage and latency. In benchmarks, gRPC
-typically achieves 7-10x better throughput and significantly lower latency
-compared to REST APIs, making it ideal for latency-sensitive applications.
+Native gRPC uses HTTP/2 framing, multiplexed streams and header compression.
+These can reduce overhead, especially with reused connections and compact
+messages. There is no general 7–10× throughput advantage over REST: results
+depend on transport versions, payloads, serialization, caching and runtime.
 
 ### HTTP/2 Advantages
 
-HTTP/2's multiplexing capability allows multiple requests and responses to
-travel simultaneously over a single TCP connection, eliminating the head-of-line
-blocking problem that plagues HTTP/1.1. Additionally, server push and stream
-prioritization enable more intelligent resource delivery. For high-frequency
-communication patterns, such as IoT sensors or real-time data streams, these
-benefits are substantial.
+Multiplexing lets several streams share one connection without waiting for an
+entire HTTP response to finish. It removes HTTP/1.1 response-order blocking on
+that connection, but **TCP packet loss can still stall all streams**. HTTP/2
+server push is not what implements gRPC server-streaming RPCs. See
+[RFC 9113](https://www.rfc-editor.org/rfc/rfc9113.html) and the
+[gRPC RPC lifecycle](https://grpc.io/docs/what-is-grpc/core-concepts/).
 
 ### Streaming Support
 
@@ -63,8 +59,8 @@ gRPC provides native, first-class support for streaming in four distinct
 communication patterns: unary (request-response), server streaming, client
 streaming, and bidirectional streaming. This makes gRPC ideal for applications
 that need to continuously push or pull data, such as real-time notifications,
-live data feeds, or chat applications. REST APIs require workarounds like
-webhooks or long-polling to achieve similar functionality.
+live data feeds, or chat applications. HTTP APIs can also stream responses, for
+example using server-sent events; gRPC adds a defined streaming RPC contract.
 
 ### Language-Agnostic
 
@@ -76,10 +72,11 @@ with a Go server without any manual serialization work.
 
 ### Strongly Typed Contracts
 
-Unlike JSON-based REST APIs, gRPC enforces strict schema definition through
-Protocol Buffers. Both client and server agree on exact message types, field
-names, and data types before communication occurs. This eliminates ambiguity and
-makes API evolution more predictable.
+Protocol Buffers define typed messages and generate language bindings. Binary
+messages identify fields by number and wire type, not by field name. A schema
+does not validate every business constraint, and compatible evolution still
+requires discipline. JSON-based APIs can also validate contracts with schemas
+and generate clients from OpenAPI.
 
 ## How gRPC Works
 
@@ -87,8 +84,9 @@ makes API evolution more predictable.
 
 Protocol Buffers (protobuf) is Google's serialization format designed for
 simplicity and efficiency. Instead of JSON or XML, protobuf uses a binary format
-that is smaller and faster to parse. A `.proto` file defines the structure of
-messages and services in a language-agnostic way.
+that can be compact and efficient to parse, depending on the data and
+implementation. A `.proto` file defines the structure of messages and services
+in a language-agnostic way.
 
 Here's the basic anatomy of a `.proto` file:
 
@@ -102,6 +100,9 @@ message Person {
   string email = 3;
 }
 
+message GetPersonRequest { int32 id = 1; }
+message Empty {}
+
 // Define a service with RPC methods
 service PersonService {
   rpc GetPerson (GetPersonRequest) returns (Person) {}
@@ -110,7 +111,9 @@ service PersonService {
 ```
 
 The numbers (1, 2, 3) are field identifiers used in the binary encoding and must
-remain consistent across versions for backward compatibility.
+remain consistent across versions for backward compatibility. Reserve removed
+field numbers and names, and follow the
+[protobuf schema-evolution rules](https://protobuf.dev/programming-guides/proto3/#updating).
 
 ### Service Definitions
 
@@ -123,9 +126,9 @@ understand the contract between client and server.
 
 Once you've written your `.proto` files, the Protocol Buffer compiler (`protoc`)
 generates language-specific code. For Python, it generates classes representing
-messages and stub classes for client/server implementations. You then write the
-business logic in your language of choice, and the generated code handles
-serialization, deserialization, and network transport.
+messages; the gRPC compiler plugin generates client/server service bindings. You
+then write the business logic in your language of choice, and the generated code
+handles serialization, deserialization, and network transport.
 
 ## Protocol Buffers Example
 
@@ -176,9 +179,10 @@ service AuthService {
 }
 ```
 
-This file defines the complete contract for the authentication service. The
-compiler will generate classes for `LoginRequest`, `LoginResponse`, and stub
-implementations for both client and server.
+This file illustrates RPC cardinalities using authentication-themed messages;
+reusing login credentials for chat or token validation is not a production
+authentication design. The compiler will generate classes for `LoginRequest`,
+`LoginResponse`, and stub implementations for both client and server.
 
 ## gRPC vs REST Comparison
 
@@ -197,25 +201,24 @@ excel in different scenarios:
 - **Public APIs**: REST is more familiar to developers integrating third-party
   APIs.
 
-### REST Disadvantages
+### Trade-offs for HTTP APIs
 
-- **Inefficiency**: JSON payloads are larger than protobuf binary messages.
-- **HTTP/1.1 Limitations**: Sequential requests and connection overhead impact
-  latency.
-- **Streaming Complexity**: Real-time features require polling or workarounds.
-- **Lack of Strong Typing**: JSON is flexible but error-prone without strict
-  schema enforcement.
+- JSON may be larger than protobuf, but compression and message shape matter.
+- REST does not require HTTP/1.1; HTTP/2 and HTTP/3 can carry the same API.
+- Streaming support and schema validation depend on the chosen tools and
+  contract.
+- Resource-oriented HTTP APIs can benefit from standard caching semantics.
 
 ### gRPC Advantages
 
-- **Performance**: Binary encoding and HTTP/2 multiplexing provide superior
-  throughput and latency.
+- **Performance**: Compact messages and multiplexing can help; benchmark against
+  equivalent transport, compression, runtime and workload settings.
 - **Streaming**: Native, bidirectional streaming for real-time communication.
 - **Type Safety**: Strong contracts defined in `.proto` files reduce runtime
   errors.
 - **Code Generation**: Automatic, language-specific stubs eliminate boilerplate.
-- **Backward Compatibility**: Protocol Buffers handle schema evolution
-  gracefully.
+- **Schema Evolution**: Compatible changes are supported when field-number and
+  type-compatibility rules are followed.
 
 ### gRPC Disadvantages
 
@@ -228,30 +231,33 @@ excel in different scenarios:
 
 ### Quick Comparison Table
 
-| Feature         | REST              | gRPC                      |
-| --------------- | ----------------- | ------------------------- |
-| Transport       | HTTP/1.1, HTTP/2  | HTTP/2                    |
-| Serialization   | JSON, XML, etc.   | Protocol Buffers (binary) |
-| Streaming       | Polling, webhooks | Native, bidirectional     |
-| Performance     | Good              | Excellent                 |
-| Type Safety     | Weak              | Strong                    |
-| Browser Support | Native            | Requires gRPC-web         |
-| Learning Curve  | Low               | Medium                    |
-| Latency         | Higher            | Lower                     |
-| Bandwidth       | Higher            | Lower                     |
+| Feature        | REST-style HTTP API                    | Native gRPC                            |
+| -------------- | -------------------------------------- | -------------------------------------- |
+| Model          | Resources and HTTP semantics           | Named remote methods                   |
+| Transport      | HTTP/1.1, HTTP/2 or HTTP/3             | HTTP/2                                 |
+| Serialization  | JSON, XML, binary formats, etc.        | Usually Protocol Buffers               |
+| Streaming      | Depends on API and client design       | Defined unary and streaming RPCs       |
+| Contracts      | Optional schemas such as OpenAPI       | Service and message definitions        |
+| Browser access | Browser HTTP APIs                      | Usually a gRPC-Web gateway/client      |
+| Performance    | Depends on workload and implementation | Depends on workload and implementation |
 
 ## Types of gRPC Communication
 
-gRPC supports four communication patterns, each suited to different use cases:
+gRPC supports four communication patterns. The following method declarations and
+client calls are fragments: message types, stubs and input iterators must be
+defined in the surrounding application. The greeting example below is complete.
 
 ### 1. Unary RPC
 
-The simplest pattern: client sends one request, server sends one response.
-Semantically equivalent to a traditional function call.
+The simplest pattern: client sends one request, server sends one response. It
+resembles a function call in syntax, but must handle network errors and
+deadlines.
+
+```proto
+rpc GetUser (GetUserRequest) returns (User) {}
+```
 
 ```python
-# Unary RPC example
-rpc GetUser (GetUserRequest) returns (User) {}
 
 # Client code
 response = stub.GetUser(GetUserRequest(user_id=123))
@@ -262,9 +268,11 @@ response = stub.GetUser(GetUserRequest(user_id=123))
 Client sends one request; server responds with a stream of messages. Useful for
 server pushing data to clients.
 
-```python
-# Server streaming example
+```proto
 rpc ListUsers (Empty) returns (stream User) {}
+```
+
+```python
 
 # Client code
 for user in stub.ListUsers(Empty()):
@@ -277,9 +285,11 @@ Client sends a stream of messages; server responds with one message after
 receiving all client messages. Useful for batch operations or gradual data
 accumulation.
 
-```python
-# Client streaming example
+```proto
 rpc UploadFiles (stream FileChunk) returns (UploadResponse) {}
+```
+
+```python
 
 # Client code
 def chunks():
@@ -294,9 +304,11 @@ response = stub.UploadFiles(chunks())
 Both client and server send streams of messages, allowing for full-duplex
 communication. Perfect for chat, gaming, or collaborative applications.
 
-```python
-# Bidirectional streaming example
+```proto
 rpc Chat (stream Message) returns (stream Message) {}
+```
+
+```python
 
 # Client code
 def messages():
@@ -337,6 +349,7 @@ service Greeter {
 ### Step 2: Generate Python Code
 
 ```bash
+python -m pip install grpcio grpcio-tools
 python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. greeting.proto
 ```
 
@@ -367,7 +380,7 @@ def serve():
     greeting_pb2_grpc.add_GreeterServicer_to_server(
         GreeterServicer(), server
     )
-    server.add_insecure_port('[::]:50051')
+    server.add_insecure_port('127.0.0.1:50051')
     print("Server started on port 50051")
     server.start()
     server.wait_for_termination()
@@ -391,7 +404,7 @@ def run():
         response = stub.SayHello(greeting_pb2.HelloRequest(name='Alice'))
         print(f"Unary response: {response.message}")
 
-        # Server streaming RPC
+        # Bidirectional streaming RPC
         def request_iterator():
             for name in ['Bob', 'Charlie', 'Diana']:
                 yield greeting_pb2.HelloRequest(name=name)
@@ -404,6 +417,11 @@ def run():
 if __name__ == '__main__':
     run()
 ```
+
+Save the server as `server.py` and the client as `client.py`. This local demo
+uses an insecure loopback connection. Remote deployments need appropriate TLS,
+authentication and deadlines. See the
+[gRPC Python quickstart](https://grpc.io/docs/languages/python/quickstart/).
 
 To run this example:
 
@@ -435,14 +453,14 @@ To run this example:
 ## Conclusion
 
 gRPC represents a significant evolution in distributed systems communication. By
-leveraging Protocol Buffers and HTTP/2, it delivers performance and type safety
-that REST struggles to match. However, it introduces complexity that may not be
+combining generated bindings, Protocol Buffers and HTTP/2, it offers explicit
+RPC contracts and streaming. However, it introduces complexity that may not be
 justified for simpler use cases or public-facing APIs.
 
 The choice between gRPC and REST should be driven by your specific requirements:
 if you're optimizing for performance, streaming, and internal microservice
-communication, gRPC is the clear winner. If simplicity and broad compatibility
-matter more, REST remains the pragmatic choice.
+communication, gRPC is a useful candidate to evaluate. If simplicity and broad
+compatibility matter more, REST remains the pragmatic choice.
 
 For modern microservice architectures, many organizations use both: REST for
 public APIs and gRPC for internal service-to-service communication. This hybrid

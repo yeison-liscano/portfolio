@@ -13,6 +13,7 @@ Bixby
 Bradski
 Brealey
 CAPEC
+CISA
 CLAHE
 CLRS
 CNAME
@@ -52,6 +53,7 @@ Francesa
 GRAYSCALE
 Gini
 Gonthier
+Goodhart
 HPACK
 Haejy
 Haken
@@ -104,12 +106,14 @@ NPV
 Nacional
 Napoléon
 Nixpkgs
+Nonblocking
 Numerische
 OCSP
 OSINT
 OSPF
 Oligopolio
 Ollama
+OpenStax
 PERMA
 POP3
 PPP
@@ -120,6 +124,7 @@ Petropolitanae
 Pigmalión
 Planaridad
 Platzi
+Powersort
 Pregel
 Priorización
 Prusia
@@ -128,6 +133,7 @@ Pseudografos
 PyPI
 Pydantic
 Pyodide
+QUIC
 RBAC
 RMSE
 Representacion
@@ -135,6 +141,7 @@ Rivest
 SAMEORIGIN
 SAST
 SIEM
+SIGTTIN
 SMTP
 SSDF
 STOC
@@ -147,6 +154,8 @@ Snakemake
 Sobel
 Solutio
 StatefulSet
+Streamable
+Stringifying
 Subnetting
 Subscore
 Syft
@@ -156,6 +165,7 @@ TMPDIR
 Universidad
 Unsharp
 Upscaling
+VLSI
 Vishing
 Visualgo
 VoIP
@@ -209,10 +219,10 @@ codeowner
 coloracion
 colorbar
 colour
-commitlint
 connectionless
 contablemente
 containerd
+contraejemplo
 contraejemplos
 conv
 cowsay
@@ -223,8 +233,12 @@ cvzf
 cybercriminals
 darwin
 dataclass
+datagram
+datagrams
 datetime
+ddof
 defaultdict
+deinitialization
 denoised
 denoising
 desinflación
@@ -238,6 +252,7 @@ disconexo
 disjuntas
 divmod
 docstrings
+dotglob
 downscaling
 elif
 enrutador
@@ -297,6 +312,7 @@ inlines
 inplace
 introsort
 isinstance
+isoformas
 itertools
 jondoe
 karatsuba
@@ -332,12 +348,15 @@ multimodal
 nameserver
 necolas
 netcat
+nftables
 nginx
 nixfmt
 nixos
 nixpkgs
 nmap
 nodeport
+nonblank
+nonblocking
 nonlocal
 noopener
 noreferrer
@@ -345,6 +364,7 @@ nosniff
 notranslate
 nowrap
 nslookup
+nullglob
 numpy
 nums
 octicon
@@ -378,6 +398,7 @@ protoc
 pseudografo
 pseudografos
 pseudograph
+pseudopolynomial
 puentes
 pydantic
 pyenv
@@ -414,6 +435,7 @@ setdefault
 shellcheck
 shfmt
 shiki
+shopt
 simbolik
 sobel
 srcs
@@ -432,6 +454,7 @@ subindice
 subnetworks
 subpackages
 subshell
+subshells
 subtyping
 tecnica
 thresholding
@@ -444,6 +467,7 @@ triangulos
 tsconfigs
 tseslint
 tulpn
+tunap
 typeof
 undecillion
 uvicorn
@@ -452,6 +476,7 @@ venv
 vertice
 virtualenv
 virtualenvs
+virtualenvwrapper
 wght
 whatis
 whereis

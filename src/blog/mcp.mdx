@@ -3,14 +3,13 @@ title: "Building a Production-Ready Remote MCP Server"
 pubDate: 2026-03-22
 description:
   "Lessons from building a remote MCP server in Python. Challenges with stateful
-  sessions, input validation, scoped tool access, and OAuth 2.1 authorization in
+  sessions, input validation, scoped tool access, and authorization in
   horizontally scaled production environments."
 tags: ["ai", "python", "mcp"]
 isDraft: false
 snippet:
   language: "python"
   code: |
-    from http_mcp import Server
     from http_mcp.types import Tool
 
     tool = Tool(
@@ -32,18 +31,16 @@ import ScopeFilter from "./components/mcp/ScopeFilter.astro";
 The Model Context Protocol (MCP) is an open standard for connecting LLMs to
 external tools and data sources via a JSON-RPC interface. The key insight is
 that MCP gives you a proper, discoverable API: a model can list available tools,
-inspect their input/output schemas, and invoke them the same way a developer
-would call a REST endpoint. It has become the standard for granting AI agents
-access to external resources, defining both the methods and the message format
-for accessing and triggering the execution of functions (tools) and instructions
-(prompts).
+inspect input schemas and optional output schemas, and request tool calls
+through a host application. MCP defines separate primitives for tools, resources,
+and prompts; retrieving a prompt is not itself execution of a function.
 
 I was in charge of creating a remote MCP server to allow our customers to use
 LLMs to access the data they already have on our platform. What seemed
 straightforward turned into a deep dive into protocol design, session
 management, and authorization at scale.
 
-## The Problem with the Official SDK
+## Session Problems in Our April 2025 Deployment
 
 There was one problem: in April 2025, the Python MCP ecosystem was still very
 young. I needed a library that I could embed directly in a Starlette/FastAPI
@@ -62,12 +59,16 @@ around session management in horizontally scaled environments:
 
 Rather than working around these limitations, I decided to build a library from
 scratch with the characteristics mentioned above — and without the problems
-discovered in the official SDK.
+encountered in that deployment. This is a historical account, not a claim that
+current SDK releases require the same workaround. The official SDK now documents
+[deployment and scaling options](https://py.sdk.modelcontextprotocol.io/run/deploy/),
+including stateless operation.
 
 ## Building http-mcp
 
 [`http-mcp`](https://github.com/yeison-liscano/http_mcp) (published on PyPI as
-`http-mcp`) implements the MCP spec for tools and prompts over HTTP and STDIO. I
+`http-mcp`) provides tools and prompts over HTTP and stdio. Its supported
+features and protocol versions should be checked against the client in use. I
 designed it around a few principles:
 
 **1. Pydantic-first, schema automatically generated.** Tools are declared by
@@ -121,27 +122,24 @@ library plugs into Starlette's `AuthenticationMiddleware`. Scope-based access
 control just works: tools declare which scopes they require, and the framework
 filters them before listing or invocation.
 
-**3. Validation errors as LLM feedback.** When an AI agent sends malformed
-input, the default behavior in most frameworks is to return a raw HTTP error
-that the client may silently discard. In `http-mcp`, setting
-`return_error_message=True` on a tool causes Pydantic validation errors to be
-returned as structured tool responses that the LLM actually sees. Instead of a
-cryptic 422, the model receives something like "vulnerability_id must be a valid
-UUID4, got 'abc123'" — which is enough context for it to self-correct on the
-next attempt without human intervention.
+**3. Tool errors as model feedback.** The `http-mcp` documentation describes
+`return_error_message=True` as converting `ToolInvocationError` exceptions into
+`ErrorMessage` results. This is a library feature, not a general guarantee about
+all Pydantic failures or HTTP status codes. A useful error can explain what the
+caller should correct, provided the client exposes that result to the model.
 
 ```python
 Tool(
     inputs=FixMetadataInput,
     output=FixMetadataOutput,
     func=get_fix_metadata,
-    return_error_message=True,  # Validation errors are returned to the LLM
+    return_error_message=True,  # Return supported tool invocation errors as ErrorMessage results
     scopes=("mcp:read",),
 )
 ```
 
-This turns validation from a dead-end into a feedback loop, saving round-trips
-and tokens.
+This can make recoverable failures actionable. Whether a retry succeeds, or
+saves tokens, depends on the error and the client.
 
 ## Stateful Sessions: A Scaling Problem
 
@@ -149,21 +147,18 @@ The early versions of the MCP Python SDK maintained session state across
 requests. This creates a critical problem in horizontally scaled environments:
 if your MCP server runs on multiple workers behind a load balancer, each request
 might hit a different worker instance. Session data stored on Worker A is
-invisible to Worker B, causing the session to be lost and the AI agent's context
-to break.
+invisible to Worker B, causing a session lookup to fail. That can interrupt tool access, but it does
+not inherently erase the model's conversation history, which the host manages.
 
-This is a fundamental architectural issue for three reasons:
+The difficulty is coordinating state, not the mere existence of state:
 
-1. **Load balancers distribute traffic unpredictably.** In production, HTTP
-   requests from multiple clients get distributed across different server
-   instances. Sticky sessions are a workaround, not a solution.
-2. **Stateless design is a prerequisite for reliability.** Web services should
-   be stateless so any instance can handle any request. This is especially
-   important for MCP servers, where a dropped session means the agent loses its
-   entire tool context.
-3. **Horizontal scaling requires shared-nothing architecture.** You cannot scale
-   horizontally if every instance needs to remember its own state. Adding more
-   workers should be as simple as increasing a replica count.
+1. Requests can reach a worker that does not own an in-memory session.
+2. Session affinity is one option, with failover trade-offs. Shared state and
+   routing to the owning worker are other possible designs.
+3. Stateless request handling simplifies horizontal scaling, but stateful
+   services can also scale with appropriate coordination and recovery.
+
+For our workload, avoiding per-worker session state was a useful trade-off.
 
 The solution was to implement a **stateless HTTP transport** that treats each
 request as independent. Instead of maintaining session objects in memory, the
@@ -175,14 +170,15 @@ became the foundation for `http-mcp`:
   <SessionModels />
 </Figure>
 
-## Remote MCP Architecture: HTTP vs Stdio
+## Remote MCP Architecture: Streamable HTTP vs stdio
 
-MCP supports two transport mechanisms:
+The [2025-11-25 MCP specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+defines two standard transports and permits custom ones:
 
 - **Stdio Transport**: The MCP server runs as a subprocess on the same machine,
   communicating via standard input/output. This is simple for local integrations
   but limits you to a single host.
-- **HTTP Transport**: The MCP server runs as a separate service (often remote),
+- **Streamable HTTP**: The MCP server runs as a separate service (often remote),
   communicating over HTTP. This enables true separation of concerns and
   horizontal scaling.
 
@@ -191,47 +187,38 @@ separate deployment and scaling of the MCP server, easier monitoring and
 logging, integration with load balancers and service meshes, and
 language-agnostic communication between components.
 
-The trade-off is complexity: you must handle network errors, timeouts, and
-ensure your protocol is truly stateless.
+The trade-off is complexity: handle network errors, timeouts, authentication,
+and any chosen session lifecycle. Streamable HTTP permits optional sessions;
+it does not require every server to be stateless.
 
-## Challenge 1: Input Validation — Fail vs Teach
+## Challenge 1: Errors the Caller Can Act On
 
-When implementing tools, you receive inputs from the AI agent. These inputs are
-specified by your schema but often have validation constraints — types, ranges,
-required fields, and so on.
+Input-schema validation and tool execution are different stages. Malformed
+protocol requests can produce JSON-RPC errors; recoverable execution failures can
+be represented as tool results. MCP defines an `isError` flag for tool execution
+errors. See the [tool error rules](https://modelcontextprotocol.io/specification/2025-11-25/server/tools#error-handling).
 
-A naive approach is to return a raw error when validation fails. A better
-approach is to return a **helpful error message that teaches the AI agent what
-went wrong**, so it can correct its own request on the next attempt. The
-`FixMetadataInput` model above already declares the constraint
-(`vulnerability_id` must be a UUID4); turning validation into feedback is the
-single `return_error_message=True` flag on the `Tool`, as shown earlier.
+In `http-mcp`, the documented `return_error_message` option handles supported
+`ToolInvocationError` exceptions. For example, a handler can report that a
+requested record is unavailable, with enough context for the caller to change
+its arguments. Do not assume that every client displays errors identically or
+that a retry will succeed.
 
-With `return_error_message=True`, when the AI agent receives a validation error
-with context (e.g., "vulnerability_id must be a valid UUID4, got 'abc123'"), it
-can adjust its next attempt. This saves round-trips and makes the interaction
-significantly more efficient.
-
-<Figure caption="A bare 422 stops at the client. Returned as a tool result, the same validation error reaches the model, which fixes the argument and retries.">
+<Figure caption="A recoverable tool error can guide a revised request when the client passes its details to the model. The outcome depends on the client and the error.">
   <Mermaid
-    label="Sequence: a validation error returned as HTTP 422 never reaches the model; returned as a tool result, the model reads it and retries with a valid UUID4"
+    label="A tool reports an actionable error; the client exposes it and the model can revise its request"
     code={`
 sequenceDiagram
   participant LLM
   participant Client as MCP client
-  participant Server as http-mcp server
-  LLM->>Client: get_fix_metadata(vulnerability_id="abc123")
+  participant Server as MCP server
+  LLM->>Client: request a record
   Client->>Server: tools/call
-  alt return_error_message=False
-    Server-->>Client: HTTP 422
-    Client-->>LLM: generic failure, or nothing
-  else return_error_message=True
-    Server-->>Client: tool result: must be a valid UUID4
-    Client-->>LLM: error text
-    LLM->>Client: retry with a UUID4
-    Client->>Server: tools/call
-    Server-->>Client: version 2.3.4, not breaking
-  end
+  Server-->>Client: tool result describing recoverable failure
+  Client-->>LLM: error details, if exposed by the host
+  LLM->>Client: revised arguments
+  Client->>Server: tools/call
+  Server-->>Client: tool result
 `}
   />
 </Figure>
@@ -260,15 +247,15 @@ Tool(
 This approach has several benefits: tools are self-documenting about their
 requirements, authorization is centralized and consistent, you can change
 permissions without modifying tool code, and the AI agent can query which tools
-are available in its current context — so it never tries to call something it
-does not have access to.
+are available in its current context — which reduces suggestions for unavailable tools. A client can still submit
+a hidden or stale tool name, so the server must authorize every invocation.
 
-<Figure caption="The token's scopes decide what tools/list returns. A tool the caller cannot use is never listed, so the agent never tries it.">
+<Figure caption="Scope filtering limits discovery. The server must also reject unauthorized tools/call requests, even if the client knows a hidden tool name.">
   <Stepper
     label="Scope filtering steps"
     steps={[
       "The agent calls tools/list with a bearer token that grants mcp:read.",
-      "Starlette's AuthenticationMiddleware resolves the token into the request's scopes.",
+      "A configured authentication backend validates the token and supplies the caller's scopes to Starlette.",
       "Each tool declares the scopes it requires, and the server compares them with the caller's.",
       "The response lists only the tools the caller may use. delete_user stays hidden.",
     ]}
@@ -282,13 +269,13 @@ does not have access to.
 Building a production MCP server taught me several things:
 
 1. **Stateless by default.** Design your server assuming instances are
-   ephemeral. This makes scaling trivial and eliminates an entire class of
+   ephemeral. This simplifies request routing and avoids some
    session-related bugs.
 
-2. **Error messages are feedback loops.** The AI agent learns from error
+2. **Error messages are feedback loops.** The AI agent can adjust subsequent calls using error
    messages. Make them helpful and specific — generic errors cause retries and
    wasted tokens. Some MCP clients do not even pass error responses to the LLM;
-   this is solved by declaring errors as a kind of response the tool can provide
+   supported tool errors can instead be returned as results
    via `return_error_message=True`.
 
 3. **Explicit permissions matter.** Making scope requirements visible in tool

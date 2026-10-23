@@ -3,7 +3,7 @@ title: Classic Algorithms Explained
 pubDate: 2026-03-22
 description:
   "An exploration of essential algorithms including Karatsuba multiplication,
-  binary search, sorting algorithms, and graph traversal—with practical Python
+  binary search and sorting algorithms, with a link to graph traversal—plus Python
   implementations and complexity analysis."
 tags: ["programming", "algorithms"]
 isDraft: false
@@ -283,14 +283,17 @@ larger go right. Recursively sort each partition.
 ### Quicksort Complexity
 
 - **Time:** O(n log n) average; O(n²) worst case (poor pivot selection)
-- **Space:** O(log n) average (call stack); O(n) worst case
+- **Auxiliary space for the in-place partition version:** O(log n) average
+  (call stack); O(n) worst case.
+- **Auxiliary space for the list-building version below:** O(n) for balanced
+  partitions; O(n²) in the worst case because recursive calls retain their lists.
 
 ### Quicksort in Python
 
 ```python
 def quicksort(arr):
     """
-    Sort array using quicksort algorithm (in-place variant).
+    Return a sorted list using quicksort (allocates new lists).
 
     Args:
         arr: list to sort
@@ -352,22 +355,24 @@ print(quicksort(data))  # Output: [11, 12, 22, 25, 34, 64, 90]
 
 ### Why Quicksort Matters
 
-Quicksort's in-place sorting and cache efficiency make it the standard in
-production systems. Most modern languages use quicksort or variants (timsort,
-introsort) as their default sorting algorithm. Understanding the partition step
-is crucial for many interview questions.
+Quicksort's in-place partitioning and cache behavior make it useful in production
+systems. Introsort combines quicksort with a worst-case fallback. Python's
+Timsort belongs to the merge-sort family, not the quicksort family; CPython's
+implementation uses a Powersort merge policy. See the
+[CPython sorting design notes](https://github.com/python/cpython/blob/main/Objects/listsort.txt).
 
 ---
 
 ## Breadth-First Search (BFS)
 
 Breadth-First Search is a graph traversal algorithm that explores all vertices
-at distance k before exploring vertices at distance k+1. It's essential for
-finding shortest paths, connected components, and level-order traversals.
+at distance k before exploring vertices at distance k+1, where distance counts
+edges. It finds shortest paths in unweighted graphs (or graphs with equal edge
+weights), connected components, and level-order traversals.
 
 Given the depth of BFS and graph algorithms in general, we've covered this
 thoroughly in our
-**[dedicated graphs and graph algorithms article](/blog/graphs)**, including
+**[dedicated graphs and graph algorithms article](/portfolio/blog/graphs/)**, including
 implementation, applications, and comparison with Depth-First Search.
 
 BFS is a foundation for more advanced techniques like Dijkstra's algorithm

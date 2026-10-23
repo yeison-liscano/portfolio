@@ -43,7 +43,9 @@ def celsius_to_fahrenheit(celsius: float) -> float:
   return celsius * 9 / 5 + 32
 ```
 
-No global state is modified, so the function is deterministic.
+The result depends only on `celsius`, and the function has no observable side
+effects. Avoiding global writes alone does not guarantee determinism: reading a
+clock or mutable global state can also change a result.
 
 ### Immutability
 
@@ -130,11 +132,16 @@ print(square(5))  # 25
 print(cube(3))    # 27
 ```
 
-This is close to currying and helps create reusable function variants.
+This is partial application: fixing some arguments to obtain a new callable.
+Currying instead transforms a function of several arguments into a sequence of
+functions taking one argument each. See
+[`functools.partial`](https://docs.python.org/3/library/functools.html#functools.partial).
 
 ## Practical Pipeline Example
 
-Suppose we receive transactions and want the sum of valid positive amounts.
+Suppose we receive numeric strings and blank lines and want the sum of positive
+amounts. This example skips blanks; malformed nonblank strings raise
+`ValueError`.
 
 ```python
 from typing import Iterable

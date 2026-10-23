@@ -11,13 +11,6 @@
       "pages/*": ["./src/pages/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.js",
-    "**/*.mjs",
-    "**/*.astro",
-    "**/*.md",
-    "./.lint-git-commit-msg/*.js"
-  ],
+  "include": ["**/*.ts", "**/*.js", "**/*.mjs", "**/*.astro", "**/*.md"],
   "exclude": [".astro", "e2e", "node_modules"]
 }
