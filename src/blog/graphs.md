@@ -1,5 +1,5 @@
 ---
-title: Graphs Theory
+title: Graph Theory
 pubDate: 2026-03-22
 description:
   "An introduction to graph theory. From the Königsberg bridge problem to BFS,
@@ -24,7 +24,7 @@ The Königsberg bridge problem is a famous problem in graph theory that was
 solved by the Swiss mathematician Leonhard Euler in 1736. The problem is named
 after the city of Königsberg, which is now Kaliningrad, Russia. The city is
 located on the Pregel River and is divided into four landmasses by the river and
-its two tributaries. The city had seven bridges that connected the landmasses.
+its branches. The city had seven bridges that connected the landmasses.
 
 The problem asked a deceptively simple question: Is it possible to take a walk
 through the city that crosses each bridge exactly once and returns to the
@@ -50,7 +50,7 @@ called nodes) and a set of edges that connect the vertices. More formally:
 
 **A graph G = (V, E)** where:
 
-- **V** is a finite set of vertices
+- **V** is a set of vertices (finite in the examples here)
 - **E** is a set of edges, where each edge connects two vertices
 
 Graphs are used to model relationships between objects or entities in various
@@ -93,8 +93,9 @@ distances or travel times between cities.
 
 ### Cyclic vs. Acyclic Graphs
 
-A **cyclic graph** contains one or more cycles—paths that start and end at the
-same vertex without repeating any edge. Most real-world graphs contain cycles.
+A **cyclic graph** contains a cycle: a closed walk with no repeated vertices
+except the first/last vertex and no repeated edges. In a simple undirected
+graph, a cycle has at least three edges. Most real-world graphs contain cycles.
 
 An **acyclic graph** contains no cycles. A special type of acyclic graph is a
 **Directed Acyclic Graph (DAG)**, which is extremely useful in practice. DAGs
@@ -139,7 +140,7 @@ adjacency_matrix = [
 # Check if there's an edge between vertex 0 and 1
 has_edge = adjacency_matrix[0][1] == 1  # True
 
-# For a weighted graph:
+# Here 0 means no edge; use None or infinity if zero-weight edges are valid.
 weighted_matrix = [
     [0, 5, 3, 0],
     [5, 0, 0, 2],
@@ -286,7 +287,8 @@ finding connected components.
 - Explores deeply into the graph before backtracking
 - Can detect cycles in directed graphs
 - Time complexity: O(V + E)
-- Space complexity: O(V) for recursion stack
+- Space complexity: O(V) for recursive traversal; the iterative variant below
+  can keep O(E) pending entries because it marks vertices when popped
 
 **Python implementation (recursive):**
 
@@ -307,12 +309,16 @@ def dfs_recursive(graph, vertex, visited=None):
         visited = set()
 
     visited.add(vertex)
-    result = [vertex]
+    result = []
 
-    for neighbor in graph[vertex]:
-        if neighbor not in visited:
-            result.extend(dfs_recursive(graph, neighbor, visited))
+    def visit(current):
+        result.append(current)
+        for neighbor in graph[current]:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                visit(neighbor)
 
+    visit(vertex)
     return result
 
 # Iterative implementation using a stack
@@ -370,7 +376,9 @@ DFS is ideal for:
 The shortest path problem asks: What is the minimum-cost path between two
 vertices? For unweighted graphs, BFS solves this optimally. For weighted graphs
 (with non-negative weights), Dijkstra's algorithm is the standard solution. For
-graphs with negative weights, the Bellman-Ford algorithm is required.
+graphs with negative weights, Bellman-Ford is one option; DAGs also admit a
+linear-time method using topological order. A reachable negative cycle may make
+some shortest-path distances undefined.
 
 ### Cycle Detection
 

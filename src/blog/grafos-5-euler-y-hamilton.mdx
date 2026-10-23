@@ -33,7 +33,7 @@ Hierholzer, circuito de Hamilton, teorema de Dirac, teorema de Ore, NP-completo
 Dos preguntas se parecen mucho. ¿Se puede recorrer un grafo empezando y
 terminando en el mismo vértice y pasando por **cada arista** exactamente una
 vez? ¿Se puede recorrer empezando y terminando en el mismo vértice y pasando por
-**cada vértice** exactamente una vez? La primera se responde con solo mirar los
+**cada vértice** exactamente una vez? En un grafo conexo, la primera se responde mirando los
 grados de los vértices. La segunda, hasta donde sabemos, no tiene una respuesta
 eficiente para grafos en general. Esta parte cuenta por qué, empezando por el
 problema con el que nació la teoría de grafos.
@@ -48,7 +48,8 @@ domingos y se preguntaban si era posible salir de algún punto de la ciudad,
 cruzar cada puente exactamente una vez y regresar al punto de partida.
 
 El matemático suizo Leonhard Euler resolvió el problema en una publicación de
-1736, que se considera el primer trabajo de teoría de grafos. Euler representó
+1741, en un volumen correspondiente a 1736, que se considera el primer trabajo
+de teoría de grafos. Euler representó
 cada región con un vértice y cada puente con una arista. Como hay dos puentes
 entre la isla y cada orilla, el resultado es un multigrafo:
 
@@ -202,7 +203,9 @@ tener muchos circuitos de Euler, y cualquiera sirve. Las aplicaciones van más
 allá de los acertijos: la ruta de un camión de basura, de un quitanieves o de un
 inspector de redes eléctricas que debe pasar por cada calle o cada línea una
 vez. Cuando el grafo no cumple el criterio, el **problema del cartero chino**
-busca el recorrido más corto que repite el mínimo de aristas.
+busca un recorrido cerrado de peso total mínimo que cubra todas las aristas.
+Con pesos desiguales, minimizar el costo repetido no equivale a minimizar el
+número de aristas repetidas.
 
 ## Caminos y circuitos de Hamilton
 
@@ -213,7 +216,7 @@ exactamente una vez. ¿Podemos hacer lo mismo con los **vértices**?
 > que pasa por cada vértice exactamente una vez. Un **circuito de Hamilton** es
 > un circuito simple que pasa por cada vértice exactamente una vez. Es decir,
 > `x0, x1, …, xn` es un camino de Hamilton en `G = (V, E)` si `V = {x0, …, xn}`
-> y `xi ≠ xj` para `0 ≤ i < j ≤ n`; y `x0, x1, …, xn, x0`, con `n > 0`, es un
+> y `xi ≠ xj` para `0 ≤ i < j ≤ n`; y `x0, x1, …, xn, x0`, con `n ≥ 2` en un grafo simple, es un
 > circuito de Hamilton si `x0, …, xn` es un camino de Hamilton y `{xn, x0}` es
 > una arista.
 
@@ -328,9 +331,8 @@ viajero, que pide el circuito de Hamilton más barato.
 Recorrer cada arista una vez y recorrer cada vértice una vez son preguntas
 hermanas con destinos opuestos. La de Euler tiene una respuesta completa: un
 multigrafo conexo tiene un circuito de Euler si y solo si todos sus grados son
-pares, y el algoritmo de Hierholzer lo construye en tiempo lineal. La de
-Hamilton solo tiene condiciones suficientes, como las de Dirac y Ore, y en
-general es NP-completa.
+pares, y el algoritmo de Hierholzer lo construye en tiempo lineal. Para Hamilton hay condiciones necesarias y condiciones suficientes, como las de
+Dirac y Ore, pero decidir en general si existe un circuito es NP-completo.
 
 <SerieGrafos actual={5} />
 

@@ -63,13 +63,11 @@ if __name__ == "__main__":
 
 ## Packages
 
-A package is a hierarchical file directory structure that defines a single
-Python application environment that consists of modules and subpackages and
-sub-subpackages, and so on.
-
-A package must contain a special file called `__init__.py` in order for Python
-to consider it as a package. This file can be left empty but we generally place
-the initialization code for that package in this file.
+A package organizes modules and subpackages under a dotted namespace.
+A **regular package** contains `__init__.py`, which may be empty or contain
+initialization code. **Namespace packages** can omit that file and span multiple
+directories; they have been supported since Python 3.3. See the
+[Python import reference](https://docs.python.org/3/reference/import.html#packages).
 
 ```python
 # __init__.py
@@ -141,10 +139,7 @@ except NameError as e:
 
 ```bash
 10
-Traceback (most recent call last):
-  File "scope.py", line 7, in <module>
-    print(x_)
-NameError: name 'x_' is not defined
+name 'x_' is not defined
 ```
 
 ### Example Enclosing Scope
@@ -173,7 +168,7 @@ Note that the `nonlocal` keyword is used to declare that `x` is not a local
 variable. Hence, when we assign a value to `x` inside the nested function, that
 change is reflected in the local variable in the enclosing function.
 
-### Example Global Scope Only-read
+### Example: A Local Name Shadows a Global Name
 
 ```python
 x = 10
@@ -218,15 +213,15 @@ is reflected when we use the value of `x` in the main block.
 
 These are the names in the pre-defined built-in modules. These are always
 available in your Python programs. You can see the list of built-in names by
-typing `dir(__builtins__)` in the Python interpreter.
+typing `import builtins; dir(builtins)` in the Python interpreter.
 
 ## Splat Operator `*` and Double Splat Operator `**`
 
 Splat operator is a kind of unpacking operator (destructuring in JS). It can be
 used to allow an iterable to be unpacked into positional arguments in a function
-call. It can also be used to unpack an iterable into a list or dictionary. The
-splat operator is represented by `*` and the double splat operator is
-represented by `**`.
+call, or into a list, tuple, or set display. `**` unpacks a mapping into keyword
+arguments or a dictionary display. These are often called the splat (`*`) and
+double splat (`**`) operators.
 
 ### Splat Operator
 

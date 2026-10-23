@@ -24,8 +24,10 @@ characteristics and use cases.
 ## WSGI: Synchronous Web Applications
 
 WSGI is the traditional protocol for Python web applications, introduced in
-[PEP 333](https://peps.python.org/pep-0333/). It's synchronous and handles one
-request at a time.
+[PEP 333](https://peps.python.org/pep-0333/) and updated for Python 3 in
+[PEP 3333](https://peps.python.org/pep-3333/). Its application interface is
+synchronous; a server can still handle concurrent requests using threads,
+processes, or compatible worker implementations.
 
 ### Core Concepts
 
@@ -59,8 +61,9 @@ gunicorn --workers=2 --bind 127.0.0.1:8000 wsgi_app:simple_wsgi_app
 
 ## ASGI: Modern Async Applications
 
-ASGI extends WSGI to support asynchronous operations, WebSockets, and HTTP/2,
-making it suitable for modern web applications.
+ASGI is a separate asynchronous interface designed as a successor to WSGI.
+Its protocol specifications cover HTTP and WebSockets; actual HTTP/2 support
+depends on the server. See the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/main.html).
 
 ### Key Features
 
@@ -72,6 +75,9 @@ making it suitable for modern web applications.
 ### Example ASGI Application
 
 ```python
+# asgi_app.py
+import asyncio
+
 async def simple_asgi_app(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -93,13 +99,17 @@ responses = []
 async def mock_send(message):
     responses.append(message)
 
-await simple_asgi_app({'type': 'http'}, None, mock_send)
-print(f"Status: {responses[0]['status']}")
-print(responses[1]['body'].decode())
+async def main():
+    await simple_asgi_app({'type': 'http'}, None, mock_send)
+    print(f"Status: {responses[0]['status']}")
+    print(responses[1]['body'].decode())
+
+if __name__ == '__main__':
+    asyncio.run(main())
 ```
 
 ```bash
-uvicorn asgi_app:simple_asgi_app
+uvicorn asgi_app:simple_asgi_app --lifespan off
 ```
 
 ## When to Use Each
@@ -108,8 +118,7 @@ WSGI:
 
 - Simple request-response applications
 - Legacy systems integration
-- [CPU-bound](https://fluidattacks.github.io/aioextensions/#cpu-bound-tasks)
-  applications
+- Applications built around synchronous libraries
 
 ASGI:
 
@@ -121,9 +130,14 @@ ASGI:
 
 ## Performance Considerations
 
-- ASGI handles concurrent connections more efficiently
-- WSGI is simpler and may be faster for basic request-response cycles
-- ASGI servers (like Uvicorn) generally show better performance under high load
+- ASGI can overlap I/O efficiently when the application uses nonblocking libraries.
+- Blocking calls inside an async handler block its event-loop thread unless offloaded.
+- CPU-bound work needs an appropriate execution strategy with either interface,
+  such as worker processes. Benchmark the actual application and server settings.
+
+The following timeline is an idealized example with two synchronous WSGI
+workers, nonblocking database calls for ASGI, and no scheduling overhead; it is
+not a benchmark of the interfaces.
 
 <Figure caption="Three requests arrive at once. Each needs 5 ms of Python, an 80 ms database call, then 5 ms more. With two WSGI workers, the third request waits for a free worker and finishes at 180 ms. One ASGI worker overlaps all three database waits and finishes at 100 ms.">
   <Timeline

@@ -18,6 +18,8 @@ snippet:
         cola = [(0, origen)]
         while cola:
             d, u = heapq.heappop(cola)
+            if d > L[u]:
+                continue
             for v, w in grafo[u]:
                 if d + w < L.get(v, float("inf")):
                     L[v] = d + w
@@ -39,7 +41,7 @@ mismo que uno de Medellín a Miami, un enlace de fibra no cuesta lo mismo que un
 satelital y una vía pavimentada no se recorre en el mismo tiempo que una trocha.
 Esta parte agrega pesos a las aristas y estudia dos preguntas sobre ellos: la
 ruta más barata entre dos vértices, que tiene un algoritmo eficiente, y el
-circuito más barato que visita todos los vértices, que no lo tiene.
+circuito más barato que visita todos los vértices, para el que no se conoce un algoritmo polinomial general.
 
 ## Grafos ponderados
 
@@ -62,7 +64,7 @@ vértices dados.
 ## El algoritmo de Dijkstra
 
 El algoritmo que el científico de la computación holandés Edsger Dijkstra
-publicó en 1959 resuelve el problema cuando todos los pesos son positivos. Su
+publicó en 1959 resuelve el problema cuando todos los pesos son no negativos. Su
 idea es encontrar las distancias desde el origen `a` en orden creciente: primero
 el vértice más cercano a `a`, luego el siguiente, y así hasta llegar al destino
 `z`.
@@ -73,7 +75,7 @@ corto de `a` a `v` encontrado hasta el momento que solo pasa por vértices de
 `S`.
 
 ```text
-procedimiento Dijkstra(G: grafo simple conexo ponderado, con pesos positivos)
+procedimiento Dijkstra(G: grafo simple conexo ponderado, con pesos no negativos)
     { G tiene vértices a = v0, v1, …, vn = z y pesos w(vi, vj),
       con w(vi, vj) = ∞ si {vi, vj} no es una arista de G }
     para i := 1 hasta n
@@ -129,12 +131,14 @@ que entra ahora. Cualquier camino de `a` a `u` sale de `S` en algún momento por
 primera vez, hacia un vértice `y` que no está en `S`. Hasta `y`, ese camino mide
 al menos `L(y)`, porque `L(y)` ya consideró todos los caminos que solo usan `S`
 antes de llegar a `y`. Como `u` se eligió con la etiqueta mínima, `L(y) ≥ L(u)`,
-y como los pesos son positivos, el resto del camino de `y` a `u` no puede
+y como los pesos son no negativos, el resto del camino de `y` a `u` no puede
 descontar nada. Así que ningún camino es más corto que `L(u)`.
 
 El argumento falla con pesos negativos: un tramo con peso negativo después de
 `y` podría hacer más corto un camino que el algoritmo ya descartó. Para esos
-grafos se usa el algoritmo de Bellman-Ford.
+grafos se puede usar Bellman-Ford. Si un ciclo negativo alcanzable permite
+reducir indefinidamente el costo hacia un destino, no existe una distancia
+mínima finita a ese destino.
 
 ### Cuánto cuesta
 
@@ -147,11 +151,14 @@ fuera de `S` (a lo sumo `n` comparaciones) y se relajan los vértices fuera de
 `S` (a lo sumo `n` sumas y `n` comparaciones). En total, `O(n²)`.
 
 Para grafos dispersos conviene guardar las etiquetas en una **cola de
-prioridad** (un montículo binario): sacar el mínimo cuesta `O(log n)` y cada
-arista se relaja una vez, así que el costo baja a `O((n + m) log n)`. Es la
-versión que usan los sistemas de navegación y los protocolos de enrutamiento
-como OSPF, y la que está en el siguiente programa, que además guarda de qué
-vértice viene cada etiqueta para reconstruir la ruta:
+prioridad**. Con un montículo binario que admite actualizar prioridades, el
+costo es `O((n + m) log n)`. El programa usa entradas repetidas en `heapq` y
+descarta las obsoletas: el montículo puede tener O(m) entradas, con costo
+O(n + m log(m + 1)), que se acota por O((n + m) log n) en grafos simples.
+También guarda predecesores para reconstruir rutas. Dijkstra funciona en
+grafos dirigidos y no dirigidos con pesos no negativos; todos los vértices
+deben estar en el diccionario y sus etiquetas deben ser comparables en este
+ejemplo. Véase la [guía de caminos mínimos de NetworkX](https://networkx.org/documentation/stable/reference/algorithms/shortest_paths.html).
 
 ```python
 import heapq
@@ -178,6 +185,8 @@ def dijkstra(grafo, origen):
 def ruta(previo, origen, destino):
     camino = [destino]
     while camino[-1] != origen:
+        if camino[-1] not in previo:
+            return None  # destino inalcanzable desde el origen
         camino.append(previo[camino[-1]])
     return camino[::-1]
 
@@ -216,9 +225,8 @@ aparece dos veces (una en cada sentido), así que hay `(n − 1)!/2` circuitos
 distintos. Con cinco ciudades son solo 12:
 
 Las ciudades son Medellín (MDE), Bogotá (BOG), Cali (CLO), Barranquilla (BAQ) y
-Bucaramanga (BGA), abreviadas con los códigos de sus aeropuertos. Las distancias
-son aproximadas, en kilómetros por carretera y redondeadas; sirven solo para el
-ejemplo.
+Bucaramanga (BGA), abreviadas con los códigos de sus aeropuertos. Los pesos son ficticios y se expresan en kilómetros solo para ilustrar el
+algoritmo; no son distancias verificadas para planear viajes.
 
 | km  | MDE | BOG  | CLO  | BAQ  | BGA |
 | --- | --- | ---- | ---- | ---- | --- |
@@ -242,7 +250,7 @@ km = {
 
 
 def distancia(u, v):
-    return km.get((u, v)) or km[(v, u)]
+    return km[(u, v)] if (u, v) in km else km[(v, u)]
 
 
 def longitud(circuito):
@@ -282,7 +290,7 @@ El problema del agente viajero es **NP-difícil**: no se conoce ningún algoritm
 que lo resuelva en tiempo polinomial en el peor caso. Aun así, en la práctica se
 resuelven instancias grandes con técnicas mucho mejores que la fuerza bruta,
 como ramificación y acotamiento y planos de corte; en 2006 se resolvió de forma
-exacta un problema con 85 900 ciudades. Cuando basta con una buena respuesta, se
+exacta un [problema con 85 900 puntos de una aplicación VLSI](https://www.math.uwaterloo.ca/tsp/pla85900/index.html). Cuando basta con una buena respuesta, se
 usan **algoritmos de aproximación**: el de Christofides garantiza, cuando las
 distancias cumplen la desigualdad triangular, un circuito a lo sumo 1,5 veces
 más largo que el óptimo.
@@ -293,7 +301,8 @@ El camino más corto entre dos vértices se encuentra en tiempo polinomial: el
 algoritmo de Dijkstra fija las distancias en orden creciente y, con pesos
 positivos, nunca tiene que corregir una distancia ya fijada. El circuito de
 Hamilton más corto, en cambio, es NP-difícil, y la fuerza bruta deja de ser
-viable alrededor de las 15 ciudades. En la última parte de la serie veremos
+viable rápidamente; el límite práctico depende de la implementación y del
+hardware, no de un umbral universal de 15 ciudades. En la última parte de la serie veremos
 cuándo un grafo se puede dibujar sin cruces y cuántos colores hacen falta para
 colorearlo.
 

@@ -24,16 +24,17 @@ miden, cómo se calculan, por qué importan, y cómo se aplican en la práctica.
 
 ## Producto Interno Bruto (PIB)
 
-El PIB es el valor total de los bienes y servicios producidos en un país en un
-período de tiempo determinado, generalmente un año. Es el indicador más amplio
-de la actividad económica y, por tanto, uno de los más utilizados para evaluar
-la salud de una economía.
+El PIB mide el valor de los bienes y servicios finales producidos dentro de un
+territorio en un período de tiempo determinado, generalmente un año. Es el
+indicador más amplio de la actividad económica y, por tanto, uno de los más
+utilizados para evaluar la salud de una economía.
 
-Un PIB alto indica que una economía está creciendo y que los productores están
-generando más riqueza. Un PIB bajo o en contracción puede indicar que una
-economía está en recesión o enfrentando dificultades. El crecimiento del PIB
-(tasa de variación anual) es particularmente importante: un crecimiento
-consistente del 2-3% anual es considerado sano en economías desarrolladas.
+Un PIB alto describe el tamaño de la economía, no su tasa de crecimiento. Para
+medir cambios en la producción se compara el **PIB real**, ajustado por precios;
+el PIB nominal también puede subir por inflación. No hay una tasa universal de
+crecimiento «sana»: depende de la población, la productividad y el contexto.
+Véase la
+[explicación del PIB de la BEA](https://www.bea.gov/resources/learning-center/what-to-know-gdp).
 
 ### Cómo se calcula el PIB
 
@@ -46,8 +47,9 @@ PIB = C + I + G + (X - M)
 Donde:
 
 - **C** = Consumo (gasto de los hogares en bienes y servicios)
-- **I** = Inversión (gasto de empresas en capital, infraestructura, etc.)
-- **G** = Gasto Público (inversión y gasto del gobierno)
+- **I** = Inversión privada bruta, incluida vivienda y variación de inventarios
+- **G** = Compras de bienes y servicios e inversión del gobierno; no incluye
+  transferencias como pensiones, que no pagan producción corriente
 - **X** = Exportaciones (bienes y servicios vendidos al exterior)
 - **M** = Importaciones (bienes y servicios comprados del exterior)
 
@@ -64,7 +66,9 @@ Imaginemos un país con los siguientes datos anuales:
 El PIB sería: $500 + $150 + $200 + ($100 - $80) = **$870 mil millones**
 
 Si el año anterior fue $850 mil millones, el crecimiento del PIB es ($870 -
-$850) / $850 = **2.35%** anual.
+$850) / $850 × 100 = **2,35 %** anual. Esta es una variación nominal si los
+valores están a precios corrientes; solo mide crecimiento real si ambos están
+expresados en precios comparables.
 
 ## Inflación
 
@@ -73,13 +77,12 @@ servicios en una economía durante un período de tiempo. En otras palabras, la
 inflación reduce el poder adquisitivo del dinero: cada unidad monetaria compra
 menos productos que antes.
 
-Una inflación moderada (1-3% anual) es considerada normal y sana en la mayoría
-de economías. Sin embargo, la inflación alta (superior al 10%) o la desinflación
-(precios cayendo) pueden ser problemáticas. La inflación alta erosiona los
-ahorros, complica la planificación empresarial, y afecta desproporcionadamente a
-las personas con ingresos fijos. La desinflación o deflación, por su parte,
-puede llevar a que las personas y empresas aplazuen compras esperando precios
-más bajos, desacelerando la economía.
+Los objetivos de inflación varían entre bancos centrales. La inflación elevada o
+imprevisible dificulta la planificación y reduce el poder de compra si los
+ingresos no la acompañan. **Desinflación** significa que la inflación disminuye:
+si pasa del 8 % al 4 %, los precios siguen subiendo. **Deflación** significa una
+caída del nivel general de precios; puede aumentar la carga real de las deudas
+y, si se espera que continúe, aplazar ciertas compras.
 
 ### IPC (Índice de Precios al Consumidor)
 
@@ -88,34 +91,36 @@ de los precios de un conjunto de bienes y servicios que adquiere un consumidor
 promedio en un período determinado. Este conjunto incluye alimentos, vivienda,
 transporte, salud, educación, entretenimiento, y más.
 
-El IPC se calcula con una fórmula ponderada:
+En un índice simplificado de canasta fija, el costo de las cantidades del
+período base se compara a precios actuales y a precios base:
 
 ```text
-IPC = Suma de (Precio actual × Peso del bien) / Suma de (Precio base × Peso del bien) × 100
+IPC = 100 × Σ(precio_actual × cantidad_base) / Σ(precio_base × cantidad_base)
 ```
 
-El "peso" refleja la importancia relativa de cada bien en el presupuesto
-familiar típico.
+Si usamos participaciones del gasto base `w_i` que suman 1, la forma equivalente
+es `IPC = 100 × Σ w_i × (precio_actual_i / precio_base_i)`. No se deben mezclar
+esas participaciones con cantidades físicas. Los IPC oficiales tienen métodos de
+agregación, actualización de ponderaciones y ajuste de calidad más completos;
+véase la
+[guía del IPC de la BLS](https://www.bls.gov/cpi/questions-and-answers.htm).
 
 ### Ejemplo práctico del IPC
 
-Supongamos una canasta simplificada con tres bienes:
+Supongamos estas participaciones en el gasto del período base:
 
-| Bien             | Precio base | Peso | Precio actual |
-| ---------------- | ----------- | ---- | ------------- |
-| Leche (litro)    | $1.00       | 10%  | $1.05         |
-| Pan (kilo)       | $3.00       | 20%  | $3.15         |
-| Gasolina (litro) | $2.00       | 70%  | $2.10         |
+| Bien             | Precio base | Participación del gasto base | Precio actual |
+| ---------------- | ----------: | ---------------------------: | ------------: |
+| Leche (litro)    |       $1,00 |                         10 % |         $1,05 |
+| Pan (kilo)       |       $3,00 |                         20 % |         $3,15 |
+| Gasolina (litro) |       $2,00 |                         70 % |         $2,10 |
 
-El IPC sería calculado como:
+Cada precio subió un 5 %, así que:
 
-- Canasta base ponderada: (1.00 × 10%) + (3.00 × 20%) + (2.00 × 70%) = 0.1 +
-  0.6 + 1.4 = $2.10
-- Canasta actual ponderada: (1.05 × 10%) + (3.15 × 20%) + (2.10 × 70%) = 0.105 +
-  0.63 + 1.47 = $2.205
-- IPC = ($2.205 / $2.10) × 100 = **104.76**
-
-Esto indica una inflación del 4.76% respecto al período base.
+```text
+IPC = 100 × (0,10 × 1,05 + 0,20 × 1,05 + 0,70 × 1,05) = 105
+Inflación respecto al período base = (105 / 100 − 1) × 100 = 5 %
+```
 
 ### Factores que producen inflación
 
@@ -135,8 +140,8 @@ La inflación no surge de una única causa, sino de una combinación de factores
   económicos (trabajadores, empresas, consumidores) esperan inflación futura,
   actúan en consecuencia: los trabajadores piden salarios más altos, las
   empresas suben precios anticipadamente, y los consumidores compran más rápido.
-  Esto crea la inflación que se esperaba. Este fenómeno es conocido como
-  "profecía autocumplida" o efecto Pigmalión económico.
+  Estas respuestas pueden contribuir a la persistencia de la inflación; no
+  implican que toda expectativa se cumpla automáticamente.
 
 - **Aumento de la cantidad de dinero en circulación**: Cuando el banco central
   aumenta significativamente la oferta monetaria sin que corresponda con un
@@ -151,7 +156,8 @@ La inflación no surge de una única causa, sino de una combinación de factores
 ## Tasa de Desempleo
 
 La tasa de desempleo mide el porcentaje de la población económicamente activa
-que está desempleada (buscando activamente trabajo pero sin encontrarlo). Es un
+que está desempleada: en general, sin empleo, disponible para trabajar y
+buscando activamente, según los criterios del organismo estadístico. Es un
 indicador clave de la salud del mercado laboral y tiene implicaciones sociales y
 económicas significativas.
 
@@ -168,10 +174,12 @@ económicas: menos oportunidades, menor consumo, y potencialmente mayor pobreza.
 Tasa de Desempleo = (Personas desempleadas / Población económicamente activa) × 100
 ```
 
-La población económicamente activa incluye a todas las personas con edad para
-trabajar (mayores de 15-16 años típicamente) que están empleadas o buscando
-empleo activamente. **No incluye** a estudiantes a tiempo completo, jubilados,
-amas de casa, o personas que no están buscando trabajo.
+La población económicamente activa suma ocupados y desempleados. La edad mínima
+y las excepciones dependen de la metodología nacional. Ser estudiante, jubilado
+o dedicarse al hogar **no excluye automáticamente** a alguien: cuenta si trabaja
+o cumple los criterios de desempleo. Quien no trabaja ni busca activamente suele
+quedar fuera de la fuerza laboral. Véase la
+[metodología de la BLS](https://www.bls.gov/cps/cps_htgm.htm).
 
 ### Ejemplo práctico del desempleo
 
@@ -184,8 +192,9 @@ Un país tiene:
 
 Tasa de Desempleo = (1.5 / 25) × 100 = **6%**
 
-Una tasa del 6% es moderada; indica que la mayoría encuentra trabajo pero hay un
-segmento significativo enfrentando dificultades.
+El 6 % corresponde a la fuerza laboral, no a toda la población. Para
+interpretarlo hay que mirar su evolución, la participación y la calidad del
+empleo.
 
 ## Balanza Comercial
 
@@ -214,8 +223,9 @@ millones.
 
 Balanza Comercial = $300 - $250 = **+$50 mil millones (superávit)**
 
-Este superávit significa que el país recibe más dinero del exterior que el que
-envía, lo cual puede fortalecer su posición de reservas de divisas.
+Este superávit registra más exportaciones que importaciones de bienes. No
+implica por sí solo una entrada neta total de divisas ni mayores reservas:
+faltan servicios, rentas, transferencias y movimientos financieros.
 
 ### Importancia de la balanza comercial
 
@@ -231,10 +241,10 @@ moneda de reserva mundial.
 ## Tasa de Interés
 
 La tasa de interés es el costo del dinero: el precio que se paga por usar
-capital ajeno durante un período determinado, expresado como un porcentaje
-anual. Las tasas de interés son establecidas principalmente por los bancos
-centrales (como la Reserva Federal en EE.UU. o el Banco Central Europeo) y
-afectan toda la economía.
+capital ajeno durante un período determinado, expresado como un porcentaje para
+un período especificado. Los bancos centrales fijan tasas de política que
+influyen en las demás; las tasas de mercado y de los préstamos también dependen
+del plazo, el riesgo, la competencia y la oferta y demanda de fondos.
 
 Una tasa de interés baja incentiva el consumo y la inversión (es más barato
 endeudarse), pero puede generar inflación. Una tasa alta desalienta el
@@ -244,7 +254,7 @@ entre crecimiento e inflación.
 
 Para una explicación más detallada sobre tasas de interés, tipos de interés, y
 su impacto en economías personales, te recomendamos leer nuestro artículo sobre
-[Conceptos básicos de economía](/blog/economia-basica/).
+[Conceptos básicos de economía](/portfolio/blog/economia-basica/).
 
 ### Importancia de la tasa de interés
 
@@ -316,9 +326,10 @@ Un país tiene:
 
 Ratio Deuda / PIB = ($2 / $10) × 100 = **20%**
 
-Un ratio del 20% es bajo y muy manejable. La mayoría de economías desarrolladas
-tienen ratios entre 50-100%. Ratios muy altos (superiores a 150%) pueden indicar
-problemas de sostenibilidad.
+Un ratio del 20 % describe este ejemplo, pero no demuestra sostenibilidad.
+También importan intereses, vencimientos, moneda de denominación, ingresos
+fiscales, crecimiento y acceso al financiamiento. No existe un umbral único que
+clasifique la deuda de todos los países como segura o insostenible.
 
 ### Importancia de la deuda pública
 
@@ -326,15 +337,17 @@ Una deuda moderada es normal y hasta beneficiosa: permite financiar inversión
 pública (infraestructura, educación). Pero deuda excesiva reduce la flexibilidad
 fiscal del gobierno, aumenta gastos en intereses, y puede llevar a crisis de
 refinanciamiento si los prestamistas pierden confianza. En casos extremos, un
-gobierno puede tener que reestructurar (refinanciar en términos menos
-favorables) o incumplir su deuda.
+gobierno puede tener que reestructurar su deuda (por ejemplo, extender plazos o
+reducir pagos pactados) o incumplir. Una reestructuración no equivale
+simplemente a refinanciar a un interés menos favorable.
 
 ## Tipo de Cambio
 
 El tipo de cambio es el precio de una moneda en términos de otra. Por ejemplo, 1
-dólar estadounidense = 0.95 euros (tipo de cambio EUR/USD). Los tipos de cambio
-fluctúan constantemente en mercados abiertos basándose en oferta y demanda de
-monedas.
+dólar estadounidense = 0,95 euros, una cotización hipotética de 0,95 EUR por
+USD. En la convención de pares de mercado se escribiría USD/EUR = 0,95; EUR/USD
+indicaría cuántos dólares compra un euro. Los tipos de cambio fluctúan
+constantemente en mercados abiertos basándose en oferta y demanda de monedas.
 
 El tipo de cambio es crucial para países que comercian internacionalmente. Una
 moneda fuerte (aprecia respecto a otras) significa que es más cara para
@@ -348,8 +361,8 @@ encarece las importaciones.
 - **Para importadores**: Una moneda fuerte hace más barata la compra de
   productos extranjeros
 - **Para inversores extranjeros**: Necesitan considerar riesgo de cambio
-- **Para ahorradores**: Una moneda fuerte protege el valor de ahorros en casos
-  de inflación
+- **Para ahorradores**: La apreciación puede mejorar la capacidad de comprar
+  bienes extranjeros, pero no garantiza preservar el poder de compra interno
 
 ### Ejemplo práctico del tipo de cambio
 

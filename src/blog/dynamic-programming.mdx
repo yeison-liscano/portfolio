@@ -28,8 +28,14 @@ It is built on two ideas:
   best answers of smaller sub-problems.
 - **Overlapping sub-problems**: the same smaller problems appear repeatedly.
 
-When both conditions hold, dynamic programming can reduce an exponential
-solution into a polynomial one.
+These properties can make reuse effective, but polynomial running time also
+requires a polynomial number of states and work per state. Some dynamic programs
+remain exponential or pseudopolynomial. Counting problems such as Fibonacci use
+the same approach without an optimization objective.
+
+The Fibonacci examples assume a nonnegative integer `n`. Their O(n) time and
+O(1) optimized space count arithmetic operations and stored integers; Python's
+arbitrary-precision integers grow with `n`, so bit costs are larger.
 
 ## Why Dynamic Programming Matters
 
@@ -126,12 +132,14 @@ def fibonacci(n: int) -> int:
   return prev1
 ```
 
-This reduces space from $O(n)$ to $O(1)$.
+This reduces the number of stored Fibonacci values from $O(n)$ to $O(1)$.
 
 ## Another Classic Problem: Minimum Coin Change
 
 Problem: given coin values and a target amount, find the minimum number of coins
-needed to make that amount.
+needed to make that amount, with unlimited copies of each coin. Assume positive
+integer coin values and a nonnegative integer amount. The time cost is
+O(amount × number of denominations), pseudopolynomial in the amount's bit length.
 
 State definition:
 

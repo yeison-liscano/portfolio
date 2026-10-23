@@ -13,7 +13,7 @@ snippet:
         cache = {}
 
         def wrapper_function(*args, **kwargs):
-            key = str(args) + str(kwargs)
+            key = (args, tuple(sorted(kwargs.items())))
             if key not in cache:
                 cache[key] = func(*args, **kwargs)
             return cache[key]
@@ -70,7 +70,9 @@ print(dog.speak())
 > properties (e.g. attributes, methods, dictionary key/value types)
 
 Protocols are a way to define a set of methods that a class must implement in
-order to be considered an instance of that protocol.
+order to satisfy that protocol during static type checking. Python does not
+automatically enforce it at runtime. `@runtime_checkable` permits limited
+attribute-presence checks, not validation of method signatures.
 
 ```python
 from typing import Protocol
@@ -107,14 +109,15 @@ I will use type hints in the examples I provide in this post.
 
 ### Closures
 
-Functions are stateless by default. Closures are a way to keep the state of a
-function between calls.
+Functions can read or mutate state through globals, arguments, or enclosing
+scopes. A closure retains access to bindings in an enclosing function after that
+function returns; this can preserve state between calls.
 
-A closure is a function object that remembers values in enclosing scopes. Note
-that a closure returns a function that remembers the values of the variables in
-the enclosing scope even after the execution has moved out of that scope. It
-means variables in the enclosing scope are kept in memory even after the
-function has finished executing.
+A closure is a function object that remembers values in enclosing scopes. An
+outer function can return such a function, which continues to refer to its
+enclosing bindings after the outer call finishes. It means variables in the
+enclosing scope are kept in memory even after the function has finished
+executing.
 
 ```python
 from collections.abc import Callable
@@ -144,15 +147,19 @@ print(token())
 
 ```bash
 Fetching new token
-token
+my-secret-token
 Using cached token
-token
+my-secret-token
 Using cached token
-token
+my-secret-token
 ```
 
-The following example shows how to use a closure to keep the state of a function
-between calls, so we don't have to request a new token every time we need it.
+The next example uses a mock HTTP client to illustrate token caching. A real
+client also needs token expiry handling, failed-response handling, and
+synchronization if concurrent callers may refresh the same token. The examples
+with top-level `await` run in an async-capable notebook or the page runner; in a
+regular script, put the async work inside `main()` and use
+`asyncio.run(main())`.
 
 ```python
 import asyncio
@@ -316,7 +323,7 @@ async def get_user(
     user_id: int,
     *,
     headers: dict[str, str] | None = None
-) -> str:
+) -> dict[str, object]:
     async with session.get(f"users/{user_id}", headers=headers) as resp:
         return await resp.json()
 
@@ -376,7 +383,7 @@ Docstring
 def stateful_function(func):
     cache = {}
     def wrapper_function(*args, **kwargs):
-        key = str(args) + str(kwargs)
+        key = (args, tuple(sorted(kwargs.items())))
         if key not in cache:
             cache[key] = func(*args, **kwargs)
         return cache[key]
@@ -390,6 +397,12 @@ def fibonacci(n):
 
 print(fibonacci(10))
 ```
+
+The manual cache above requires hashable arguments and keyword values; it is
+only a teaching example. Stringifying arguments is not a reliable cache key,
+because different objects can have the same string representation. For pure
+functions, prefer
+[`functools.cache` or `lru_cache`](https://docs.python.org/3/library/functools.html).
 
 #### cache
 
@@ -535,8 +548,8 @@ print('Elapsed time: {}'.format(timer.elapsed_time()))
 Note that the `__exit__()` method can optionally return a Boolean value. If it
 returns `True`, any exception raised within the `with` block is suppressed and
 execution proceeds as if no exception had occurred. If it returns `False`, any
-exception raised within the `with` block is not suppressed and execution
-proceeds normally.
+exception raised within the `with` block propagates to the surrounding code. A
+return value of `None` also leaves the exception unsuppressed.
 
 ```python
 import threading

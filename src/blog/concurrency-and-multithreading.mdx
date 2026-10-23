@@ -20,9 +20,9 @@ snippet:
 import Figure from "../components/blog/Figure.astro";
 import Timeline from "../components/blog/Timeline.astro";
 
-Concurrency is the ability of a system or program to execute multiple tasks or
-processes simultaneously or overlappingly, without necessarily executing them at
-the same time. Concurrency allows for better utilization of resources and can
+Concurrency is the ability of a system or program to make progress on multiple
+tasks over overlapping periods. Parallelism means executing work at the same
+instant, for example on multiple CPU cores. Concurrency can allow better resource use and
 improve the overall performance of a system or program. In a concurrent system,
 tasks or processes may appear to be executing simultaneously, even if they are
 actually being interleaved or executed in parallel by multiple threads,
@@ -31,15 +31,14 @@ responsiveness, throughput, and scalability of a system or program.
 
 ## What is Concurrency?
 
-Concurrency refers to the ability of a computer system to handle multiple tasks
-or requests simultaneously. In simpler terms, it's about making sure that your
-code can perform multiple operations at once, rather than waiting for one task
-to complete before starting another.
+Concurrency means that one task can begin before another finishes. Tasks can
+take turns on one thread, overlap I/O waits, or run in parallel when the runtime
+and hardware allow it.
 
 ## What is Multithreading?
 
 Multithreading is a specific form of concurrency where a single process can have
-multiple threads (or sub-processes) executing concurrently. Unlike processes,
+multiple threads executing concurrently. A thread is not a subprocess. Unlike processes,
 which don't share memory by default and communicate through explicit IPC
 mechanisms (pipes, shared memory, sockets), threads share the same memory space
 and can interact with each other more efficiently.
@@ -50,12 +49,12 @@ and can interact with each other more efficiently.
    the same time, making it faster and more responsive.
 
 2. **Scalability**: As your application grows, you'll need to handle increasing
-   amounts of data and tasks. Concurrency allows you to distribute work across
-   multiple cores, making your application more scalable.
+   amounts of data and tasks. Concurrent designs can overlap waits; parallel
+   workers can also distribute suitable work across multiple cores.
 
-3. **Resource Utilization**: Modern computers have multiple cores (e.g.,
-   hyper-threaded CPUs), and concurrency ensures that these cores are fully
-   utilized, leading to better performance per watt.
+3. **Resource Utilization**: Overlapping waits can keep a CPU busy. Multiple
+   cores and simultaneous multithreading are different hardware features;
+   concurrency alone guarantees neither full utilization nor lower energy use.
 
 4. **User Experience**: For applications that require real-time interaction,
    such as gaming or video streaming, concurrency is critical for smooth
@@ -65,9 +64,10 @@ and can interact with each other more efficiently.
 
 ### 1. In a Single-Threaded Environment
 
-In a single-threaded environment like JavaScript (Node.js), all operations are
-handled by a single thread. This can lead to bottlenecks when dealing with
-I/O-bound tasks, such as reading files or network requests.
+Node.js normally runs JavaScript callbacks on one event-loop thread, while the
+OS and a worker pool handle many I/O operations. Nonblocking I/O is well suited
+to this model. Long-running JavaScript and synchronous I/O can block the loop.
+See [Node.js's event-loop guide](https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop).
 
 ### 2. In a Multithreaded Environment
 
@@ -181,10 +181,9 @@ different tasks concurrently. For example:
 ## Why is Multithreading Important?
 
 Multithreading is particularly important when dealing with I/O-bound operations,
-such as network requests or file operations. Since these operations are
-inherently sequential by nature (you have to wait for the previous operation to
-complete before you can perform the next one), multithreading allows you to
-**overlap** them with other tasks.
+such as network requests or file operations. A blocking call makes its thread
+wait, but independent I/O operations need not be sequential. Threads or
+asynchronous I/O allow those waits to **overlap** with other work.
 
 ## How to Implement Concurrency and Multithreading?
 
@@ -207,7 +206,7 @@ For example:
 ### 2. **In Python**
 
 Python supports multithreading and multiprocessing to achieve concurrency.
-However, due to CPython's Global Interpreter Lock (GIL), only one thread can
+However, in a GIL-enabled CPython interpreter, only one thread can
 execute Python bytecode at a time. This means multithreading is effective for
 I/O-bound tasks but offers limited performance gains for CPU-bound tasks.
 
@@ -222,9 +221,11 @@ For example:
 
 Starting with Python 3.13, an experimental **free-threaded mode** (no-GIL) was
 introduced via the `--disable-gil` build flag (PEP 703). In Python 3.14, this
-free-threaded build has become more stable and is available as an optional build
-configuration. This allows true parallel execution of threads, significantly
-improving performance for CPU-bound multithreaded workloads.
+free-threaded build became officially supported while remaining optional (PEP
+779). It permits parallel Python execution, but speedups depend on the workload
+and synchronization costs. Some extension modules can re-enable the GIL. Native
+extensions that release the GIL can also run in parallel in a GIL-enabled build.
+See [Python's free-threading guide](https://docs.python.org/3/howto/free-threading-python.html).
 
 ## Practical Examples of Concurrency
 
@@ -249,8 +250,9 @@ waiting for one another.
 ### Machine Learning Models
 
 In machine learning applications, you might want to train multiple models
-simultaneously on different cores. Multithreading allows you to speed up
-training times significantly.
+simultaneously on different cores. Native numerical libraries may release the
+GIL and use their own threads; processes or accelerators are other options.
+Benchmark the workload, since competing thread pools can reduce performance.
 
 ## Common Challenges in Concurrency
 
@@ -267,7 +269,8 @@ training times significantly.
 
 ## Key Takeaways
 
-- Concurrency is about handling multiple tasks at the same time.
+- Concurrency is about making progress on tasks over overlapping periods;
+  parallelism executes work simultaneously.
 - Multithreading is a specific implementation of concurrency where a single
   process has multiple threads.
 - In JavaScript/Node.js, concurrency is handled natively through the event loop

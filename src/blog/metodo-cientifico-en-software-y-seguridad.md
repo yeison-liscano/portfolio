@@ -22,9 +22,9 @@ registro de premisas
 
 En seguridad tomamos decisiones apoyadas en supuestos: "este servicio no es
 alcanzable desde fuera de la VPC", "nuestro SAST detecta inyecciones", "el token
-expira en 15 minutos". Casi nadie los verifica. La idea central de este artículo
-es sencilla: **toda premisa es una hipótesis hasta que la sometes a una prueba
-que podría refutarla**.
+expira en 15 minutos". Si no los verificamos, pueden convertirse en puntos
+ciegos. La idea central de este artículo es sencilla: **toda premisa es una
+hipótesis hasta que la sometes a una prueba que podría refutarla**.
 
 ## El ciclo, traducido al trabajo diario
 
@@ -43,19 +43,21 @@ que podría refutarla**.
    threat model y el postmortem sin culpables.
 
 El criterio que separa esto de una opinión es la **falsabilidad**: una
-afirmación que ningún resultado posible puede contradecir no dice nada sobre el
-sistema.
+afirmación empírica que ningún resultado posible puede contradecir no ofrece un
+criterio de prueba. Los requisitos normativos y las propiedades demostradas
+formalmente se evalúan de otras maneras.
 
 ## Dónde aparece en la práctica
 
 ### Threat models como conjuntos de hipótesis
 
-Cada supuesto de un threat model ("el atacante no tiene acceso al bucket", "el
-token expira en 15 minutos") puede convertirse en una verificación automática
-sobre la infraestructura o en un test en el pipeline de CI. Así el modelo deja
-de ser un documento que envejece y pasa a ser una batería de pruebas que puede
-fallar. El test del inicio de este artículo es exactamente eso: la hipótesis "el
-token expira a los 15 minutos" escrita de forma que pueda ser refutada.
+Muchos supuestos de un threat model ("el atacante no tiene acceso al bucket",
+"el token expira en 15 minutos") pueden convertirse en una verificación
+automática sobre la infraestructura o en un test en el pipeline de CI. Así el
+modelo deja de ser un documento que envejece y pasa a ser una batería de pruebas
+que puede fallar. El test del inicio de este artículo es exactamente eso: la
+hipótesis "el token expira a los 15 minutos" escrita de forma que pueda ser
+refutada.
 
 ### Medir las herramientas en lugar de creerles
 
@@ -67,30 +69,32 @@ valiosa sobre sus límites.
 ### Cambios con línea base
 
 Antes de afirmar que una mitigación redujo el riesgo, compara contra un
-baseline. Sin esa comparación se confunde correlación con causalidad: el tiempo
-medio de remediación pudo bajar porque cambió el equipo, no porque cambió el
-proceso.
+baseline. Una línea base ayuda a interpretar el cambio, pero una comparación
+antes/después no basta para establecer causalidad: el tiempo medio de
+remediación pudo bajar porque cambió el equipo, no porque cambió el proceso.
 
 ### Postmortems y reproducibilidad
 
 Un postmortem sólido formula hipótesis causales y busca evidencia que las
-desmienta, en lugar de quedarse con la primera explicación plausible. Y un
-hallazgo que no puedes reproducir con una prueba de concepto mínima no está
-establecido todavía.
+desmienta, en lugar de quedarse con la primera explicación plausible. Una prueba
+de concepto reproducible fortalece la evidencia, pero un incidente también puede
+establecerse con registros, trazas o evidencia forense aunque no sea posible
+repetirlo. Hay que documentar la incertidumbre restante.
 
 ### Un contraejemplo vale más que mil confirmaciones
 
-Algunas afirmaciones de seguridad son deterministas: "este endpoint es
-alcanzable sin autenticación" se confirma o se refuta con un solo caso. Una
-prueba de concepto que funciona basta. Es la idea de falsación de Popper
-aplicada directamente: ninguna cantidad de pruebas favorables demuestra que el
-sistema es seguro, pero un solo caso adverso demuestra que no lo es.
+Una afirmación universal como «este endpoint nunca acepta peticiones sin
+autenticación» queda refutada por una petición no autenticada que sí funciona.
+En cambio, una petición rechazada no prueba que ningún otro intento pueda
+funcionar. El contraejemplo demuestra que esa propiedad concreta falla en las
+condiciones probadas; no clasifica toda la seguridad del sistema.
 
 ## Límites que conviene recordar
 
-- **Las pruebas refutan, no demuestran.** Como señaló Dijkstra, probar un
-  programa puede mostrar que hay errores, nunca que no los hay. La conclusión
-  legítima es "no encontramos evidencia de X con este método", no "X no existe".
+- **Una batería finita de pruebas no suele demostrar ausencia de errores.** La
+  conclusión debe limitarse a las condiciones evaluadas. Las verificaciones
+  exhaustivas de modelos finitos y las pruebas formales pueden demostrar
+  propiedades dentro de sus modelos y supuestos.
 - **El adversario se adapta.** El sistema no es estacionario: lo que fue cierto
   ayer puede dejar de serlo cuando el atacante cambia de táctica, así que las
   hipótesis necesitan revalidarse de forma continua.
@@ -104,11 +108,11 @@ sistema es seguro, pero un solo caso adverso demuestra que no lo es.
 
 Crea una tabla con tus supuestos de seguridad y cuatro columnas:
 
-| Afirmación                        | Impacto si es falsa | Evidencia actual         | Prueba que la refutaría                       |
-| --------------------------------- | ------------------- | ------------------------ | --------------------------------------------- |
-| El bucket no es accesible público | Alto                | Revisión manual hace 6 m | Test automático en CI con credenciales vacías |
-| El token expira en 15 minutos     | Medio               | Configuración leída      | Usar un token vencido y esperar un rechazo    |
-| El SAST detecta inyecciones SQL   | Alto                | Ninguna                  | Corpus con vulnerabilidades sembradas         |
+| Afirmación                        | Impacto si es falsa | Evidencia actual         | Resultado que la refutaría                |
+| --------------------------------- | ------------------- | ------------------------ | ----------------------------------------- |
+| El bucket no es accesible público | Alto                | Revisión manual hace 6 m | Leer el bucket sin autorización           |
+| El token expira en 15 minutos     | Medio               | Configuración leída      | Obtener acceso con un token vencido       |
+| El SAST detecta inyecciones SQL   | Alto                | Ninguna                  | Omitir una inyección del corpus de prueba |
 
 Prioriza las filas de alto impacto y baja evidencia, y conviértelas en pruebas
 repetibles que corran de forma continua. Cada vez que una falle, habrás

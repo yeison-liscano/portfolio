@@ -1,8 +1,4 @@
 { pkgs, self' }:
-let
-  commitlint_config = ./config.js;
-  commitlint_parser = ./parser.js;
-in
 pkgs.writeShellApplication {
   name = "portfolio-lint";
   runtimeInputs = pkgs.lib.flatten [
@@ -11,8 +7,6 @@ pkgs.writeShellApplication {
 
     pkgs.gnugrep
     pkgs.gitleaks
-
-    pkgs.commitlint
 
     pkgs.nixfmt
     pkgs.statix
@@ -25,9 +19,6 @@ pkgs.writeShellApplication {
   ];
   text = ''
     # shellcheck disable=SC1091
-    source "${./main.sh}" \
-      "${commitlint_config}" \
-      "${commitlint_parser}" \
-      "$@"
+    source "${./main.sh}" "$@"
   '';
 }

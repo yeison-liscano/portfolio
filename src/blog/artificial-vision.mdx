@@ -55,8 +55,10 @@ numbers requires sophisticated mathematical and computational techniques.
 This article explores the foundational concepts of computer vision and image
 processing, starting with basic spatial domain operations and progressing to
 more advanced frequency domain techniques. We'll examine practical applications
-and provide working code examples using OpenCV, Python's most popular computer
-vision library.
+and provide working code examples using OpenCV, a widely used computer vision library with Python bindings.
+The examples require OpenCV, NumPy and Matplotlib, input images at the stated
+paths, and a desktop GUI for `cv2.imshow`. They do not run unchanged in the
+browser runner. Later fragments reuse variables from earlier examples.
 
 ## Understanding Visual Computing: Three Distinct Disciplines
 
@@ -83,12 +85,11 @@ images, photographs, satellite imagery, and microscopy.
 
 ### Computer Graphics: From 3D Models to 2D Display
 
-Computer graphics is essentially the inverse problem. It starts with
-three-dimensional models, scenes, or data and produces two-dimensional images
-suitable for display. Graphics rendering involves lighting calculations, texture
+Computer graphics creates or manipulates visual content, including 2D drawings
+and 3D rendering. In 3D rendering, models and scenes produce 2D images for display. Graphics rendering involves lighting calculations, texture
 mapping, perspective projection, and visual effects.
 
-While image processing asks "what is in this image?", graphics asks "how do I
+While computer vision asks "what is in this image?", graphics asks "how do I
 create this image?" Applications include:
 
 - 3D scene rendering
@@ -130,6 +131,7 @@ interpolation.
 ```python
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Read image
 image = cv2.imread('photo.jpg')
@@ -151,12 +153,13 @@ during rotation.
 #### Scaling (Zoom)
 
 Scaling resizes an image by a factor. Upscaling (enlarging) requires
-interpolation; downscaling (shrinking) averages pixel neighborhoods.
+interpolation. Downscaling also resamples the image; area interpolation is
+often useful for reducing aliasing, but not every resize method averages neighborhoods.
 
 ```python
 # Scale to 50% of original size
 scaled_down = cv2.resize(image, (width // 2, height // 2),
-                         interpolation=cv2.INTER_LINEAR)
+                         interpolation=cv2.INTER_AREA)
 
 # Scale to 200% of original size
 scaled_up = cv2.resize(image, (width * 2, height * 2),
@@ -165,10 +168,12 @@ scaled_up = cv2.resize(image, (width * 2, height * 2),
 
 Different interpolation methods offer speed-quality tradeoffs:
 
-- `INTER_NEAREST`: Fastest, lowest quality
-- `INTER_LINEAR`: Good balance, commonly used
-- `INTER_CUBIC`: Higher quality, slower
-- `INTER_LANCZOS4`: Best quality, slowest
+- `INTER_NEAREST`: Preserves discrete labels; may look blocky on photos.
+- `INTER_LINEAR`: Bilinear interpolation, a common general-purpose option.
+- `INTER_AREA`: Area-based resampling, often useful for shrinking.
+- `INTER_CUBIC` and `INTER_LANCZOS4`: Use larger neighborhoods and may improve
+  some enlargements, but can introduce ringing. There is no universal best method.
+  See [OpenCV geometric transforms](https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html).
 
 #### Translation
 
@@ -184,7 +189,7 @@ translated = cv2.warpAffine(image, translation_matrix, (width, height))
 ### Histogram Processing and Equalization
 
 A histogram represents the distribution of pixel intensity values. For grayscale
-images, it shows how many pixels have each intensity from 0 (black) to 255
+8-bit images, it shows how many pixels have each intensity from 0 (black) to 255
 (white).
 
 Histogram equalization redistributes pixel intensities to use the full range
@@ -255,7 +260,9 @@ frame1 = cv2.imread('frame1.jpg').astype(np.float32)
 frame2 = cv2.imread('frame2.jpg').astype(np.float32)
 
 difference = cv2.absdiff(frame1, frame2)
-difference = (difference / difference.max() * 255).astype(np.uint8)
+# Keep intensity units: frame inputs are 8-bit images converted to float32.
+difference = cv2.cvtColor(difference, cv2.COLOR_BGR2GRAY)
+difference = np.clip(difference, 0, 255).astype(np.uint8)
 
 # Use threshold to identify regions of significant change
 _, motion_mask = cv2.threshold(difference, 30, 255, cv2.THRESH_BINARY)
@@ -281,15 +288,24 @@ masked_image = np.clip(masked_image, 0, 255).astype(np.uint8)
 ### Spatial Filtering and Convolution
 
 Spatial filters process each pixel using information from its neighborhood.
-They're implemented using convolution, a fundamental operation in signal and
-image processing.
+Linear filters can be implemented using convolution or correlation. Nonlinear
+filters, such as the median filter, are not convolutions.
 
 #### Convolution Concept
 
 Convolution slides a small kernel (filter matrix) over the image, computing a
 weighted sum at each position. For a 2D image, the discrete convolution is:
 
-Output[i,j] = Σ Σ Kernel[u,v] × Image[i+u, j+v]
+```text
+Convolution: Output[i,j] = Σu Σv Kernel[u,v] × Image[i-u, j-v]
+Correlation: Output[i,j] = Σu Σv Kernel[u,v] × Image[i+u, j+v]
+```
+
+The indices here are offsets from the kernel center. Convolution flips the
+kernel; correlation does not. `cv2.filter2D` and the explorable below use
+correlation. A symmetric blur kernel gives the same result either way; an
+asymmetric derivative kernel can change sign. See the
+[OpenCV filtering reference](https://docs.opencv.org/4.x/d4/d86/group__imgproc__filter.html).
 
 The kernel defines what features the filter detects or what effect it applies.
 
@@ -328,17 +344,21 @@ sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
 
 # Magnitude of gradient
 edge_magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
-edge_magnitude = (edge_magnitude / edge_magnitude.max() * 255).astype(np.uint8)
+maximum = edge_magnitude.max()
+if maximum > 0:
+    edge_magnitude = edge_magnitude / maximum * 255
+edge_magnitude = edge_magnitude.astype(np.uint8)
 
 # Canny edge detector (more sophisticated)
-edges = cv2.Canny(gray, 100, 200)
+smoothed = cv2.GaussianBlur(gray, (5, 5), 1.4)
+edges = cv2.Canny(smoothed, 100, 200)
 
 cv2.imshow('Edges', edges)
 ```
 
-The Canny edge detector applies Gaussian smoothing, computes gradients, performs
+The conceptual Canny pipeline smooths the image, computes gradients, performs
 non-maximum suppression, and uses hysteresis thresholding—it's a complete edge
-detection pipeline.
+detection pipeline. The example smooths explicitly before calling `cv2.Canny`.
 
 ##### Sharpening
 
@@ -366,7 +386,9 @@ frequencies dominate an image.
 
 The 2D Discrete Fourier Transform (DFT) is:
 
-F[u,v] = Σ Σ f[x,y] × e^(-2πi(ux/M + vy/N))
+```text
+F[u,v] = Σ(x=0..M-1) Σ(y=0..N-1) f[x,y] × exp(-2πi(ux/M + vy/N))
+```
 
 where f[x,y] is the pixel value and F[u,v] is the frequency component.
 
@@ -410,21 +432,25 @@ plt.show()
 ```
 
 The magnitude spectrum shows which frequencies are strong; the phase carries
-information about where features are located. Interestingly, phase is more
-important for human perception than magnitude—an image reconstructed from only
-phase looks recognizable, while one from only magnitude often looks like noise.
+information about where features are located. Phase-only reconstructions can
+preserve recognizable structure for some images, but both magnitude and phase
+are needed for exact reconstruction; this is not a universal ranking of importance.
 
 ## Practical Example: Building a Complete Image Processing Pipeline
 
 Let's combine multiple techniques in a realistic scenario: enhancing a
-low-quality medical image.
+low-contrast grayscale photograph. This is an image-processing demonstration,
+not a clinically validated medical-imaging workflow.
 
 ```python
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Read image
-image = cv2.imread('medical_scan.jpg', cv2.IMREAD_GRAYSCALE)
+image = cv2.imread('photo.jpg', cv2.IMREAD_GRAYSCALE)
+if image is None:
+    raise FileNotFoundError('photo.jpg')
 
 # Step 1: Denoise using bilateral filter
 # (preserves edges while smoothing)
@@ -437,8 +463,8 @@ enhanced = clahe.apply(denoised)
 
 # Step 3: Edge enhancement using high-pass filter
 blurred = cv2.GaussianBlur(enhanced, (0, 0), 2.0)
-high_pass = cv2.subtract(enhanced, blurred)
-sharpened = cv2.addWeighted(enhanced, 1.0, high_pass, 0.5, 0)
+high_pass = enhanced.astype(np.float32) - blurred.astype(np.float32)
+sharpened = np.clip(enhanced.astype(np.float32) + 0.5 * high_pass, 0, 255)
 
 # Step 4: Normalize intensity
 normalized = cv2.normalize(sharpened, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
@@ -465,8 +491,8 @@ plt.show()
 ```
 
 This pipeline demonstrates how combining multiple techniques—denoising, contrast
-enhancement, sharpening, and normalization—creates a more effective result than
-any single operation alone.
+enhancement, sharpening, and normalization—changes an image. Whether it helps
+depends on the task; it may also amplify noise or distort useful information.
 
 ## Common Applications of Computer Vision
 
@@ -476,9 +502,9 @@ Computer vision technology powers countless real-world applications:
 
 Computer vision assists in diagnosis and treatment planning. Algorithms detect
 tumors, segment organs, measure anatomical structures, and register images
-across time or modalities (CT, MRI, ultrasound). Deep learning has
-revolutionized medical image analysis, achieving radiologist-level performance
-on specific tasks.
+across time or modalities (CT, MRI, ultrasound). Performance depends on the
+specific task, data and clinical validation; success on a benchmark does not
+establish safe use in a clinical workflow.
 
 ### Autonomous Driving
 

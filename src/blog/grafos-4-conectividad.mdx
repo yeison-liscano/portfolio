@@ -147,12 +147,13 @@ def alcanzables(grafo, inicio):
 
 
 def componentes(grafo):
-    pendientes = set(grafo)
+    vistos = set()
     resultado = []
-    while pendientes:
-        componente = alcanzables(grafo, min(pendientes))
-        resultado.append(sorted(componente))
-        pendientes -= componente
+    for inicio in grafo:
+        if inicio not in vistos:
+            componente = alcanzables(grafo, inicio)
+            resultado.append(componente)
+            vistos.update(componente)
     return resultado
 
 
@@ -161,7 +162,8 @@ H = {
     "d": ["e"], "e": ["d"],
     "f": ["g"], "g": ["f", "h"], "h": ["g"],
 }
-print(componentes(H))
+# Ordenar solo para presentar el resultado añade un costo de ordenamiento.
+print([sorted(c) for c in componentes(H)])
 ```
 
 Una medida natural en un grafo conexo es la **distancia** entre dos vértices: la
@@ -179,7 +181,7 @@ En una red no solo importa si está conectada, sino qué tan frágil es. Un vér
 cuya eliminación (junto con sus aristas) aumenta el número de componentes
 conexas se llama **vértice de corte**; una arista cuya eliminación aumenta el
 número de componentes es una **arista de corte** o **puente**. En un grafo de
-red, un vértice de corte es un enrutador que, si falla, parte la red en dos, y
+red, un vértice de corte es un enrutador que, si falla, separa su componente en dos o más partes, y
 un puente es un enlace sin respaldo. En la figura, el único vértice de `H₃` que
 es de corte es `g`, y todas las aristas de `H₂` y `H₃` son puentes.
 

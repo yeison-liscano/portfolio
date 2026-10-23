@@ -1,7 +1,9 @@
 ---
 title: Cybersecurity Basics
 pubDate: 2026-03-22
-description: "Cybersecurity Basics"
+description:
+  "Common cyber threats and foundational controls: access management, backups,
+  encryption, monitoring, and recovery planning."
 tags: ["security"]
 isDraft: true
 snippet:
@@ -18,8 +20,11 @@ assets.
 
 ### Ransomware
 
-Ransomware is malicious software that encrypts a victim's files, making them
-inaccessible until a ransom is paid. Notable examples include
+Ransomware commonly encrypts files or blocks system access and demands payment.
+Attackers may also steal data and threaten disclosure. Paying does not guarantee
+recovery, and backups do not undo data theft. See the
+[CISA StopRansomware Guide](https://www.cisa.gov/stopransomware/ransomware-guide).
+Notable examples include
 [WannaCry](https://en.wikipedia.org/wiki/WannaCry_ransomware_attack) and
 [CryptoLocker](https://en.wikipedia.org/wiki/CryptoLocker). These attacks have
 evolved from targeting individuals to disrupting critical infrastructure and
@@ -34,7 +39,8 @@ or gain unauthorized access:
 - **Worms**: Self-propagating malware that spreads across networks independently
 - **Trojans**: Malicious programs disguised as legitimate software
 - **Spyware**: Software that covertly monitors user activity
-- **Adware**: Unwanted software displaying advertising content
+- **Malicious adware**: Software that abuses advertising to track users, deceive
+  them, or compromise systems; advertising software is not always malware
 
 ### Social Engineering
 
@@ -56,10 +62,10 @@ credentials and credit card details. Variants include:
 
 ### Denial of Service (DoS) and Distributed DoS (DDoS)
 
-These attacks overwhelm systems, servers, or networks with traffic to disrupt
-services. DDoS attacks launch from multiple compromised devices, making them
-particularly difficult to mitigate. Modern attacks can exceed terabits per
-second, enough to take down major online platforms.
+DoS attacks exhaust resources or exploit weaknesses to disrupt availability.
+DDoS attacks distribute the traffic across multiple sources, including botnets
+or abused reflection services. High packet volume is one method, but
+application-layer attacks can disrupt service with much less bandwidth.
 
 ### Man-in-the-Middle (MitM) Attacks
 
@@ -115,6 +121,9 @@ attacks. The 3-2-1 backup strategy recommends:
 - 2 different media types
 - 1 copy stored off-site
 
+Also keep a copy offline or immutable and test restoration. An off-site copy
+that an attacker can modify with compromised credentials is not sufficient.
+
 ### Cryptography and Encryption
 
 Encryption converts readable data into encoded ciphertext that can only be
@@ -128,8 +137,9 @@ decrypted with the correct key:
 ### Virtual Private Networks (VPNs)
 
 VPNs create secure, encrypted connections over less secure networks like the
-internet. They protect data in transit and can mask user location and IP
-address, enhancing privacy and security.
+internet. A VPN protects traffic within the tunnel, up to its endpoint. It can
+change the public IP seen by destinations, but does not guarantee anonymity or
+protect traffic after the VPN endpoint; HTTPS still matters.
 
 ### Endpoint Protection
 
@@ -158,7 +168,10 @@ are most important to the organization. It helps to determine the potential
 impact of a security incident and to develop a plan for responding to it.
 
 - Main functions of the business.
-- ROT and RPO.
+- **RTO (recovery time objective)**: target time to restore a disrupted service.
+- **RPO (recovery point objective)**: point in time to which data must be
+  recovered, expressing tolerable data loss. See
+  [NIST SP 800-34 Rev. 1](https://csrc.nist.gov/pubs/sp/800/34/r1/upd1/final).
 - Required Assets for business functions.
 - Financial impact of the incident.
 - Operational impact of the incident.

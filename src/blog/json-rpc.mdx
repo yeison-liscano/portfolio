@@ -3,7 +3,7 @@ title: JSON-RPC V2.0
 pubDate: 2026-03-15
 description: "JSON-RPC is a stateless, light-weight remote procedure call (RPC) protocol"
 tags: ["programming", "web"]
-isDraft: False
+isDraft: false
 snippet:
   language: "json"
   code: |
@@ -85,7 +85,7 @@ Either the `result` member or `error` member must be included, but not both.
 
 Object with the following members:
 
-- `code`: A number that indicates the error type that occurred.
+- `code`: An integer that indicates the error type that occurred.
 - `message`: Description of the error (String). Concise single sentence.
 - `data`: A primitive or structured value containing additional information
   about the error (optional).
@@ -101,7 +101,8 @@ exist for each request object except for notification requests.
 
 The responses may be returned in any order in the responses array. The server
 must not return an empty array and should return nothing at all for batches
-containing only notifications.
+containing only valid notifications. An empty batch (`[]`) is invalid and
+receives a single Invalid Request error object, not an empty response array.
 
 <Figure caption="A batch of three requests gets two responses: the notification has no id, so nothing answers it, and the responses may come back in any order. A batch of only notifications gets no reply at all.">
   <Mermaid

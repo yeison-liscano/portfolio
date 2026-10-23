@@ -15,9 +15,10 @@ snippet:
 ## Introduction
 
 The time value of money is one of the most fundamental concepts in finance. At
-its core, it expresses a simple but powerful idea: a dollar today is worth more
-than a dollar in the future. This principle underlies nearly every financial
-decision, from personal savings goals to corporate investments.
+its core, it expresses a simple but powerful idea: with a positive discount
+rate, a dollar today is worth more than the same nominal dollar received later.
+This principle underlies nearly every financial decision, from personal savings
+goals to corporate investments.
 
 Why does money have a time value? Several factors contribute. First, money has
 the potential to earn returns. If you invest a dollar today at a 5% annual
@@ -31,7 +32,10 @@ decisions. Whether you're deciding between a lump sum payment or monthly
 installments, evaluating investment opportunities, planning for retirement, or
 comparing mortgage options, you need to account for how money's value changes
 across time. This article walks through the core concepts, formulas, and
-practical applications of time value calculations.
+practical applications of time value calculations. All rates and cash flows
+below are hypothetical, constant unless stated otherwise, and exclude fees and
+taxes. See
+[OpenStax Principles of Finance, time value of money](https://openstax.org/books/principles-finance/pages/7-1-now-versus-later-concepts).
 
 ## The Magic of Compound Interest
 
@@ -42,23 +46,23 @@ Over long periods, compound interest can lead to remarkable growth.
 
 The fundamental formula for compound interest is:
 
-$$
-FV = PV \times (1 + r)^n
-$$
+```text
+FV = PV × (1 + r)^n
+```
 
 Where:
 
-- $FV$ is the future value of the investment
-- $PV$ is the present value (initial amount) of the investment
-- $r$ is the interest rate per period (expressed as a decimal)
-- $n$ is the number of periods
+- `FV` is the future value of the investment
+- `PV` is the present value (initial amount) of the investment
+- `r` is the interest rate per period (expressed as a decimal)
+- `n` is the number of periods
 
 For example, if you invest $1,000 at a 6% annual interest rate for 10 years,
 your future value is:
 
-$$
-FV = 1000 \times (1.06)^{10} = 1000 \times 1.791 = \$1,791
-$$
+```text
+FV = 1000 × (1.06)^(10) = 1000 × 1.791 = $1,791
+```
 
 Your investment nearly doubled in value, with the excess $791 coming entirely
 from compound interest.
@@ -66,9 +70,9 @@ from compound interest.
 We can rearrange this formula to work backwards. If you know the future value of
 an investment and want to find its present value, use the present value formula:
 
-$$
-PV = \frac{FV}{(1 + r)^n}
-$$
+```text
+PV = (FV) / ((1 + r)^n)
+```
 
 This allows you to determine how much money you need to invest today to reach a
 specific financial goal in the future.
@@ -81,32 +85,33 @@ differs from simple interest.
 With **simple interest**, you earn returns only on the original principal
 amount. The formula is:
 
-$$
-FV = PV \times (1 + r \times n)
-$$
+```text
+FV = PV × (1 + r × n)
+```
 
 Using our previous example: $1,000 at 6% simple interest for 10 years would grow
 to:
 
-$$
-FV = 1000 \times (1 + 0.06 \times 10) = 1000 \times 1.6 = \$1,600
-$$
+```text
+FV = 1000 × (1 + 0.06 × 10) = 1000 × 1.6 = $1,600
+```
 
 With **compound interest**, you earn returns on the principal and on all
 accumulated interest:
 
-$$
-FV = 1000 \times (1.06)^{10} = \$1,791
-$$
+```text
+FV = 1000 × (1.06)^(10) = $1,791
+```
 
 The difference is $191 in favor of compound interest. This gap widens
-dramatically with longer time periods and higher interest rates. Compound
-interest is the reason Albert Einstein allegedly called it "the eighth wonder of
-the world"—it rewards patience and long-term investing.
+dramatically with longer time periods and higher interest rates. The growth
+comes from reinvesting returns; there is no need to rely on the unverified
+quotation commonly attributed to Einstein.
 
 Most investments, savings accounts, and loans use compound interest, not simple
-interest. Understanding this distinction is crucial for accurate financial
-planning.
+interest in different ways. Loan interest may accrue on the outstanding balance
+without unpaid interest being capitalized. Check the actual contract rather than
+assuming every product uses the same formula.
 
 ## Three Types of Amounts
 
@@ -119,13 +124,13 @@ approach.
 A lump sum is a single amount of money received or paid at one point in time.
 We've already covered the formulas above:
 
-$$
-FV = PV \times (1 + r)^n
-$$
+```text
+FV = PV × (1 + r)^n
+```
 
-$$
-PV = \frac{FV}{(1 + r)^n}
-$$
+```text
+PV = (FV) / ((1 + r)^n)
+```
 
 #### College Savings Example
 
@@ -133,11 +138,11 @@ Suppose you want to save for your child's college education and estimate you'll
 need $150,000 in 15 years. If you can invest in a fund earning 7% annually, how
 much do you need to deposit today?
 
-$$
-PV = \frac{150,000}{(1.07)^{15}} = \frac{150,000}{2.759} = \$54,364
-$$
+```text
+PV = \frac{150,000){(1.07)^(15)) = (150,000) / (2.759032) = $54,367
+```
 
-You would need to deposit approximately $54,364 today to reach your goal of
+You would need to deposit approximately $54,367 today to reach your goal of
 $150,000 in 15 years, assuming a consistent 7% annual return.
 
 ### Annuity
@@ -149,52 +154,53 @@ contributions.
 The **future value of an ordinary annuity** (payments at the end of each period)
 is:
 
-$$
-FV = PMT \times \frac{(1 + r)^n - 1}{r}
-$$
+```text
+FV = PMT × ((1 + r)^n - 1) / (r)
+```
 
 The **present value of an ordinary annuity** is:
 
-$$
-PV = PMT \times \frac{1 - (1 + r)^{-n}}{r}
-$$
+```text
+PV = PMT × \frac{1 - (1 + r)^(-n)){r)
+```
 
 Where:
 
-- $FV$ is the future value of the annuity
-- $PV$ is the present value of the annuity
-- $PMT$ is the payment amount per period
-- $r$ is the interest rate per period
-- $n$ is the number of periods
+- `FV` is the future value of the annuity
+- `PV` is the present value of the annuity
+- `PMT` is the payment amount per period
+- `r` is the interest rate per period
+- `n` is the number of periods
 
 #### Monthly Savings Plan Example
 
-You decide to save $500 per month for retirement in an investment account
-earning 8% annually (0.67% per month). How much will you have accumulated after
-30 years?
+You decide to save $500 per month for retirement in an investment account with a
+hypothetical nominal annual rate of 8%, compounded monthly. How much will you
+have accumulated after 30 years?
 
-First, convert the annual rate: monthly rate = 8% / 12 = 0.667% = 0.00667
+Use the exact monthly rate `r = 0.08 / 12` (approximately 0.6667%). If 8% were
+an effective annual rate instead, the monthly rate would be `(1.08)^(1/12) - 1`.
+These are different assumptions.
 
 Number of periods: 30 years × 12 months = 360
 
-$$
-FV = 500 \times \frac{(1.00667)^{360} - 1}{0.00667}
-= 500 \times \frac{10.957 - 1}{0.00667}
-= 500 \times 1,493 = \$746,500
-$$
+```text
+r = 0.08 / 12
+FV = 500 × ((1 + r)^360 - 1) / r ≈ $745,179.72
+```
 
 By saving just $500 per month for 30 years, you accumulate approximately
-$746,500. Your total contributions are $500 × 360 = $180,000, meaning $566,500
-comes from investment returns. This illustrates the power of consistent
-investing over long periods.
+$745,179.72. Your total contributions are $500 × 360 = $180,000, meaning
+$565,179.72 comes from investment returns. This illustrates the power of
+consistent investing over long periods.
 
 Alternatively, if you knew you wanted $500,000 at retirement and wanted to know
 what monthly payment is required, you would rearrange the formula to solve for
-$PMT$:
+`PMT`:
 
-$$
-PMT = \frac{PV}{[1 - (1 + r)^{-n}] / r}
-$$
+```text
+PMT = FV × r / ((1 + r)^n - 1)
+```
 
 ### Series of Cash Flows and Net Present Value
 
@@ -204,20 +210,21 @@ discounts all future cash flows back to their present value and sums them up.
 
 The NPV formula is:
 
-$$
-NPV = \sum_{t=0}^{n} \frac{CF_t}{(1 + r)^t}
-$$
+```text
+NPV = Σ(t=0..n) (CF_t) / ((1 + r)^t)
+```
 
 Where:
 
-- $CF_t$ is the cash flow in period $t$
-- $r$ is the discount rate (required rate of return)
-- $t$ is the time period
-- $n$ is the total number of periods
+- `CF_t` is the cash flow in period `t`
+- `r` is the discount rate (required rate of return)
+- `t` is the time period
+- `n` is the total number of periods
 
-A positive NPV indicates the investment creates value; a negative NPV means it
-destroys value. When choosing between multiple investments, the one with the
-highest NPV is most attractive.
+A positive NPV means the modeled cash flows exceed the required return under the
+chosen assumptions. For mutually exclusive, comparable projects without capital
+constraints, higher NPV is preferred. Risk, unequal project lifetimes and
+funding constraints can require additional analysis.
 
 #### Investment Project Evaluation Example
 
@@ -233,18 +240,20 @@ years. The required rate of return is 10%.
 
 Calculate the NPV:
 
-$$
-NPV = \frac{-100,000}{1.10^0} + \frac{30,000}{1.10^1}
-+ \frac{35,000}{1.10^2} + \frac{40,000}{1.10^3}
-+ \frac{25,000}{1.10^4} + \frac{20,000}{1.10^5}
-$$
+```text
+NPV = (-100,000) / (1.10^0) + (30,000) / (1.10^1)
++ (35,000) / (1.10^2) + (40,000) / (1.10^3)
++ (25,000) / (1.10^4) + (20,000) / (1.10^5)
+```
 
-$$
-NPV = -100,000 + 27,273 + 28,925 + 30,053 + 17,075 + 12,418 = \$15,744
-$$
+```text
+NPV ≈ -100,000 + 27,272.73 + 28,925.62 + 30,052.59
+      + 17,075.34 + 12,418.43 = $15,744.70
+```
 
-The positive NPV of $15,744 indicates this is a good investment—it returns more
-than the 10% required rate of return.
+The modeled NPV is $15,744.70, positive at the assumed 10% discount rate. This
+supports accepting the project if the forecasts, risk adjustment and other
+constraints are appropriate; it is not a guarantee of the actual outcome.
 
 ## Inflation and Real vs. Nominal Returns
 
@@ -257,21 +266,22 @@ earns 2% annually, that's the nominal rate.
 **Real returns** account for inflation. If the nominal rate is 2% but inflation
 is 3%, your real return is actually negative—your purchasing power declined.
 
-The relationship between real returns, nominal returns, and inflation is
-approximated by the Fisher equation:
+The relationship between real returns, nominal returns, and inflation is given
+by the exact purchasing-power adjustment for the same period:
 
-$$
-(1 + r_{real}) = \frac{1 + r_{nominal}}{1 + i}
-$$
+```text
+(1 + r_real) = \frac{1 + r_nominal){1 + i)
+```
 
-Where $i$ is the inflation rate.
+Where `i` is the inflation rate. The commonly used approximation is
+`real rate ≈ nominal rate − inflation`.
 
 For example, if your investment earns 6% (nominal) and inflation is 2%, your
 real return is:
 
-$$
-r_{real} = \frac{1.06}{1.02} - 1 = 0.0392 = 3.92\%
-$$
+```text
+r_real = (1.06) / (1.02) - 1 = 0.0392 = 3.92%
+```
 
 Your purchasing power actually increased by about 3.92%, not 6%. Over long
 periods, the gap between nominal and real returns compounds significantly. This
@@ -285,16 +295,17 @@ When you take out a mortgage, the lender uses the present value of an annuity
 formula to calculate your monthly payment. A $300,000 mortgage at 5% for 30
 years requires:
 
-Monthly rate = 5% / 12 = 0.417% Number of payments = 30 × 12 = 360
+Assume a nominal annual rate of 5%, compounded monthly: `r = 0.05 / 12`, with
+360 end-of-month payments. This excludes fees, insurance and taxes.
 
-$$
-PMT = \frac{300,000}{[1 - (1.00417)^{-360}] / 0.00417}
-= \frac{300,000}{215.84} = \$1,610
-$$
+```text
+PMT = 300,000 × r / (1 - (1 + r)^(-360)) ≈ $1,610.46
+```
 
-Your monthly payment is approximately $1,610. Over 30 years, you'll pay 360 ×
-$1,610 = $579,600, with $279,600 going to interest. This underscores why paying
-extra principal early in the mortgage saves substantial interest.
+Using the unrounded payment, total principal and interest is approximately
+$579,767.35, including $279,767.35 in interest. Actual cent-rounded payments
+require a small final-payment adjustment. This underscores why paying extra
+principal early in the mortgage saves substantial interest.
 
 ### Retirement Planning
 
@@ -309,13 +320,15 @@ estimate:
 If you need $50,000 annually in retirement for 30 years and expect 6% returns,
 the present value of your retirement needs is:
 
-$$
-PV = 50,000 \times \frac{1 - (1.06)^{-30}}{0.06} = 50,000 \times 13.765 = \$688,250
-$$
+```text
+PV = 50,000 × (1 - (1.06)^(-30)) / 0.06 ≈ $688,241.56
+```
 
-You'd need approximately $688,250 at retirement to sustain this income level.
-Working backward with the annuity formula, you can determine how much to save
-monthly to reach this goal.
+Under this simplified model, the initial amount is $688,241.56. It assumes fixed
+nominal withdrawals at year-end and a constant 6% return, with no taxes, fees or
+inflation increases. Variable returns introduce sequence-of-returns risk, so
+this is not a safe-withdrawal guarantee. Working backward with the annuity
+formula, you can determine how much to save monthly to reach this goal.
 
 ### Investment Comparison
 
@@ -338,10 +351,14 @@ def present_value(fv, rate, periods):
 
 def annuity_future_value(pmt, rate, periods):
     """Calculate future value of an ordinary annuity."""
+    if rate == 0:
+        return pmt * periods
     return pmt * (((1 + rate) ** periods - 1) / rate)
 
 def annuity_present_value(pmt, rate, periods):
     """Calculate present value of an ordinary annuity."""
+    if rate == 0:
+        return pmt * periods
     return pmt * ((1 - (1 + rate) ** (-periods)) / rate)
 
 def net_present_value(cash_flows, discount_rate):
@@ -351,7 +368,7 @@ def net_present_value(cash_flows, discount_rate):
         npv += cf / (1 + discount_rate) ** t
     return npv
 
-# Example: Save $500/month for 30 years at 8% annual return
+# Example: End-of-month deposits; nominal 8% annually, compounded monthly
 monthly_rate = 0.08 / 12
 months = 30 * 12
 monthly_payment = 500
