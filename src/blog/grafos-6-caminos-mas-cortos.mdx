@@ -8,23 +8,6 @@ description:
   problema del agente viajero, el circuito de Hamilton más barato."
 tags: ["math", "algorithms"]
 isDraft: true
-snippet:
-  language: "python"
-  code: |
-    import heapq
-
-    def dijkstra(grafo, origen):
-        L = {origen: 0}
-        cola = [(0, origen)]
-        while cola:
-            d, u = heapq.heappop(cola)
-            if d > L[u]:
-                continue
-            for v, w in grafo[u]:
-                if d + w < L.get(v, float("inf")):
-                    L[v] = d + w
-                    heapq.heappush(cola, (L[v], v))
-        return L
 ---
 
 import Figure from "../components/blog/Figure.astro";

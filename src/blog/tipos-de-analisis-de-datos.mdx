@@ -8,13 +8,6 @@ description:
   usan y por qué existen dos formas de ordenarlas."
 tags: ["statistics", "data-science"]
 isDraft: false
-snippet:
-  language: "python"
-  code: |
-    tasa = clientes["abandono"].mean()            # ¿qué está sucediendo?
-    riesgo = modelo.predict_proba(X)[:, 1]        # ¿qué va a suceder?
-    efecto = control.mean() - cupon.mean()        # ¿por qué sucede?
-    plan = optimizar(riesgo, efecto, presupuesto) # ¿qué debo hacer?
 ---
 
 import Figure from "../components/blog/Figure.astro";

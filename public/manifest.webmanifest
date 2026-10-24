@@ -1,6 +1,6 @@
 {
   "name": "Yeison Liscano",
-  "short_name": "Y. Liscano",
+  "short_name": "YL",
   "description": "AI & Security Engineer. Projects and writing on MCP, Python, security and the web.",
   "start_url": "/portfolio/",
   "display": "standalone",
@@ -8,14 +8,16 @@
   "theme_color": "#171c28",
   "icons": [
     {
-      "src": "/portfolio/android-chrome-192x192.png",
+      "src": "/portfolio/web-app-manifest-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
-      "src": "/portfolio/android-chrome-512x512.png",
+      "src": "/portfolio/web-app-manifest-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

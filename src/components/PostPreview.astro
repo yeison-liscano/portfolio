@@ -1,6 +1,4 @@
 ---
-import { Code } from "astro:components";
-import type { BuiltinLanguage } from "shiki";
 import { formatDate, isoDate, label } from "../utils/format";
 
 const { BASE_URL } = import.meta.env;
@@ -13,22 +11,10 @@ interface Props {
   readingTime: string;
   pubDate: Date;
   dataTags?: string;
-  snippet: {
-    language: BuiltinLanguage;
-    code: string;
-  };
 }
 
-const {
-  title,
-  pubDate,
-  description,
-  tags,
-  slug,
-  readingTime,
-  snippet,
-  dataTags,
-} = Astro.props;
+const { title, pubDate, description, tags, slug, readingTime, dataTags } =
+  Astro.props;
 
 const date = formatDate(pubDate);
 const postUrl = `${BASE_URL}blog/${slug}/`;
@@ -56,27 +42,10 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
       <span>{readingTime}</span>
     </div>
   </div>
-  <a
-    href={postUrl}
-    class="container-like-image"
-    aria-label={`Read ${title}`}
-    tabindex="-1"
-  >
-    <span class="code-tag">{label(snippet.language)}</span>
-    <Code
-      code={snippet.code}
-      lang={snippet.language}
-      theme="tokyo-night"
-      wrap={true}
-    />
-  </a>
 </div>
 
 <style>
   .preview-container {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
     width: 100%;
     padding: 32px 0;
     border-bottom: 1px solid var(--line);
@@ -103,7 +72,6 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
     color: var(--muted);
     font-size: 1rem;
     line-height: 1.7;
-    max-width: 65ch;
   }
   .tags-container {
     display: flex;
@@ -132,37 +100,5 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
     gap: 8px;
     font-size: 0.8rem;
     color: var(--muted);
-  }
-  .container-like-image {
-    display: none;
-    background: #1d2433;
-    border: 1px solid #35405a;
-    border-radius: 10px;
-    padding: 18px;
-    overflow: hidden;
-    height: 180px;
-  }
-  .code-tag {
-    display: block;
-    color: #b9c4d6;
-    font: 0.7rem var(--font-mono);
-    margin-bottom: 12px;
-  }
-  .container-like-image :global(pre) {
-    padding: 0;
-    margin: 0;
-    font-size: 0.7rem;
-    background: transparent !important;
-    overflow: hidden !important;
-  }
-  @media (min-width: 720px) {
-    .preview-container {
-      grid-template-columns: minmax(0, 1fr) 230px;
-      gap: 32px;
-      align-items: center;
-    }
-    .container-like-image {
-      display: block;
-    }
   }
 </style>

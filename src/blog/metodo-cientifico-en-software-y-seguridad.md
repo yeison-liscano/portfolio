@@ -8,13 +8,6 @@ description:
   para convertir creencias en pruebas repetibles."
 tags: ["security", "programming"]
 isDraft: false
-snippet:
-  language: "python"
-  code: |
-    def test_token_expira_a_los_15_minutos():
-        token = emitir_token(ttl_segundos=900)
-        reloj.avanzar(segundos=901)
-        assert api.get("/me", token=token).status == 401
 ---
 
 Palabras clave: método científico, falsabilidad, hipótesis, threat modeling,

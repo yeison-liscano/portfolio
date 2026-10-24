@@ -6,14 +6,6 @@ description:
   solutions using top-down memoization and bottom-up tabulation."
 tags: ["programming", "algorithms"]
 isDraft: false
-snippet:
-  language: "python"
-  code: |
-    def fib(n):
-      dp = [0, 1]
-      for i in range(2, n + 1):
-        dp.append(dp[i - 1] + dp[i - 2])
-      return dp[n]
 ---
 
 import Figure from "../components/blog/Figure.astro";

@@ -6,14 +6,6 @@ description:
   uses a sample to estimate what you do not have. One seven-number sample shows
   where the first ends and the second begins."
 tags: ["statistics", "data-science"]
-snippet:
-  language: "python"
-  code: |
-    import numpy as np
-    data = [23, 45, 12, 67, 34, 89, 21]
-    mean = np.mean(data)    # 41.57
-    std = np.std(data)      # 25.66 (divide by n)
-    sample_std = np.std(data, ddof=1)  # 27.71 (divide by n - 1)
 ---
 
 import Figure from "../components/blog/Figure.astro";

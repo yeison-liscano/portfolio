@@ -6,9 +6,6 @@ description:
   components to deploying applications with pods, services, and deployments."
 tags: ["devops"]
 isDraft: true
-snippet:
-  language: "bash"
-  code: "kubectl apply -f deployment.yaml"
 ---
 
 Kubernetes is an open-source container orchestration platform that automates the
