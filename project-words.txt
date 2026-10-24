@@ -4,11 +4,14 @@ Academiae
 Adyacencia
 Alexandre
 Alianza
+Anatol
 Andrey
 Applegate
+Axelrod
 BGP
 BYOD
 Babai
+Binmore
 Bixby
 Bradski
 Brealey
@@ -20,6 +23,7 @@ CNAME
 CODEOWNERS
 CRI
 Canny
+Canongate
 Checkmarx
 Checksumming
 Christofides
@@ -61,6 +65,7 @@ Healy
 Heawood
 Hernán
 Hierholzer
+Highfield
 Hipercubo
 Hopcroft
 ICMP
@@ -107,6 +112,7 @@ Nacional
 Napoléon
 Nixpkgs
 Nonblocking
+Nowak
 Numerische
 OCSP
 OSINT
@@ -124,6 +130,7 @@ Petropolitanae
 Pigmalión
 Planaridad
 Platzi
+Poundstone
 Powersort
 Pregel
 Priorización
@@ -136,6 +143,8 @@ Pyodide
 QUIC
 RBAC
 RMSE
+Radiolab
+Rapoport
 Representacion
 Rivest
 SAMEORIGIN
@@ -166,6 +175,7 @@ Universidad
 Unsharp
 Upscaling
 VLSI
+Veritasium
 Vishing
 Visualgo
 VoIP
