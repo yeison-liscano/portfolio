@@ -6,25 +6,6 @@ description:
   decorators. The features that make Python flexible and expressive beyond the
   basics."
 tags: ["programming", "python"]
-snippet:
-  language: "python"
-  code: |
-    def stateful_function(func):
-        cache = {}
-
-        def wrapper_function(*args, **kwargs):
-            key = (args, tuple(sorted(kwargs.items())))
-            if key not in cache:
-                cache[key] = func(*args, **kwargs)
-            return cache[key]
-
-        return wrapper_function
-
-    @stateful_function
-    def fibonacci(n):
-        if n < 2:
-            return n
-        return fibonacci(n - 1) + fibonacci(n - 2)
 ---
 
 ## Duck Typing, ABCs, and Protocols

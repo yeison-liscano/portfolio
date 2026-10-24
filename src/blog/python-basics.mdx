@@ -5,20 +5,6 @@ description:
   "Python is a great language for beginners and experts alike. Let's explore the
   basics of Python. From modules, packages, scope, and more. Let's dive in!"
 tags: ["programming", "python"]
-snippet:
-  language: "python"
-  code: |
-    def outer():
-        x = "local"
-
-        def inner():
-            nonlocal x
-            x = "nonlocal"
-
-        inner()
-
-    if __name__ == "__main__":
-        outer()
 ---
 
 import Figure from "../components/blog/Figure.astro";

@@ -6,9 +6,6 @@ description:
   IP addressing, DNS, and essential network tools explained."
 tags: ["networking"]
 isDraft: true
-snippet:
-  language: "bash"
-  code: "ping -c 4 8.8.8.8"
 ---
 
 ## Introduction

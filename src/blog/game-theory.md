@@ -8,11 +8,6 @@ description:
 tags: ["mathematics", "economics"]
 lang: "en"
 isDraft: true
-snippet:
-  language: "markdown"
-  code: |
-    Players → Strategies → Outcomes
-    Your best choice depends on what others do.
 ---
 
 Two suspects each do the sensible thing, and both end up worse off. The same

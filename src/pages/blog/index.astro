@@ -57,7 +57,6 @@ const allTags = [...new Set(allPosts.flatMap(({ data }) => data.tags))].sort();
         tags={data.tags}
         slug={id}
         readingTime={data.readingTime ?? readingTime(body)}
-        snippet={data.snippet}
         dataTags={data.tags.join(",")}
       />
     ))}

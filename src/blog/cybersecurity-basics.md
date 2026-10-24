@@ -6,9 +6,6 @@ description:
   encryption, monitoring, and recovery planning."
 tags: ["security"]
 isDraft: true
-snippet:
-  language: "bash"
-  code: "nmap -sV -sC -p- 10.10.10.10"
 ---
 
 In today's interconnected digital landscape, cybersecurity has become a critical

@@ -9,18 +9,6 @@ description:
   encontrar componentes."
 tags: ["math", "algorithms"]
 isDraft: true
-snippet:
-  language: "python"
-  code: |
-    def conexo(grafo):
-        inicio = next(iter(grafo))
-        vistos, pila = {inicio}, [inicio]
-        while pila:
-            for v in grafo[pila.pop()]:
-                if v not in vistos:
-                    vistos.add(v)
-                    pila.append(v)
-        return len(vistos) == len(grafo)
 ---
 
 import Figure from "../components/blog/Figure.astro";

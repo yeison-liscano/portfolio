@@ -6,16 +6,6 @@ description:
   DFS, and practical graph representations in Python."
 tags: ["programming", "algorithms"]
 isDraft: true
-snippet:
-  language: "python"
-  code: |
-    # Adjacency list representation
-    graph = {
-        'A': ['B', 'C'],
-        'B': ['A', 'D'],
-        'C': ['A', 'D'],
-        'D': ['B', 'C']
-    }
 ---
 
 ## The Königsberg Bridge Problem

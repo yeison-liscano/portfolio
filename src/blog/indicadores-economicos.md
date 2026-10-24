@@ -8,9 +8,6 @@ description:
   cómo se calculan y por qué ninguno cuenta solo la historia completa."
 tags: ["finance"]
 isDraft: false
-snippet:
-  language: "markdown"
-  code: "PIB = C + I + G + (X - M)"
 ---
 
 Un país anuncia que su PIB creció 2,35 %. ¿Es una buena noticia? Depende de

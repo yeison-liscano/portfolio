@@ -9,15 +9,6 @@ description:
   invariantes."
 tags: ["math", "algorithms"]
 isDraft: true
-snippet:
-  language: "python"
-  code: |
-    vertices = ["a", "b", "c"]
-    aristas = [("a", "b"), ("b", "c")]
-    A = [[0] * len(vertices) for _ in vertices]
-    for u, v in aristas:
-        i, j = vertices.index(u), vertices.index(v)
-        A[i][j] = A[j][i] = 1
 ---
 
 import Figure from "../components/blog/Figure.astro";

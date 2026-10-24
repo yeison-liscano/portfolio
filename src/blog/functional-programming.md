@@ -6,12 +6,6 @@ description:
   immutability, composition, and common patterns."
 tags: ["programming", "python"]
 isDraft: false
-snippet:
-  language: "python"
-  code: |
-    from functools import reduce
-    numbers = [1, 2, 3, 4]
-    result = reduce(lambda acc, x: acc + x * 2, numbers, 0)
 ---
 
 Functional programming (FP) is a style that models programs as transformations

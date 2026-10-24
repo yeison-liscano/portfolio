@@ -9,15 +9,6 @@ description:
   computación."
 tags: ["math", "algorithms"]
 isDraft: true
-snippet:
-  language: "python"
-  code: |
-    # Criterio de Euler para un multigrafo conexo
-    def tipo_euler(grados):
-        impares = sum(1 for g in grados.values() if g % 2)
-        if impares == 0:
-            return "circuito de Euler"
-        return "camino de Euler" if impares == 2 else "ninguno"
 ---
 
 import Figure from "../components/blog/Figure.astro";

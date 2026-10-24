@@ -5,15 +5,6 @@ description:
   "How to isolate project dependencies with virtual environments. Creating,
   activating, freezing requirements, and packaging Python projects with Docker."
 tags: ["python", "tools"]
-snippet:
-  language: "docker"
-  code: |
-    FROM python:3.14-slim
-    WORKDIR /app
-    COPY requirements.txt /app
-    RUN pip install --no-cache-dir --upgrade -r requirements.txt
-    COPY . /app
-    CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
 ---
 
 Virtual environments are used to create an isolated environment for Python

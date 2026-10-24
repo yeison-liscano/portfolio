@@ -6,15 +6,6 @@ description:
   how to define services with Protocol Buffers. Includes Python examples."
 tags: ["programming", "web"]
 isDraft: true
-snippet:
-  language: "proto"
-  code: |
-    syntax = "proto3";
-    message HelloRequest { string name = 1; }
-    message HelloReply { string message = 1; }
-    service Greeter {
-      rpc SayHello (HelloRequest) returns (HelloReply) {}
-    }
 ---
 
 ## What is gRPC?

@@ -8,16 +8,6 @@ description:
   grafos bipartitos y cómo construir grafos nuevos a partir de otros."
 tags: ["math", "algorithms"]
 isDraft: true
-snippet:
-  language: "python"
-  code: |
-    # Teorema del apretón de manos: la suma de los grados es 2|E|
-    aristas = [("a", "b"), ("b", "c"), ("c", "a"), ("c", "d")]
-    grados = {}
-    for u, v in aristas:
-        grados[u] = grados.get(u, 0) + 1
-        grados[v] = grados.get(v, 0) + 1
-    assert sum(grados.values()) == 2 * len(aristas)
 ---
 
 import Figure from "../components/blog/Figure.astro";

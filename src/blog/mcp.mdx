@@ -7,17 +7,6 @@ description:
   horizontally scaled production environments."
 tags: ["ai", "python", "mcp"]
 isDraft: false
-snippet:
-  language: "python"
-  code: |
-    from http_mcp.types import Tool
-
-    tool = Tool(
-        inputs=MyInput,
-        output=MyOutput,
-        func=my_handler,
-        scopes=("mcp:read",),
-    )
 ---
 
 import { Image } from "astro:assets";

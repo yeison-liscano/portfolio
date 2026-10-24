@@ -5,16 +5,6 @@ description:
   "A beginner-friendly guide to the command line. What shells, terminals, and
   commands are, plus essential operations for navigating and managing files."
 tags: ["tools"]
-snippet:
-  language: "bash"
-  code: |
-    mkdir dir_name
-    cd dir_name
-    touch file_name
-    echo 'foo' > file_name
-    ls
-    cat file_name
-    rm file_name
 ---
 
 The examples target Bash on GNU/Linux unless stated otherwise. macOS uses BSD

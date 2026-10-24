@@ -5,10 +5,6 @@ pubDate: 2025-01-09
 description: "Un résumé des livres que j'ai lus et des choses que j'ai apprises
 en 2024."
 tags: ["personal"]
-snippet:
-  language: "markdown"
-  code: |
-    > La simplicité est la sophistication ultime. - Leonardo da Vinci
 ---
 
 La solution la plus simple est généralement la meilleure. C'est pourquoi je

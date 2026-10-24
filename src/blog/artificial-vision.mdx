@@ -4,34 +4,6 @@ pubDate: 2026-03-22
 description: "An introduction to computer vision and image processing. From spatial domain operations to frequency transforms, with practical Python examples using OpenCV."
 tags: ["ai", "python"]
 isDraft: false
-snippet:
-  language: "python"
-  code: "import cv2
-import numpy as np
-
-# Read an image
-image = cv2.imread('photo.jpg')
-
-# Rotate the image 45 degrees
-height, width = image.shape[:2]
-center = (width // 2, height // 2)
-rotation_matrix = cv2.getRotationMatrix2D(center, 45, 1.0)
-rotated = cv2.warpAffine(image, rotation_matrix, (width, height))
-
-# Apply histogram equalization to grayscale
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-equalized = cv2.equalizeHist(gray)
-
-# Apply a Gaussian blur (spatial filter)
-blurred = cv2.GaussianBlur(image, (5, 5), 0)
-
-cv2.imshow('Original', image)
-cv2.imshow('Rotated', rotated)
-cv2.imshow('Equalized', equalized)
-cv2.imshow('Blurred', blurred)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-"
 ---
 
 import Figure from "../components/blog/Figure.astro";
