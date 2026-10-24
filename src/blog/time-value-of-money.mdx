@@ -1,0 +1,400 @@
+---
+title: "Time Value of Money: Why a Dollar Today Beats a Dollar Tomorrow"
+pubDate: 2026-03-22
+description:
+  "The time value of money explained: compound interest, present and future
+  value, annuities, and net present value. With formulas, worked examples, a
+  chart, and Python code."
+tags: ["finance"]
+isDraft: false
+snippet:
+  language: "python"
+  code: "fv = pv * (1 + r) ** n"
+---
+
+import Figure from "../components/blog/Figure.astro";
+import SimpleVsCompound from "./components/time-value-of-money/SimpleVsCompound.astro";
+
+Save $500 a month for 30 years at 8%, and you end up with about $745,180, even
+though you only deposited $180,000. Borrow $300,000 for 30 years at 5%, and you
+pay about $279,767 in interest on top of the loan. Both numbers come from the
+same idea: **with a positive rate of return, a dollar today is worth more than
+the same dollar received later.** That idea is the time value of money, and it
+underlies nearly every financial decision, from personal savings goals to
+corporate investments.
+
+Money has a time value for three reasons. First, money can earn returns: a
+dollar invested today at 5% a year grows to $1.05 a year from now. Second,
+inflation erodes purchasing power, so future dollars buy less than today's.
+Third, the future is uncertain: a promised payment next year may not arrive.
+
+This article walks through the formulas behind those two opening numbers and
+the decisions they support: choosing between a lump sum and installments,
+evaluating an investment, planning for retirement, and comparing mortgages. All
+rates and cash flows below are hypothetical, constant unless stated otherwise,
+and exclude fees and taxes. See
+[OpenStax Principles of Finance, time value of money](https://openstax.org/books/principles-finance/pages/7-1-now-versus-later-concepts).
+
+## Compound interest earns interest on interest
+
+When you invest, you earn interest on the principal. Over time, the interest you
+earn also earns interest. This process of earning returns on your returns is
+called **compounding**, and it makes growth exponential.
+
+The fundamental formula for compound interest is:
+
+```text
+FV = PV × (1 + r)^n
+```
+
+Where:
+
+- `FV` is the future value of the investment
+- `PV` is the present value (initial amount) of the investment
+- `r` is the interest rate per period (expressed as a decimal)
+- `n` is the number of periods
+
+For example, if you invest $1,000 at a 6% annual interest rate for 10 years,
+your future value is:
+
+```text
+FV = 1000 × (1.06)^10 = 1000 × 1.791 = $1,791
+```
+
+Your investment grew by almost 80%. The whole $791 gain is interest, and $191 of
+it is interest earned on earlier interest.
+
+We can rearrange this formula to work backwards. If you know the future value of
+an investment and want its present value, use the present value formula:
+
+```text
+PV = FV / (1 + r)^n
+```
+
+This tells you how much money you need to invest today to reach a specific
+financial goal in the future.
+
+## The gap between simple and compound interest widens with time
+
+To see what compounding adds, compare it with simple interest. With **simple
+interest**, you earn returns only on the original principal. The formula is:
+
+```text
+FV = PV × (1 + r × n)
+```
+
+Using the previous example, $1,000 at 6% simple interest for 10 years grows to:
+
+```text
+FV = 1000 × (1 + 0.06 × 10) = 1000 × 1.6 = $1,600
+```
+
+With **compound interest**, you earn returns on the principal and on all
+accumulated interest:
+
+```text
+FV = 1000 × (1.06)^10 = $1,791
+```
+
+The difference is $191 in favor of compound interest. Simple interest adds the
+same $60 every year, while compound interest adds a little more each year, so
+the gap widens with longer periods and higher rates. After 30 years, simple
+interest reaches $2,800 and compound interest reaches $5,743.
+
+<Figure caption="$1,000 at 6% a year. Simple interest adds the same $60 every year; compound interest adds more each year, so compounding is worth $191 after 10 years and $2,943 after 30.">
+  <SimpleVsCompound />
+</Figure>
+
+Savings accounts and most investments compound, but loans apply interest in
+different ways. Loan interest may accrue on the outstanding balance without
+unpaid interest being capitalized. Check the actual contract rather than
+assuming every product uses the same formula.
+
+## Every cash flow is a lump sum, an annuity, or an irregular series
+
+Financial situations involve three main types of cash flows: lump sums,
+annuities, and irregular series of cash flows. Each requires its own valuation
+approach.
+
+### Lump sum
+
+A lump sum is a single amount of money received or paid at one point in time.
+It uses the two formulas above: `FV = PV × (1 + r)^n` to move it forward and
+`PV = FV / (1 + r)^n` to bring it back.
+
+#### College savings example
+
+Suppose you want to save for your child's college education and estimate you'll
+need $150,000 in 15 years. If you can invest in a fund earning 7% annually, how
+much do you need to deposit today?
+
+```text
+PV = 150,000 / (1.07)^15 = 150,000 / 2.759032 = $54,367
+```
+
+You would need to deposit approximately $54,367 today to reach your goal of
+$150,000 in 15 years, assuming a consistent 7% annual return.
+
+### Annuity
+
+An annuity is a series of equal payments made at regular intervals over time.
+Common examples include mortgage payments, retirement withdrawals, and savings
+contributions.
+
+The **future value of an ordinary annuity** (payments at the end of each period)
+is:
+
+```text
+FV = PMT × ((1 + r)^n - 1) / r
+```
+
+The **present value of an ordinary annuity** is:
+
+```text
+PV = PMT × (1 - (1 + r)^(-n)) / r
+```
+
+Where:
+
+- `FV` is the future value of the annuity
+- `PV` is the present value of the annuity
+- `PMT` is the payment amount per period
+- `r` is the interest rate per period
+- `n` is the number of periods
+
+#### Monthly savings plan example
+
+You decide to save $500 per month for retirement in an investment account with a
+hypothetical nominal annual rate of 8%, compounded monthly. How much will you
+have accumulated after 30 years?
+
+Use the exact monthly rate `r = 0.08 / 12` (approximately 0.6667%). If 8% were
+an effective annual rate instead, the monthly rate would be `(1.08)^(1/12) - 1`.
+These are different assumptions.
+
+Number of periods: 30 years × 12 months = 360
+
+```text
+r = 0.08 / 12
+FV = 500 × ((1 + r)^360 - 1) / r ≈ $745,179.72
+```
+
+By saving $500 per month for 30 years, you accumulate approximately $745,179.72.
+Your total contributions are $500 × 360 = $180,000, so $565,179.72 comes from
+investment returns: more than three times what you put in.
+
+The formula also runs in reverse. If you want $500,000 at retirement and need to
+know the monthly payment, solve for `PMT`:
+
+```text
+PMT = FV × r / ((1 + r)^n - 1)
+PMT = 500,000 × r / ((1 + r)^360 - 1) ≈ $335.49
+```
+
+At the same 8% rate, about $335.49 a month for 30 years reaches $500,000.
+
+### Series of cash flows and net present value
+
+Many real-world investments involve irregular cash flows: different amounts at
+different times. To evaluate these, we use **net present value (NPV)**, which
+discounts every future cash flow back to the present and sums them.
+
+The NPV formula is:
+
+```text
+NPV = Σ(t=0..n) CF_t / (1 + r)^t
+```
+
+Where:
+
+- `CF_t` is the cash flow in period `t`
+- `r` is the discount rate (required rate of return)
+- `t` is the time period
+- `n` is the total number of periods
+
+A positive NPV means the modeled cash flows exceed the required return under the
+chosen assumptions. For mutually exclusive, comparable projects without capital
+constraints, higher NPV is preferred. Risk, unequal project lifetimes and
+funding constraints can require additional analysis.
+
+#### Investment project evaluation example
+
+Your company is considering a project with the following cash flows over 5
+years. The required rate of return is 10%.
+
+- Year 0: -$100,000 (initial investment)
+- Year 1: $30,000
+- Year 2: $35,000
+- Year 3: $40,000
+- Year 4: $25,000
+- Year 5: $20,000
+
+Calculate the NPV:
+
+```text
+NPV = -100,000 / 1.10^0 + 30,000 / 1.10^1
+    + 35,000 / 1.10^2 + 40,000 / 1.10^3
+    + 25,000 / 1.10^4 + 20,000 / 1.10^5
+```
+
+```text
+NPV ≈ -100,000 + 27,272.73 + 28,925.62 + 30,052.59
+      + 17,075.34 + 12,418.43 = $15,744.70
+```
+
+The modeled NPV is $15,744.70, positive at the assumed 10% discount rate. The
+project returns $150,000 in total, but in today's money those returns are worth
+only $115,744.70. A positive NPV supports accepting the project if the forecasts, risk
+adjustment and other constraints are appropriate; it is not a guarantee of the
+actual outcome.
+
+## Inflation shrinks what your returns can buy
+
+When evaluating investments, distinguish between nominal returns and real
+returns.
+
+**Nominal returns** are the stated, unadjusted returns. If your savings account
+earns 2% annually, that's the nominal rate.
+
+**Real returns** account for inflation. If the nominal rate is 2% but inflation
+is 3%, your real return is negative: your purchasing power declined.
+
+The exact purchasing-power adjustment for the same period is:
+
+```text
+(1 + r_real) = (1 + r_nominal) / (1 + i)
+```
+
+Where `i` is the inflation rate. The commonly used approximation is
+`real rate ≈ nominal rate − inflation`.
+
+For example, if your investment earns 6% (nominal) and inflation is 2%, your
+real return is:
+
+```text
+r_real = (1.06) / (1.02) - 1 = 0.0392 = 3.92%
+```
+
+Your purchasing power increased by about 3.92%, not 6%. Over long periods, the
+gap between nominal and real returns compounds too. To build real wealth, you
+need returns that exceed inflation.
+
+## The same formulas price mortgages and retirement
+
+### Mortgage payments
+
+When you take out a mortgage, the lender uses the present value of an annuity
+formula to calculate your monthly payment. Take a $300,000 mortgage for 30 years
+at a nominal annual rate of 5%, compounded monthly: `r = 0.05 / 12`, with 360
+end-of-month payments. This excludes fees, insurance and taxes.
+
+```text
+PMT = 300,000 × r / (1 - (1 + r)^(-360)) ≈ $1,610.46
+```
+
+Using the unrounded payment, total principal and interest is approximately
+$579,767.35, including $279,767.35 in interest: almost as much again as the
+loan itself. Actual cent-rounded payments require a small final-payment
+adjustment. Because interest accrues on the outstanding balance, paying extra
+principal early shrinks the balance on which every later month's interest is
+charged.
+
+### Retirement planning
+
+Retirement planning is fundamentally a time value of money problem. You need to
+estimate:
+
+1. How much you'll need annually in retirement
+2. How many years you'll need the money
+3. What return your investments will earn
+4. How much you need to save now
+
+If you need $50,000 annually in retirement for 30 years and expect 6% returns,
+the present value of your retirement needs is:
+
+```text
+PV = 50,000 × (1 - (1.06)^(-30)) / 0.06 ≈ $688,241.56
+```
+
+Under this simplified model, the initial amount is $688,241.56: less than half
+of the $1,500,000 you will withdraw, because the balance keeps earning while you
+draw it down. It assumes fixed nominal withdrawals at year-end and a constant 6%
+return, with no taxes, fees or inflation increases. Variable returns introduce
+sequence-of-returns risk, so this is not a safe-withdrawal guarantee. Working
+backward with the annuity formula, you can determine how much to save monthly to
+reach this goal.
+
+## Run the calculations in Python
+
+These functions reproduce the examples above. Change the inputs to model your
+own scenarios:
+
+```python
+def future_value(pv, rate, periods):
+    """Calculate future value of a lump sum."""
+    return pv * (1 + rate) ** periods
+
+def present_value(fv, rate, periods):
+    """Calculate present value of a future amount."""
+    return fv / (1 + rate) ** periods
+
+def annuity_future_value(pmt, rate, periods):
+    """Calculate future value of an ordinary annuity."""
+    if rate == 0:
+        return pmt * periods
+    return pmt * (((1 + rate) ** periods - 1) / rate)
+
+def annuity_present_value(pmt, rate, periods):
+    """Calculate present value of an ordinary annuity."""
+    if rate == 0:
+        return pmt * periods
+    return pmt * ((1 - (1 + rate) ** (-periods)) / rate)
+
+def net_present_value(cash_flows, discount_rate):
+    """Calculate NPV of a series of cash flows."""
+    npv = 0
+    for t, cf in enumerate(cash_flows):
+        npv += cf / (1 + discount_rate) ** t
+    return npv
+
+# Example: College savings, 150,000 needed in 15 years at 7%
+deposit = present_value(150_000, 0.07, 15)
+print(f"Deposit needed today: ${deposit:,.2f}")
+
+# Example: End-of-month deposits; nominal 8% annually, compounded monthly
+monthly_rate = 0.08 / 12
+months = 30 * 12
+monthly_payment = 500
+
+fv = annuity_future_value(monthly_payment, monthly_rate, months)
+print(f"Future value of retirement savings: ${fv:,.2f}")
+
+# Example: Evaluate a project
+project_cashflows = [-100000, 30000, 35000, 40000, 25000, 20000]
+npv = net_present_value(project_cashflows, 0.10)
+print(f"Net present value of project: ${npv:,.2f}")
+```
+
+## Move every cash flow to the same date before you compare
+
+Money today has options. You can spend it, invest it, or lend it and earn
+returns. Future money offers no such flexibility, because it is locked in the
+future. Time value calculations translate future cash flows into their
+equivalent present value so you can compare opportunities fairly.
+
+The formulas are only as good as their inputs. Small changes in the interest
+rate, inflation, or time period can significantly alter the results, so treat
+them as guides and question your assumptions.
+
+The practical rule is short: before you compare a lump sum with installments,
+two investments, or two loans, bring every cash flow to the same date at the
+same rate. Only then are you comparing like with like.
+
+## References
+
+- Brealey, R. A., Myers, S. C., & Allen, F. (2020). "Principles of Corporate
+  Finance" (13th ed.). McGraw-Hill Education.
+- Investopedia. "Time Value of Money (TVM)." Retrieved from
+  [investopedia.com/terms/t/timevalueofmoney.asp](https://www.investopedia.com/terms/t/timevalueofmoney.asp)
+- Khan Academy. "Finance and Capital Markets." Retrieved from
+  [khanacademy.org/economics-finance-domain/core-finance](https://www.khanacademy.org/economics-finance-domain/core-finance)
