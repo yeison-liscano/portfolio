@@ -61,6 +61,7 @@ export const blogPostingSchema = (
   headline: post.data.title,
   description: post.data.description,
   datePublished: post.data.pubDate.toISOString(),
+  dateModified: (post.data.updatedDate ?? post.data.pubDate).toISOString(),
   inLanguage: post.data.lang,
   keywords: post.data.tags.join(", "),
   url,

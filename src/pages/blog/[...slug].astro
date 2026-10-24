@@ -2,7 +2,7 @@
 import Post from "layouts/Post.astro";
 import { getCollection, render } from "astro:content";
 import { readingTime } from "../../utils/format";
-import { blogPostingSchema } from "../../utils/schema";
+import { blogPostingSchema, person } from "../../utils/schema";
 const { BASE_URL } = import.meta.env;
 
 export async function getStaticPaths() {
@@ -26,6 +26,20 @@ const nextPost = allPosts[(currentIndex + 1) % allPosts.length];
 const previousPost =
   allPosts[(currentIndex - 1 + allPosts.length) % allPosts.length];
 
+// Up to three posts that share the most tags, newest first on ties. The
+// previous and next posts are already linked below, so they are left out.
+const linked = new Set([post.id, previousPost.id, nextPost.id]);
+const relatedPosts = allPosts
+  .filter((p) => !linked.has(p.id))
+  .map((p) => ({
+    post: p,
+    shared: p.data.tags.filter((tag) => post.data.tags.includes(tag)).length,
+  }))
+  .filter(({ shared }) => shared > 0)
+  .sort((a, b) => b.shared - a.shared)
+  .slice(0, 3)
+  .map(({ post }) => post);
+
 // Rendered by src/pages/og/[slug].png.ts.
 const image = `og/${post.id}.png`;
 const jsonLd = blogPostingSchema(
@@ -47,6 +61,32 @@ const jsonLd = blogPostingSchema(
 >
   <Content />
   <nav class="next-post" aria-label="More articles">
+    <aside class="author-box" aria-label="About the author">
+      <p class="author-name">
+        Written by{" "}
+        <a href={`${BASE_URL}about/`} rel="author">
+          {post.data.author}
+        </a>
+      </p>
+      <p class="author-bio">
+        {person.jobTitle} at {person.worksFor.name}, based in{" "}
+        {person.address.addressLocality}.
+      </p>
+    </aside>
+    {relatedPosts.length > 0 && (
+      <section class="related" aria-labelledby="related-title">
+        <h2 id="related-title">Related articles</h2>
+        <ul>
+          {relatedPosts.map((related) => (
+            <li>
+              <a href={`${BASE_URL}blog/${related.id}/`}>
+                {related.data.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
     {allPosts.length > 1 && (
       <a href={`${BASE_URL}blog/${previousPost.id}/`}>
         <span>← Previous article</span>
@@ -73,7 +113,7 @@ const jsonLd = blogPostingSchema(
     padding-top: 32px;
     border-top: 1px solid var(--line);
   }
-  .next-post a {
+  .next-post > a {
     display: block;
     padding: 20px;
     background: var(--surface);
@@ -83,7 +123,7 @@ const jsonLd = blogPostingSchema(
     font-weight: 500;
     line-height: 1.5;
   }
-  .next-post a:hover {
+  .next-post > a:hover {
     border-color: var(--contrast);
   }
   .next-post span {
@@ -100,6 +140,54 @@ const jsonLd = blogPostingSchema(
     padding: 8px 0;
     color: var(--contrast);
     font-size: 0.9rem;
+  }
+  .author-box,
+  .related {
+    grid-column: 1 / -1;
+  }
+  .author-box {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .author-name {
+    font-weight: 600;
+  }
+  .author-name a,
+  .author-name a:visited {
+    color: var(--contrast);
+  }
+  .author-bio {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  :global(#post-article) .related h2 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+  :global(#post-article) .related ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+  }
+  :global(#post-article) .related li + li {
+    margin-top: 0;
+  }
+  .related a,
+  .related a:visited {
+    color: var(--text-color);
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 3px;
+  }
+  .related a:hover {
+    color: var(--contrast);
+    text-decoration-color: currentColor;
   }
   @media (min-width: 720px) {
     .next-post {

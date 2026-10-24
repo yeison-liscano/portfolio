@@ -2,7 +2,9 @@
 import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
+import { rehypeHeadingIds } from "@astrojs/markdown-remark";
 import rehypeExternalLinks from "rehype-external-links";
+import { rehypeHeadingAnchors } from "./src/utils/rehypeHeadingAnchors";
 import { rehypeTableScroll } from "./src/utils/rehypeTableScroll";
 
 // https://astro.build/config
@@ -22,10 +24,19 @@ export default defineConfig({
   },
   markdown: {
     rehypePlugins: [
+      // Ids first, so the anchors can link to them. Astro runs it again
+      // after these plugins; existing ids are kept.
+      rehypeHeadingIds,
+      rehypeHeadingAnchors,
       [
         rehypeExternalLinks,
         {
-          content: { type: "text", value: " 🔗" },
+          // Decorative: screen readers already announce the link.
+          content: { type: "text", value: "↗" },
+          contentProperties: {
+            className: ["external-mark"],
+            ariaHidden: "true",
+          },
           rel: ["noopener", "noreferrer"],
           target: "_blank",
           class: "external-link",
