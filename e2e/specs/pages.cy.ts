@@ -13,7 +13,7 @@ describe("Web site", (): void => {
     cy.contains(".nav-link", "Blog").click();
     cy.contains("Article");
     cy.get(".preview-container").first().find("h2 a").click();
-    cy.contains("Table of contents");
+    cy.contains("On this page");
 
     cy.get("html").should("have.attr", "data-theme", "light");
     cy.get("#theme-toggle").click();

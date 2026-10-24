@@ -6,6 +6,8 @@
 ---
 
 <script>
+  import { codeText, copyButton } from "../utils/codeBlock";
+
   const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
   let pyodideInstance: any = null;
   let pyodideLoadPromise: Promise<any> | null = null;
@@ -39,19 +41,6 @@
     });
 
     return pyodideLoadPromise;
-  }
-
-  function extractCode(preElement: HTMLPreElement): string {
-    const codeEl = preElement.querySelector("code");
-    if (!codeEl) return "";
-    // Get text content from all .line spans
-    const lines = codeEl.querySelectorAll(".line");
-    if (lines.length > 0) {
-      return Array.from(lines)
-        .map((line) => line.textContent || "")
-        .join("\n");
-    }
-    return codeEl.textContent || "";
   }
 
   async function runCode(
@@ -160,6 +149,7 @@ sys.stderr = sys.__stderr__
       const output = document.createElement("pre");
       output.className = "pyodide-output hidden";
 
+      btnGroup.appendChild(copyButton(pre as HTMLPreElement));
       btnGroup.appendChild(runBtn);
       btnGroup.appendChild(sandboxBtn);
       toolbar.appendChild(langLabel);
@@ -170,7 +160,7 @@ sys.stderr = sys.__stderr__
       wrapper.appendChild(pre);
       wrapper.appendChild(output);
 
-      const code = extractCode(pre as HTMLPreElement);
+      const code = codeText(pre as HTMLPreElement);
       sandboxBtn.href = buildPydanticRunUrl(code);
 
       runBtn.addEventListener("click", () => {

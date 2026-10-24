@@ -16,9 +16,12 @@ const blogCollection = defineCollection({
     tags: z.array(z.string()),
     /** Language of the post, for <html lang> and link previews. */
     lang: z.enum(["en", "es", "fr"]).default("en"),
-    footnote: z.string().optional(),
     pubDate: z.date(),
+    /** Last meaningful revision; shown as "Updated" when set. */
+    updatedDate: z.date().optional(),
     description: z.string(),
+    /** Optional key takeaways, shown in a box under the description. */
+    summary: z.array(z.string()).optional(),
     /** Optional override; otherwise estimated from the post body. */
     readingTime: z.string().optional(),
   }),

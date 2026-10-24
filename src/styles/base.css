@@ -96,7 +96,7 @@ h6 {
 blockquote {
   border-left: 4px solid var(--contrast);
   padding-left: 1rem;
-  color: var(--text-color-low-contrast);
+  color: var(--muted);
 }
 
 code {

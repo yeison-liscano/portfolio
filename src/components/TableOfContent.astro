@@ -9,49 +9,55 @@ export interface Props {
   headings: IHeading[];
 }
 
-const { headings } = Astro.props;
+// Sections and their subsections only; deeper levels make the list too long
+// and too small to read.
+const headings = Astro.props.headings.filter(
+  ({ depth }) => depth === 2 || depth === 3,
+);
 ---
 
-<aside id="toc-aside">
-  <div class="toc-header">
-    <h4>Table of contents</h4>
-    <button
-      id="toc-toggle"
-      class="toc-btn"
-      aria-label="Toggle table of contents"
-      aria-expanded="false"
-      aria-controls="article-content"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="chevron"
-        aria-hidden="true"
+{headings.length > 0 && (
+  <nav id="toc-aside" aria-labelledby="toc-title">
+    <h2 class="toc-header">
+      <button
+        id="toc-toggle"
+        class="toc-btn"
+        aria-expanded="true"
+        aria-controls="article-content"
       >
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </button>
-  </div>
-  <ul id="article-content">
-    {headings.map((heading) => (
-      <li class={`h-${heading.depth}`}>
-        <a href={`#${heading.slug}`}>{heading.text}</a>
-      </li>
-    ))}
-  </ul>
-</aside>
+        <span id="toc-title">On this page</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="chevron"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+    </h2>
+    <ul id="article-content" class="open">
+      {headings.map((heading) => (
+        <li class={`h-${heading.depth}`}>
+          <a href={`#${heading.slug}`}>{heading.text}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
 
 <script>
   const tocList = document.getElementById("article-content");
   const tocLinks = tocList?.querySelectorAll("a") ?? [];
-  const isDesktop = () => window.innerWidth >= 1300;
+  const desktop = window.matchMedia("(min-width: 1300px)");
+  const isDesktop = () => desktop.matches;
 
   // Scroll-based active heading tracking
   const headingEls = Array.from(tocLinks)
@@ -76,6 +82,7 @@ const { headings } = Astro.props;
       const href = link?.getAttribute("href")?.slice(1);
       if (href === activeId) {
         li.classList.add("active");
+        link?.setAttribute("aria-current", "location");
         if (isDesktop()) {
           const aside = document.getElementById("toc-aside");
           if (
@@ -89,6 +96,7 @@ const { headings } = Astro.props;
         }
       } else {
         li.classList.remove("active");
+        link?.removeAttribute("aria-current");
       }
     });
   }
@@ -106,28 +114,32 @@ const { headings } = Astro.props;
 
   window.addEventListener("load", updateActiveHeading);
 
-  // Mobile collapsible toggle
-  const toggle = document.getElementById("toc-toggle");
+  // Collapsible below 1300px, where the list sits in the page. It starts
+  // open: a collapsed table of contents is easy to miss. On desktop the list
+  // is always shown, so the toggle is disabled there.
+  const toggle = document.getElementById("toc-toggle") as HTMLButtonElement;
+  const syncToggle = () => {
+    if (!toggle) return;
+    toggle.disabled = isDesktop();
+    if (isDesktop()) tocList?.classList.add("open");
+    toggle.setAttribute(
+      "aria-expanded",
+      String(tocList?.classList.contains("open") ?? false),
+    );
+  };
+  desktop.addEventListener("change", syncToggle);
+  syncToggle();
 
   toggle?.addEventListener("click", () => {
     if (isDesktop()) return;
     const isOpen = tocList?.classList.toggle("open");
     toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
-
-  tocLinks.forEach((link) => {
-    link.addEventListener("click", () => {
-      if (!isDesktop()) {
-        tocList?.classList.remove("open");
-        toggle?.setAttribute("aria-expanded", "false");
-      }
-    });
-  });
 </script>
 
 <style>
   /* ===== MOBILE / TABLET (default) ===== */
-  aside {
+  nav {
     width: 100%;
     margin-bottom: 8px;
     border: 1px solid var(--line);
@@ -136,47 +148,43 @@ const { headings } = Astro.props;
   }
 
   .toc-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background-color: var(--secondary);
-    cursor: pointer;
-  }
-
-  h4 {
     margin: 0;
-    color: var(--contrast);
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font-size: inherit;
   }
 
   .toc-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-color);
-    cursor: pointer;
-    padding: 12px;
     display: flex;
     align-items: center;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background-color: var(--secondary);
+    border: none;
+    color: var(--contrast);
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-align: left;
+    cursor: pointer;
   }
 
-  .toc-btn:hover {
+  .toc-btn:hover .chevron {
     opacity: 1;
   }
 
   .chevron {
-    transition: transform 0.2s ease;
+    color: var(--text-color);
+    opacity: 0.6;
+    transition:
+      transform 0.2s ease,
+      opacity 0.2s ease;
   }
 
   .toc-btn[aria-expanded="true"] .chevron {
     transform: rotate(180deg);
   }
 
-  /* List hidden by default on mobile */
   ul {
     list-style-type: none;
     padding: 0;
@@ -225,33 +233,17 @@ const { headings } = Astro.props;
     color: var(--primary);
   }
 
-  .h-1 {
-    font-size: 0.875rem;
-  }
-  .h-2 {
-    font-size: 0.825rem;
-    padding-left: 16px;
-  }
   .h-3 {
-    font-size: 0.775rem;
-    padding-left: 28px;
+    padding-left: 32px;
   }
-  .h-4 {
-    font-size: 0.725rem;
-    padding-left: 60px;
-  }
-  .h-5 {
-    font-size: 0.675rem;
-    padding-left: 76px;
-  }
-  .h-6 {
-    font-size: 0.625rem;
-    padding-left: 92px;
+
+  .h-3 a {
+    font-size: 0.825rem;
   }
 
   /* ===== DESKTOP (≥1300px) ===== */
   @media (min-width: 1300px) {
-    aside {
+    nav {
       position: fixed;
       right: 24px;
       top: 100px;
@@ -267,33 +259,29 @@ const { headings } = Astro.props;
       scrollbar-width: none;
     }
 
-    aside::-webkit-scrollbar {
+    nav::-webkit-scrollbar {
       display: none;
     }
 
-    .toc-header {
+    /* A right rail is easy to ignore: keep the label in full contrast. */
+    .toc-btn {
       background: none;
       padding: 0 16px 12px;
       cursor: default;
-      margin-bottom: 0;
       border-bottom: 1px solid var(--neutral);
-    }
-
-    h4 {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--text-color);
-      opacity: 0.5;
     }
 
-    .toc-btn {
+    .chevron {
       display: none;
     }
 
-    /* Always show list on desktop */
-    ul {
+    ul,
+    ul.open {
       max-height: none;
       overflow: visible;
       padding: 8px 0;
@@ -308,6 +296,10 @@ const { headings } = Astro.props;
       margin-left: -2px;
       border-left: 2px solid transparent;
       transition: border-color 0.2s ease;
+    }
+
+    .h-3 {
+      padding-left: 28px;
     }
 
     li:hover {
@@ -329,20 +321,11 @@ const { headings } = Astro.props;
       font-weight: 600;
     }
 
-    a {
+    a,
+    .h-3 a {
       font-size: 0.8rem;
-      opacity: 0.65;
-      transition:
-        opacity 0.2s ease,
-        color 0.2s ease;
-    }
-
-    li:hover a {
-      opacity: 1;
-    }
-
-    li.active a {
-      opacity: 1;
+      color: var(--muted);
+      transition: color 0.2s ease;
     }
   }
 </style>
