@@ -1,0 +1,179 @@
+---
+/**
+ * SimpleVsCompound - 1,000 at 6% a year for 30 years. Simple interest grows
+ * in a straight line; compound interest curves away from it, and the gap
+ * between them widens every decade. Drawn at build time: no JavaScript ships.
+ */
+const PV = 1000;
+const RATE = 0.06;
+const YEARS = 30;
+const MARKS = [10, 20, 30];
+
+const simple = (t: number) => PV * (1 + RATE * t);
+const compound = (t: number) => PV * (1 + RATE) ** t;
+
+const W = 640;
+const H = 300;
+const M = { top: 16, right: 64, bottom: 36, left: 64 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+const Y_MAX = 6000;
+const yTicks = [0, 2000, 4000, 6000];
+const xTicks = [0, 10, 20, 30];
+
+const x = (t: number) => M.left + (t / YEARS) * plotW;
+const y = (v: number) => M.top + plotH - (v / Y_MAX) * plotH;
+const money = (v: number) => `$${Math.round(v).toLocaleString("en-US")}`;
+
+const compoundPath = Array.from(
+  { length: YEARS + 1 },
+  (_, t) =>
+    `${t === 0 ? "M" : "L"}${x(t).toFixed(1)},${y(compound(t)).toFixed(1)}`,
+).join(" ");
+const simplePath = `M${x(0)},${y(simple(0))} L${x(YEARS)},${y(simple(YEARS))}`;
+
+const gaps = MARKS.map((t) => ({
+  t,
+  low: simple(t),
+  high: compound(t),
+  gap: compound(t) - simple(t),
+}));
+
+const label = `Line chart of 1,000 dollars at 6% a year. Simple interest grows in a straight line to ${money(simple(YEARS))} after ${YEARS} years; compound interest curves up to ${money(compound(YEARS))}. Compounding adds ${gaps.map((g) => `${money(g.gap)} after ${g.t} years`).join(", ")}.`;
+---
+
+<svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} class="chart">
+  {yTicks.map((tick) => (
+    <g>
+      <line
+        x1={M.left}
+        x2={W - M.right}
+        y1={y(tick)}
+        y2={y(tick)}
+        class="grid"
+      />
+      <text x={M.left - 8} y={y(tick)} class="tick" text-anchor="end">
+        {money(tick)}
+      </text>
+    </g>
+  ))}
+  {xTicks.map((tick) => (
+    <text x={x(tick)} y={H - 16} class="tick" text-anchor="middle">
+      {tick}
+    </text>
+  ))}
+  <text x={W - M.right} y={H - 2} class="tick" text-anchor="end">
+    years
+  </text>
+
+  <g transform={`translate(${M.left + 12}, ${M.top + 14})`}>
+    <line x1="0" x2="22" y1="0" y2="0" class="line compound" />
+    <text x="30" y="0" class="legend">
+      compound interest
+    </text>
+    <line x1="0" x2="22" y1="20" y2="20" class="line simple" />
+    <text x="30" y="20" class="legend">
+      simple interest
+    </text>
+  </g>
+
+  {gaps.map((g) => (
+    <g>
+      <line
+        x1={x(g.t)}
+        x2={x(g.t)}
+        y1={y(g.low)}
+        y2={y(g.high)}
+        class="bracket"
+      />
+      <text x={x(g.t)} y={y(g.low) + 20} class="gap" text-anchor="middle">
+        +{money(g.gap)}
+      </text>
+    </g>
+  ))}
+
+  <path d={simplePath} class="line simple" />
+  <path d={compoundPath} class="line compound" />
+
+  {[0, ...MARKS].map((t) => (
+    <g>
+      <circle cx={x(t)} cy={y(simple(t))} r="4" class="dot simple" />
+      <circle cx={x(t)} cy={y(compound(t))} r="4" class="dot compound" />
+    </g>
+  ))}
+
+  <text x={x(YEARS) + 10} y={y(compound(YEARS))} class="value">
+    {money(compound(YEARS))}
+  </text>
+  <text x={x(YEARS) + 10} y={y(simple(YEARS))} class="value">
+    {money(simple(YEARS))}
+  </text>
+</svg>
+
+<style>
+  .chart {
+    min-width: 480px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .tick {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .legend {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .value,
+  .gap {
+    fill: var(--text-color);
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .line.simple {
+    stroke: var(--muted);
+    stroke-dasharray: 6 4;
+  }
+
+  .line.compound {
+    stroke: var(--contrast);
+  }
+
+  .bracket {
+    stroke: var(--muted);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+  }
+
+  .dot {
+    stroke: var(--surface);
+    stroke-width: 2;
+  }
+
+  .dot.simple {
+    fill: var(--muted);
+  }
+
+  .dot.compound {
+    fill: var(--contrast);
+  }
+</style>
