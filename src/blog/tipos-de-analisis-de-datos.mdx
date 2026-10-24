@@ -1,6 +1,6 @@
 ---
 lang: "es"
-title: "Los cuatro tipos de análisis de datos: qué información usa cada uno"
+title: "Análisis de datos: los cuatro tipos y qué información usa cada uno"
 pubDate: 2026-10-21
 description:
   "Análisis descriptivo, predictivo, diagnóstico y prescriptivo aplicados a un
@@ -33,8 +33,11 @@ sucede** y **qué debo hacer**. Lo que más los diferencia no es la herramienta,
 sino la información que necesitan y lo que entregan a la fase siguiente.
 
 Para que las diferencias sean concretas, este artículo sigue un solo problema de
-principio a fin: una tienda en línea con 1900 clientes activos quiere que menos
-clientes dejen de comprar, lo que se conoce como **abandono** o _churn_.
+principio a fin. Una tienda en línea con 1900 clientes activos quiere que menos
+clientes dejen de comprar, lo que se conoce como **abandono** o _churn_. Con el
+mismo presupuesto de $2500 en cupones, repartirlos a quienes tienen más riesgo
+deja $2600 de beneficio neto, y combinar las cuatro fases deja $5600. La
+diferencia está en qué información usa cada fase.
 
 <Figure caption="Una tienda en línea que quiere perder menos clientes recorre las cuatro fases. Cada salida alimenta la fase siguiente, y la decisión final produce los datos con los que empieza la próxima vuelta.">
   <Stepper
@@ -90,9 +93,9 @@ conclusiones sobre una población, la explico en
 **Qué información usa.** Un histórico **etiquetado**: cada fila es una
 observación pasada con sus **variables de entrada** (_features_) y el
 **resultado que ocurrió después** (_target_). En la tienda, cada fila es un
-cliente en una fecha, con variables como días desde la última compra, número de
-pedidos, ticket promedio y quejas, y una etiqueta que dice si dejó de comprar en
-los 90 días siguientes. La calidad, la cantidad y la representatividad de esos
+cliente en una fecha. Sus variables son los días desde la última compra, el
+número de pedidos, el ticket promedio y las quejas, y su etiqueta dice si dejó
+de comprar en los 90 días siguientes. La calidad, la cantidad y la representatividad de esos
 datos pesan más que la elección del algoritmo.
 
 **Cómo la usa.**
@@ -111,8 +114,8 @@ predicción alimenta decisiones. Primero, la división debe respetar el tiempo:
 entrenar con trimestres antiguos y evaluar con el más reciente, y no usar
 variables que se miden después del resultado (_data leakage_). Segundo, las
 probabilidades deben estar **calibradas**: si el modelo dice 40 %, cerca de 4 de
-cada 10 de esos clientes deberían irse, porque la fase prescriptiva usará esa
-cifra como probabilidad y no solo como ranking.
+cada 10 de esos clientes deberían irse. La fase prescriptiva usará esa cifra como
+probabilidad, no solo como ranking.
 
 El resultado en la tienda es un riesgo por cliente: la probabilidad de que se
 vaya en los próximos 90 días. Pero predecir no es explicar. El modelo puede
@@ -170,8 +173,9 @@ conclusiones dependen de supuestos más fuertes que los de un experimento.
 Hay un matiz que la fase siguiente necesita: el efecto de 6 puntos es un
 **promedio**. El mismo cupón puede retener a muchos clientes que acaban de
 quejarse y casi a ninguno de los que ya se fueron mentalmente. Medir el efecto
-por segmento exige experimentos más grandes o modelos de _uplift_, porque con
-900 clientes por grupo los intervalos de cada segmento serían muy anchos. En el
+por segmento exige experimentos más grandes o modelos de _uplift_, que estiman
+cuánto cambia el resultado de cada cliente si se actúa. Con 900 clientes por
+grupo, los intervalos de cada segmento serían muy anchos. En el
 ejemplo supongo que esos efectos ya están bien estimados.
 
 ## 4. Análisis prescriptivo: ¿qué debo hacer?
@@ -212,8 +216,8 @@ sujeto a    Σ k_i · costo ≤ presupuesto
 
 Es un problema de **programación lineal**. Como todos los cupones cuestan lo
 mismo, su solución es sencilla: llenar primero los segmentos con mayor neto por
-cupón y no dar cupones donde el neto es negativo, igual que en la mochila
-fraccionaria. Con más tipos de acción, costos distintos o restricciones enteras
+cupón y no dar cupones donde el neto es negativo. Es la regla de la mochila
+fraccionaria, que toma primero lo que más vale por unidad de peso. Con más tipos de acción, costos distintos o restricciones enteras
 se usan programación entera, simulación o aprendizaje por refuerzo.
 
 <Figure caption="Mueve el presupuesto y cambia de estrategia. Con $2500, la estrategia óptima retiene a 51 clientes y deja $5600 de beneficio neto; repartir por riesgo retiene a 36 y deja $2600, porque gasta $1500 en clientes inactivos a los que el cupón casi no cambia.">
@@ -232,14 +236,14 @@ Esta es la fase más valiosa y también la más difícil, porque exige modelar b
 tanto los datos como el negocio. Un error en el margen, en el costo o en una
 restricción produce una decisión precisa y equivocada.
 
-## ¿Cuál es el orden correcto?
+## El orden correcto depende de qué se quiere medir
 
-El modelo de madurez analítica de Gartner pone el **diagnóstico en segundo
-lugar**
-y el **predictivo en tercero**. Las dos versiones son coherentes, porque
-ordenan con criterios distintos.
+Este artículo recorrió las fases en el orden descriptivo, predictivo,
+diagnóstico y prescriptivo. El modelo de madurez analítica de Gartner pone el
+**diagnóstico en segundo lugar** y el **predictivo en tercero**. Los dos órdenes
+son coherentes, porque usan criterios distintos.
 
-<Figure caption="Las mismas cuatro fases en dos órdenes. Gartner va de mirar atrás a mirar adelante. La presentación va de observar asociaciones a intervenir y, al final, decidir.">
+<Figure caption="Las mismas cuatro fases en dos órdenes. Gartner va de mirar atrás a mirar adelante. Este artículo va de observar asociaciones a intervenir y, al final, decidir.">
   <DosOrdenes />
 </Figure>
 
@@ -248,22 +252,22 @@ ordenan con criterios distintos.
   hacer). En ese modelo, el diagnóstico suele ser trabajo sobre los datos que ya
   existen: desglosar un indicador por segmento, comparar periodos y buscar la
   causa raíz. Es más fácil que entrenar un modelo, por eso va antes.
-- **La presentación ordena por lo que exige cada fase.** Como define el
-  diagnóstico con experimentos y pruebas A/B, sigue una escalera parecida a la
-  de causalidad de Judea Pearl: primero la **asociación** (observar datos, que
-  es lo que hacen la correlación y la predicción), luego la **intervención**
-  (cambiar algo y medir qué pasa) y al final la **decisión**, que necesita saber
-  qué pasa si se interviene. Miguel Hernán y sus coautores proponen una división
+- **Este artículo ordena por lo que exige cada fase.** Aquí el diagnóstico se
+  define con experimentos y pruebas A/B, así que el orden sigue una escalera
+  parecida a la de causalidad de Judea Pearl. Primero viene la **asociación**:
+  observar datos, que es lo que hacen la correlación y la predicción. Luego, la
+  **intervención**: cambiar algo y medir qué pasa. Al final, la **decisión**,
+  que necesita saber qué pasa si se interviene. Miguel Hernán y sus coautores proponen una división
   similar de las tareas de la ciencia de datos: descripción, predicción e
   inferencia causal.
 
 La elección práctica depende de la pregunta. Para medir la madurez de un equipo
 o planear qué capacidades construir primero, el orden de Gartner funciona bien.
-Para decidir qué evidencia necesita una decisión, el orden de la presentación es
+Para decidir qué evidencia necesita una decisión, el orden de este artículo es
 más preciso: una predicción, por buena que sea, no reemplaza a un experimento
 cuando la pregunta es qué pasa si actúo.
 
-## Resumen
+## Cada fase entrega lo que la siguiente necesita
 
 | Fase         | Pregunta               | Información que usa                                 | Cómo la usa                                       | Resultado                      |
 | ------------ | ---------------------- | --------------------------------------------------- | ------------------------------------------------- | ------------------------------ |
@@ -275,3 +279,7 @@ cuando la pregunta es qué pasa si actúo.
 Cada fase depende de lo que entrega la anterior, y la decisión final cierra el
 ciclo: al ejecutarse, produce los datos que la próxima vuelta del análisis
 descriptivo va a resumir.
+
+Si te quedas con una sola idea, que sea la de la tienda: la predicción dice
+quién se va, pero solo el experimento dice a quién puedes retener. Una decisión
+que use solo la primera gasta el presupuesto donde el cupón no cambia nada.
