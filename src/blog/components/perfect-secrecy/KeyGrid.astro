@@ -1,0 +1,179 @@
+---
+/**
+ * KeyGrid - Which key turns message m into ciphertext c, for 2-bit messages.
+ * Left: the one-time pad (all 4 keys). Right: a 1-bit key used twice (keys
+ * 00 and 11). Every cell is computed here as m XOR c and kept only if that
+ * key exists in the scheme, so the figure matches the Python example.
+ */
+const BITS = ["00", "01", "10", "11"];
+const xor = (a: string, b: string) =>
+  [...a].map((bit, i) => (bit === b[i] ? "0" : "1")).join("");
+
+const CELL = 46;
+const TOP = 92;
+
+const schemes = [
+  {
+    title: "One-time pad",
+    sub: "4 keys, uniform",
+    keys: BITS,
+    x: 64,
+  },
+  {
+    title: "Short key k‖k",
+    sub: "2 keys: 00 and 11",
+    keys: ["00", "11"],
+    x: 384,
+  },
+].map((scheme) => {
+  const candidates = BITS.filter((m) => scheme.keys.includes(xor(m, "00")));
+  return { ...scheme, candidates };
+});
+---
+
+<svg
+  viewBox="0 0 640 352"
+  role="img"
+  aria-label="Two 4 by 4 tables of 2-bit messages against 2-bit ciphertexts. Each cell holds the key that maps the message to the ciphertext. In the one-time pad every cell is filled and every key appears once in each row and each column, so the ciphertext 00 can come from any of the four messages. With a 1-bit key used twice, only keys 00 and 11 exist, half of the cells are empty, and the ciphertext 00 can only come from 00 or 11."
+  class="diagram"
+>
+  {schemes.map((s) => (
+    <g>
+      <text x={s.x} y="20" class="title">
+        {s.title}
+      </text>
+      <text x={s.x} y="38" class="sub">
+        {s.sub}
+      </text>
+
+      <text x={s.x + 18} y={TOP - 16} class="axis-label">
+        m \ c
+      </text>
+      {BITS.map((c, j) => (
+        <text x={s.x + 48 + j * CELL + CELL / 2} y={TOP - 16} class="head">
+          {c}
+        </text>
+      ))}
+      {BITS.map((m, i) => (
+        <text x={s.x + 24} y={TOP + i * CELL + CELL / 2} class="head">
+          {m}
+        </text>
+      ))}
+
+      {BITS.map((m, i) =>
+        BITS.map((c, j) => {
+          const key = xor(m, c);
+          const exists = s.keys.includes(key);
+          return (
+            <g>
+              <rect
+                x={s.x + 48 + j * CELL}
+                y={TOP + i * CELL}
+                width={CELL}
+                height={CELL}
+                class:list={["cell", { empty: !exists }]}
+              />
+              <text
+                x={s.x + 48 + j * CELL + CELL / 2}
+                y={TOP + i * CELL + CELL / 2}
+                class:list={["key", { missing: !exists }]}
+              >
+                {exists ? key : "·"}
+              </text>
+            </g>
+          );
+        }),
+      )}
+
+      <rect
+        x={s.x + 48}
+        y={TOP - 30}
+        width={CELL}
+        height={4 * CELL + 32}
+        rx="4"
+        class="focus"
+      />
+
+      <text x={s.x} y={TOP + 4 * CELL + 30} class="note">
+        seeing c = 00 leaves
+      </text>
+      <text x={s.x} y={TOP + 4 * CELL + 48} class="note accent">
+        {s.candidates.length === BITS.length
+          ? "all 4 messages possible"
+          : `only ${s.candidates.join(" and ")} possible`}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sub,
+  .axis-label {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .axis-label {
+    text-anchor: middle;
+  }
+
+  .head {
+    fill: var(--muted);
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .cell {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .cell.empty {
+    fill: var(--surface);
+  }
+
+  .key {
+    fill: currentColor;
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .key.missing {
+    fill: var(--muted);
+  }
+
+  .focus {
+    fill: none;
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .note {
+    fill: currentColor;
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .note.accent {
+    fill: var(--contrast);
+    font-weight: 600;
+  }
+</style>

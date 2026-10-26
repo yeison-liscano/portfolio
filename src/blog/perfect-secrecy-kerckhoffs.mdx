@@ -1,0 +1,429 @@
+---
+lang: "en"
+title: "Perfect Secrecy and Kerckhoffs' Principle: How a Provably Unbreakable Cipher Was Broken"
+pubDate: 2026-10-26
+description:
+  "Shannon's definition of perfect secrecy, the one-time pad and the theorems
+  that set its price, with every hypothesis stated. Then Kerckhoffs' principle,
+  and what Venona shows about breaking a cipher that cannot be broken."
+summary:
+  - "Perfect secrecy means the ciphertext leaves the attacker's odds exactly
+    where they were. The one-time pad achieves it with a one-line proof."
+  - "The price is a theorem: at least as many keys as messages, and one
+    message per key. Venona read traffic whose only flaw was reused pages."
+  - "Kerckhoffs' principle is built into the definition. The attacker knows
+    everything except the key, so the key is the only thing worth guarding."
+tags: ["security", "cryptography", "math"]
+isDraft: false
+---
+
+import Figure from "../components/blog/Figure.astro";
+import KeyGrid from "./components/perfect-secrecy/KeyGrid.astro";
+import SecrecyTimeline from "./components/perfect-secrecy/SecrecyTimeline.astro";
+
+{/* cspell:ignore PXUDR */}
+
+Keywords: perfect secrecy, one-time pad, Shannon, Kerckhoffs' principle, key
+reuse, Venona
+
+How do you break a cipher that is mathematically unbreakable? In February 1946,
+Meredith Gardner, an analyst on the US Army's Venona project, read his first
+Soviet message protected by a one-time pad. Three years later, Claude Shannon
+published the proof that a one-time pad, used correctly, cannot be broken, even
+with unlimited computing power. The question is not only historical: AES in
+counter mode and ChaCha20 fail the same way when a key and nonce are reused.
+This post proves what perfect secrecy requires, states every hypothesis behind
+the proofs, and shows which one Venona broke.
+
+The path goes from Shannon's definition to the one-time pad and the theorems
+that set its price. Then it shows why Kerckhoffs' principle, written in 1883, is
+already part of that definition. The Python examples run in your browser.
+
+## Venona read Soviet traffic that was protected by one-time pads
+
+Soviet services encrypted in two steps. A codebook turned words into groups of
+digits. Then a clerk added key digits, taken from a page of a one-time pad, to
+those groups. Each page was meant to be used for one message only.
+
+In 1942, under pressure from the German advance on Moscow, the organization that
+produced the KGB's pads printed about 35,000 pages of duplicate key. The copies
+were sent to users far apart from each other, which made the reuse harder to
+spot.
+
+On 1 February 1943, a small US Army team led by Gene Grabeel started working on
+the traffic. Gardner read the first message three years later. The project ran
+until 1 October 1980. Of the many thousands of messages sent between 1940 and
+1948, about 3,000 were at least partly read. They exposed agents such as Klaus
+Fuchs, Julius Rosenberg and members of the Cambridge Five. The translations
+became public in 1995.
+
+<Figure caption="Theory and practice of the one-time pad. A Soviet proof that the pad is secure predates the duplicate pages by a year, and Shannon's classified proof predates the first Venona break by a year. The proofs were never wrong.">
+  <SecrecyTimeline />
+</Figure>
+
+The mathematics was never broken. Each page, taken alone, was as secure as
+Shannon's proof says. So why is a duplicated page fatal? To answer that, we need
+the exact definition, including the hypotheses that usually stay implicit.
+
+## Perfect secrecy means the ciphertext does not change the attacker's odds
+
+An encryption scheme has three algorithms. `Gen` picks a key `k` from a key
+space `K`. `Enc` turns a message `m` from the message space `M` into a
+ciphertext `c` from the ciphertext space `C`. `Dec` turns `c` back into `m`.
+
+Every result in this post rests on the following hypotheses. I will refer to
+them by name.
+
+- **H1, finite spaces.** `M`, `K` and `C` are finite. `K` contains only keys
+  that `Gen` can output, and `C` contains only ciphertexts that can occur.
+- **H2, independent key.** The key is chosen independently of the message.
+- **H3, correctness.** `Dec` is deterministic and `Dec_k(Enc_k(m)) = m` for
+  every key `k` and every message `m`.
+- **H4, known system.** The attacker knows `Gen`, `Enc`, `Dec` and the
+  probability of each message. Only the value of `k` is secret. This is
+  Kerckhoffs' principle, and it gets its own section below.
+- **H5, one message per key.** The attacker sees a single ciphertext produced
+  with the key.
+
+The attacker's computing power is unlimited. With that setting, here is
+Shannon's definition (1949), in the modern form used by Katz and Lindell:
+
+> **Definition (perfect secrecy).** Under H1–H5, a scheme is perfectly secret if
+> for every probability distribution over `M`, every message `m ∈ M` and every
+> ciphertext `c ∈ C` with `Pr[C = c] > 0`, we have
+> `Pr[M = m | C = c] = Pr[M = m]`.
+
+The right side is what the attacker believes about the message before
+intercepting anything. The left side is what they believe after seeing `c`.
+Perfect secrecy says the two are equal: the ciphertext teaches nothing. The
+words "every probability distribution" matter. The attacker may already know
+that "attack at dawn" is far more likely than "retreat", and the scheme must
+still not add to that knowledge.
+
+There is an equivalent form that is easier to check. Under H1 and H2, a scheme
+is perfectly secret if and only if, for every pair of messages `m0, m1 ∈ M` and
+every ciphertext `c ∈ C`,
+`Pr[Enc_K(m0) = c] = Pr[Enc_K(m1) = c]`. The probability is over the key and
+over any randomness inside `Enc`. Every message produces every ciphertext with
+the same probability, so `c` carries no trace of which message it came from. The
+two forms are linked by Bayes' theorem.
+
+## The one-time pad is perfectly secret, and the proof takes one line
+
+In the one-time pad, messages, keys and ciphertexts are all strings of `n` bits.
+`Gen` picks `k` uniformly at random from `{0,1}^n`. Encryption is
+`Enc_k(m) = m ⊕ k` and decryption is `Dec_k(c) = c ⊕ k`, where `⊕` is bitwise
+XOR. Gilbert Vernam built this cipher for teleprinters in 1917, and Joseph
+Mauborgne added the requirement that the key tape be random and never reused.
+Steven Bellovin later found that Frank Miller had described the same idea for
+telegraph codes in 1882.
+
+> **Theorem (one-time pad).** Assume H2 and H5, that messages are `n`-bit
+> strings, and that the key is uniform over `{0,1}^n`. Then the one-time pad is
+> perfectly secret.
+
+**Proof.** Fix a message `m` and a ciphertext `c`. The event `Enc_K(m) = c`
+happens exactly when `K = m ⊕ c`, which is one specific key. The key is uniform
+and independent of `m`, so `Pr[Enc_K(m) = c] = 2^-n` for every `m` and every
+`c`. That probability does not depend on `m`, which is the equivalent form of
+the definition. ∎
+
+The definition can also be checked directly. The next example enumerates every
+case exactly, with fractions instead of floats, for `n = 2` and a deliberately
+uneven prior. It compares the one-time pad with a weaker scheme that uses a
+1-bit key twice, so its only keys are `00` and `11`.
+
+```python
+from fractions import Fraction
+from itertools import product
+
+MESSAGES = ["00", "01", "10", "11"]
+# Any prior works; this one is deliberately uneven.
+PRIOR = {"00": Fraction(1, 2), "01": Fraction(1, 4),
+         "10": Fraction(1, 8), "11": Fraction(1, 8)}
+
+
+def xor(a: str, b: str) -> str:
+    return "".join("0" if x == y else "1" for x, y in zip(a, b))
+
+
+def posterior(keys: list[str], c: str) -> dict[str, Fraction]:
+    """Pr[M = m | C = c]: uniform key, chosen independently of m."""
+    joint = {
+        m: PRIOR[m] * Fraction(sum(xor(m, k) == c for k in keys), len(keys))
+        for m in MESSAGES
+    }
+    total = sum(joint.values())
+    return {m: p / total for m, p in joint.items()}
+
+
+one_time_pad = ["".join(bits) for bits in product("01", repeat=2)]  # 4 keys
+short_key = [bit * 2 for bit in "01"]  # 2 keys: a 1-bit key used twice
+
+print("m    prior   OTP     short key   (ciphertext c = 00)")
+otp, short = posterior(one_time_pad, "00"), posterior(short_key, "00")
+for m in MESSAGES:
+    print(f"{m}   {str(PRIOR[m]):<7} {str(otp[m]):<7} {short[m]}")
+
+# The OTP check holds for every ciphertext, not just 00.
+assert all(posterior(one_time_pad, c) == PRIOR for c in MESSAGES)
+```
+
+```text
+m    prior   OTP     short key   (ciphertext c = 00)
+00   1/2     1/2     4/5
+01   1/4     1/4     0
+10   1/8     1/8     0
+11   1/8     1/8     1/5
+```
+
+With the one-time pad, the attacker's odds after seeing `00` are the prior,
+exactly. With the short key, seeing `00` rules out two messages and raises the
+probability of `00` from 1/2 to 4/5. The attacker did not break anything. They
+only read the odds that the scheme handed them.
+
+<Figure caption="Each cell holds the key that turns message m (row) into ciphertext c (column). In the one-time pad every cell is filled and each key appears once per row and once per column. With the short key, half the cells are empty: seeing c = 00 leaves only 00 and 11.">
+  <KeyGrid />
+</Figure>
+
+## Perfect secrecy requires at least as many keys as messages
+
+The short key did not fail by accident. Its failure is a theorem.
+
+> **Theorem 1 (key-space bound, Shannon 1949).** Assume H1 and H3, and let the
+> scheme be perfectly secret. Then `|K| ≥ |M|`.
+
+The theorem does not assume that `Enc` is deterministic or that keys are
+uniform. It only needs correctness and the definition.
+
+**Proof.** Suppose `|K| < |M|`. Take the uniform distribution over `M` and any
+ciphertext `c` with `Pr[C = c] > 0`. Decrypting `c` with every key gives the set
+of messages that `c` could come from. By H3 that set has at most `|K|` elements,
+so some message `m'` is missing from it. If some key could encrypt `m'` into
+`c`, decrypting `c` with that key would give `m'`, so no key can. Then
+`Pr[M = m' | C = c] = 0`, while `Pr[M = m'] = 1/|M| > 0`. That contradicts
+perfect secrecy. ∎
+
+In bits: if every `n`-bit string is a possible message and keys are `ℓ`-bit
+strings, then `2^ℓ ≥ 2^n`, so `ℓ ≥ n`. The key must be at least as long as the
+message. Shannon stated the same bound in 1949: the number of keys must be at
+least the number of possible messages.
+
+Shannon also characterized the schemes that sit exactly at this bound:
+
+> **Theorem 2 (Shannon's theorem).** Assume H1–H3, that `Enc` is
+> deterministic, and that `|M| = |K| = |C|`. The scheme is perfectly secret if
+> and only if both conditions hold:
+>
+> 1. `Gen` chooses every key with probability `1/|K|`.
+> 2. For every `m ∈ M` and every `c ∈ C`, exactly one key `k` satisfies
+>    `Enc_k(m) = c`.
+
+Condition 2 is what the left grid in the figure shows: every cell holds exactly
+one key, and each key appears once in every row and once in every column. The
+one-time pad is the standard example, and the proof above is the "if" direction
+of this theorem.
+
+The equal-size hypothesis matters only for the "only if" direction. Without it,
+a perfectly secret scheme can have extra keys that are not uniform. Take a
+one-time pad and append one unused bit to the key, chosen with probability 0.9
+for `0`. The scheme is still perfectly secret, yet it has twice as many keys as
+messages, the keys are not uniform, and every cell has two keys.
+
+## A reused key breaks the one-message hypothesis, not the proof
+
+Now the opening question has an answer. A duplicated page means two messages
+encrypted with the same key:
+
+```text
+c1 ⊕ c2 = (m1 ⊕ k) ⊕ (m2 ⊕ k) = m1 ⊕ m2
+```
+
+The key cancels. The attacker now holds the XOR of two plaintexts, which keeps
+the structure of language. Theorem 1 explains why this must leak. Encrypting two
+`n`-bit messages with one `n`-bit key is a scheme whose messages are pairs: it
+has `2^(2n)` possible messages and only `2^n` keys. By Theorem 1, it cannot be
+perfectly secret. The short-key scheme from the first example is exactly this
+case: a 1-bit pad used for two 1-bit messages.
+
+The next example shows the leak in practice with **crib dragging**. Guess a word
+that probably appears in one of the messages, slide it along `c1 ⊕ c2`, and keep
+the positions where the other message would read as plain text.
+
+```python
+import secrets
+
+
+def xor(a: bytes, b: bytes) -> bytes:
+    return bytes(x ^ y for x, y in zip(a, b))
+
+
+m1 = b"SEND THE REPORT TO THE CONSULATE"
+m2 = b"AGENT MEETS COURIER AT THE DOCKS"
+key = secrets.token_bytes(len(m1))  # perfect key... used twice
+
+c1, c2 = xor(m1, key), xor(m2, key)
+leak = xor(c1, c2)
+assert leak == xor(m1, m2)  # the key has cancelled out
+
+# Crib dragging: guess a word that is probably in one message,
+# slide it along the leak, and keep positions where the other
+# message would read as plain uppercase text.
+crib = b" THE "
+for i in range(len(leak) - len(crib) + 1):
+    other = xor(leak[i : i + len(crib)], crib)
+    if all(ch == 32 or 65 <= ch <= 90 for ch in other):
+        print(i, other.decode())
+```
+
+```text
+4 T MEE
+11 PXUDR
+18 R AT
+22  CONS
+```
+
+Three of the four hits are real fragments. `T MEE` and `R AT` come from `m2`,
+where `m1` holds " THE ". `CONS` comes from `m1`, where `m2` holds " THE ". The
+attacker does not know which message contains the guess, and does not need to.
+`PXUDR` is noise that a human discards at a glance. Each confirmed fragment
+suggests the next guess, and the two messages come out together.
+
+Run the example twice. The key is new each time, and the output is identical.
+That is what "the key cancels" means.
+
+Venona worked the same way. Soviet clerks added digits instead of XORing bits,
+so the analysts subtracted, and the key cancelled just the same. Their task was
+harder, because they also had to rebuild the codebook before any of it read as
+words. But the opening that made it possible was the reused key.
+
+The theory was not the problem. According to a 2006 account by Sergei Molotkov,
+the Soviet engineer Vladimir Kotelnikov had proved the absolute security of the
+one-time pad in a 1941 report that apparently remains classified. A year later,
+the same state printed duplicate pages. The proof held. Production broke one of
+its hypotheses.
+
+Reuse is not the only way out of the theorem. Each hypothesis has a failure mode
+of its own:
+
+- **A key that is not uniform (H2 and the theorem's uniform key).** If a 256-bit
+  pad is generated from a 32-bit seed, there are only `2^32` real keys. By
+  Theorem 1, that is far too few for 256-bit messages.
+- **Messages of different lengths (H1).** The definition fixes `M`, and the
+  one-time pad uses messages of one length `n`. A ciphertext reveals the length
+  of its message unless messages are padded to a common length.
+- **Tampering (not covered at all).** Flipping bit `i` of `c` flips bit `i` of
+  `m`. Perfect secrecy is about what the attacker learns, not about what they
+  can change. Integrity needs a separate mechanism, such as a message
+  authentication code.
+
+## Kerckhoffs' principle is built into the definition
+
+In 1883, Auguste Kerckhoffs published _La cryptographie militaire_ in the
+_Journal des sciences militaires_, in two parts, in January and February. It
+lists six requirements for military field ciphers. The second one is the
+principle that carries his name:
+
+> "Il faut qu'il n'exige pas le secret, et qu'il puisse sans inconvénient tomber
+> entre les mains de l'ennemi."
+>
+> The system must not require secrecy, and it must be able to fall into the
+> hands of the enemy without inconvenience.
+
+Shannon adopted the same assumption in 1949, and it is often quoted as Shannon's
+maxim: "the enemy knows the system." In this post it is hypothesis H4. The
+definition of perfect secrecy takes probabilities over the key only. The
+attacker knows `Gen`, `Enc`, `Dec` and the prior over messages. Nothing else is
+assumed secret, so the definition measures the strength of the key and nothing
+else.
+
+Why build that into the definition? Because a secret algorithm is key material
+with bad properties. It is copied into every device that runs it, so it leaks.
+It cannot be changed quickly once it leaks. And it cannot be reviewed in public
+before it is deployed. Two well-documented cases:
+
+- **GSM's A5/1.** The cipher that protected GSM calls was kept secret. Its
+  general design leaked in 1994, and Marc Briceno reverse-engineered it in full
+  from a GSM phone in 1999. Alex Biryukov, Adi Shamir and David Wagner presented
+  a real-time attack in 2000.
+- **MIFARE Classic's Crypto-1.** NXP's contactless cards used a proprietary
+  cipher with a 48-bit key. In 2008, Karsten Nohl, David Evans, Starbug and
+  Henryk Plötz reverse-engineered it from images of the chip's silicon. The
+  same year, Flavio Garcia and colleagues at Radboud University recovered it
+  from card-reader traffic and published practical key-recovery attacks.
+
+Kerckhoffs' principle does not require publishing the design. It requires that
+publication cost nothing.
+
+## Kerckhoffs also accepted that perfect secrecy is too expensive
+
+His first requirement is less famous and just as relevant:
+
+> "Le système doit être matériellement, sinon mathématiquement, indéchiffrable."
+>
+> The system must be practically, if not mathematically, undecipherable.
+
+Kerckhoffs settled for practical security 66 years before Theorem 1 proved why.
+Mathematical security needs a key at least as long as all the traffic it
+protects, generated at random, delivered in advance and never reused.
+
+Modern ciphers take the practical branch. AES uses a public design and a 128- or
+256-bit key to encrypt gigabytes. By Theorem 1, it cannot be perfectly secret
+for any message longer than its key. Its security is **computational**: the best
+known attacks would take an infeasible amount of work. That is an assumption
+supported by decades of public analysis, not a theorem.
+
+Stream constructions such as AES in counter mode and ChaCha20 then imitate the
+pad. They expand the key and a nonce, a value that must be used only once per
+key, into a long keystream, and XOR it with the message. Reuse a key-nonce pair
+and the result is the two-time pad from the example above.
+
+| Hypothesis                        | Where it is used           | What breaks if it fails                   | Example                                    |
+| --------------------------------- | -------------------------- | ----------------------------------------- | ------------------------------------------ |
+| Key uniform and independent (H2)  | One-time pad theorem       | The ciphertext shifts the attacker's odds | A 256-bit pad generated from a 32-bit seed |
+| At least as many keys as messages | Theorem 1                  | Some messages are ruled out               | The short-key scheme in the first example  |
+| One message per key (H5)          | The definition             | `c1 ⊕ c2 = m1 ⊕ m2`: the key cancels      | Venona; a reused key-nonce pair in AES-CTR |
+| Only the key is secret (H4)       | The definition, Kerckhoffs | Security rests on a secret that leaks     | A5/1, Crypto-1                             |
+| Messages of one length (H1)       | The one-time pad's `M`     | The ciphertext reveals the message length | Unpadded messages of different sizes       |
+
+## A provably unbreakable cipher breaks when one of its hypotheses fails
+
+How do you break a cipher that is mathematically unbreakable? You do not attack
+the proof. You find the hypothesis that the deployed system no longer meets. In
+Venona, it was a single one: each key page had to be used once, and 35,000 pages
+were not. Shannon's theorems and Kerckhoffs' principle describe the same
+boundary from two sides: the math protects you only as far as its hypotheses
+go, and the key is the only secret it allows.
+
+The takeaway fits in one habit. When someone says a system is unbreakable, ask
+for the theorem and read its hypotheses. In code, that habit becomes three
+rules. Take keys from a cryptographically secure generator, such as Python's
+`secrets` module. Never encrypt twice with the same key and nonce. Design as if
+the attacker already has your source code.
+
+## References
+
+- Shannon, C. E. (1949). Communication Theory of Secrecy Systems. _Bell System
+  Technical Journal_, 28(4), 656–715. An earlier version circulated as the
+  classified Bell Labs memorandum _A Mathematical Theory of Cryptography_
+  (MM 45-110-02, 1 September 1945).
+- Kerckhoffs, A. (1883). La cryptographie militaire. _Journal des sciences
+  militaires_, IX, 5–38 (January) and 161–191 (February).
+  [Transcription and scans by Fabien Petitcolas](https://www.petitcolas.net/kerckhoffs/).
+- Katz, J., & Lindell, Y. _Introduction to Modern Cryptography_, chapter 2
+  (perfectly secret encryption). CRC Press.
+- National Security Agency. _VENONA: An Overview_.
+  [PDF](https://media.defense.gov/2021/Jun/29/2002752012/-1/-1/0/VENONA_AN_OVERVIEW.PDF).
+- Vernam, G. S. U.S. Patent 1,310,719, _Secret Signaling System_, issued 22
+  July 1919.
+- Bellovin, S. M. (2011). Frank Miller: Inventor of the One-Time Pad.
+  _Cryptologia_, 35.
+- Molotkov, S. N. (2006). Quantum cryptography and V. A. Kotel'nikov's one-time
+  key and sampling theorems. _Physics-Uspekhi_, 49(7).
+- Biryukov, A., Shamir, A., & Wagner, D. Real Time Cryptanalysis of A5/1 on a
+  PC. _Fast Software Encryption (FSE 2000)_, LNCS, Springer, 2001.
+- Nohl, K., Evans, D., Starbug, & Plötz, H. (2008). Reverse-Engineering a
+  Cryptographic RFID Tag. _USENIX Security Symposium_.
+- Garcia, F. D., de Koning Gans, G., Muijrers, R., van Rossum, P., Verdult, R.,
+  Wichers Schreur, R., & Jacobs, B. (2008). Dismantling MIFARE Classic.
+  _ESORICS 2008_.
