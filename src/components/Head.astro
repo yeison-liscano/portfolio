@@ -15,6 +15,8 @@ interface Props {
   image?: string;
   /** Schema.org data for search engines, rendered as JSON-LD. */
   jsonLd?: Record<string, unknown>;
+  /** Keep draft previews out of search results. */
+  noindex?: boolean;
 }
 
 const {
@@ -25,6 +27,7 @@ const {
   lang = "en",
   image = "og-image.png",
   jsonLd,
+  noindex = false,
 } = Astro.props;
 
 const OG_LOCALES = { en: "en_US", es: "es_CO", fr: "fr_FR" } as const;
@@ -47,6 +50,7 @@ const jsonLdText = jsonLd && JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   <title>{title}</title>
   <meta name="description" content={description} />
   <meta name="author" content="Yeison Liscano" />
+  {noindex && <meta name="robots" content="noindex" />}
   <link rel="canonical" href={canonicalURL} />
 
   <!-- Body text font: fetch it early so text never renders in a fallback. -->
