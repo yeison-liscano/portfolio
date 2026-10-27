@@ -1,0 +1,366 @@
+---
+lang: "en"
+title: "Transistors and Bits: How a Voltage Becomes a 1, and Why Computers Use Only Two Levels"
+pubDate: 2026-10-26
+description:
+  "What 0 and 1 are in volts, why two levels survive noise when ten do not, how
+  two transistors make a gate that cleans its input, how NAND gates add, and why
+  a chip spends energy only when bits change."
+summary:
+  - "A bit is a range of voltages. For 3.3 V LVTTL, a receiver reads 1 above 2.0
+    V and 0 below 0.8 V, and a driver promises at least 2.4 V or at most 0.4 V.
+    The 0.4 V gaps absorb noise."
+  - "Two levels win because every gate restores them. In a simulation with the
+    same noise, two levels give 0 errors in 10,000 and ten levels give 7,576."
+  - "A CMOS inverter is two complementary switches and an amplifier at once. A
+    4-bit adder made only of NAND gates takes 144 transistors."
+  - "Energy goes into flipping bits, about half of C·V² per flip. Repeating the
+    same addition flips nothing, and halving the voltage cuts the energy by four."
+tags: ["hardware", "electronics", "python"]
+isDraft: false
+---
+
+import Figure from "../components/blog/Figure.astro";
+import LogicLevels from "./components/transistors/LogicLevels.astro";
+import InverterStates from "./components/transistors/InverterStates.astro";
+import InverterCurve from "./components/transistors/InverterCurve.astro";
+import NandGate from "./components/transistors/NandGate.astro";
+
+Keywords: logic levels, noise margin, MOSFET, CMOS, inverter, NAND, adder,
+dynamic power
+
+When a program computes `1 + 1`, no number exists anywhere in the chip. There
+are only wires at about 0 volts or at about the supply voltage, and transistors
+that connect them. A
+[gigabit Ethernet cable](/portfolio/blog/osi-layers-one-request/) uses five
+voltage levels per symbol, so why does the logic inside a processor use only
+two? The answer decides how
+reliable, how fast and how hot a chip is. This post follows one addition down to
+the transistors that compute it. You will see what a 1 is in volts, why two
+levels survive noise when ten do not, how two transistors make a gate that
+cleans its own input, and why a chip spends energy only when bits change.
+
+## A bit is a range of voltages, and the gaps between ranges absorb noise
+
+A 1 is not a voltage. It is a promise that a voltage falls inside a range. The
+JEDEC standard JESD8C defines these ranges for 3.3 V LVTTL (low-voltage
+transistor-transistor logic), a common interface on microcontrollers and FPGAs. A receiver reads any input above 2.0 V as 1 and
+any input below 0.8 V as 0. Between 0.8 V and 2.0 V the result is undefined. A
+driver, in turn, promises to output at least 2.4 V for a 1 and at most 0.4 V for
+a 0. Datasheets call these four numbers VIH, VIL, VOH and VOL: the minimum input
+read as high, the maximum input read as low, and the guaranteed output high and
+low.
+
+<Figure caption="3.3 V LVTTL logic levels. A driver never outputs a voltage between 0.4 V and 2.4 V once settled. A receiver needs only more than 2.0 V or less than 0.8 V. The 0.4 V gaps are the noise margins.">
+  <LogicLevels />
+</Figure>
+
+The difference between the promise and the threshold is the **noise margin**.
+On the high side it is 2.4 V − 2.0 V = 0.4 V. On the low side it is 0.8 V − 0.4
+V = 0.4 V. Up to 0.4 V of noise, from crosstalk, ground bounce or a long wire,
+can push the signal without changing the bit.
+
+Modern processor cores run near 1 V or below, so their ranges are narrower. The
+principle is the same: each bit is a range, and the margins between ranges are
+what make it a bit.
+
+## Two levels win because every gate can restore them
+
+A wider range per value means a wider margin. With a supply of 3.3 V and evenly
+spaced levels, two levels are 3.3 V apart, and a value can drift 1.65 V before
+it reads as the other one. Four levels are 1.1 V apart, with 0.55 V of margin.
+Ten levels are 0.37 V apart, with 0.18 V of margin.
+
+Margin is half of the story. The other half is what happens after many stages.
+The next example sends random values through 20 stages. Each stage adds
+Gaussian noise with a standard deviation of 0.15 V. In one version the voltage
+just accumulates noise. In the other, each stage outputs the nearest clean level
+again, as a logic gate does.
+
+```python
+import random
+
+random.seed(7)
+VDD = 3.3        # supply voltage, volts
+NOISE = 0.15     # noise added by each stage, standard deviation in volts
+STAGES = 20      # gates or wires the value crosses
+TRIALS = 10_000
+
+
+def nearest(v: float, levels: int) -> int:
+    """Read a voltage as the nearest of `levels` evenly spaced values."""
+    step = VDD / (levels - 1)
+    return min(max(round(v / step), 0), levels - 1)
+
+
+def errors(levels: int, restore: bool) -> int:
+    step = VDD / (levels - 1)
+    wrong = 0
+    for _ in range(TRIALS):
+        sent = random.randrange(levels)
+        v = sent * step
+        for _ in range(STAGES):
+            v += random.gauss(0, NOISE)
+            if restore:  # each stage outputs a clean level again
+                v = nearest(v, levels) * step
+        wrong += nearest(v, levels) != sent
+    return wrong
+
+
+print(f"levels  margin  restored  wrong out of {TRIALS:,}")
+for levels in (2, 4, 10):
+    margin = VDD / (levels - 1) / 2
+    for restore in (False, True):
+        wrong = errors(levels, restore)
+        print(f"{levels:>6}  {margin:.2f} V  {str(restore):<8}  {wrong:>6,}")
+```
+
+```text
+levels  margin  restored  wrong out of 10,000
+     2  1.65 V  False         66
+     2  1.65 V  True           0
+     4  0.55 V  False      3,142
+     4  0.55 V  True          35
+    10  0.18 V  False      6,984
+    10  0.18 V  True       7,576
+```
+
+Without restoration, noise adds up. After 20 stages its standard deviation has
+grown by a factor of √20, about 4.5, so even two levels fail 66 times. With
+restoration, each stage starts clean. For two levels, a single stage fails only
+if the noise exceeds 1.65 V, which is 11 standard deviations. The probability is
+about 10⁻²⁸ per stage, so a chip can chain billions of gates. Ten levels fail
+even with restoration: their 0.18 V margin is barely larger than the noise, so
+each stage snaps to the wrong level often, and the errors compound.
+
+Restoration in that code is one line, `nearest()`. What physical device does it,
+at every gate, billions of times per second? That device is the transistor.
+
+## A MOSFET is a switch that one voltage opens and closes
+
+Almost every transistor in a processor is a MOSFET, a metal-oxide-semiconductor
+field-effect transistor. M. M. Atalla and Dawon Kahng made the first working one
+at Bell Labs in 1959. It has three terminals that matter here: a **source**, a
+**drain** and a **gate**. The gate sits on top of the silicon between source and
+drain, separated from it by a thin insulating layer of oxide.
+
+In an **nMOS** transistor, a gate voltage above a threshold pulls electrons
+under the oxide. They form a conducting channel, and current can flow between
+source and drain. Below the threshold there is no channel, and the switch is
+open. A **pMOS** transistor works the other way around: it conducts when its
+gate is low and opens when its gate is high. The threshold is a fraction of the
+supply voltage, typically a few tenths of a volt.
+
+Because the oxide insulates the gate, a steady gate voltage draws almost no
+current. A gate is a small capacitor: current flows only while it charges or
+discharges. That detail will decide where the energy goes.
+
+## Two complementary transistors make an inverter that cleans the signal
+
+Put one pMOS between the supply and an output, and one nMOS between the output
+and ground, and tie their gates together. This is a **CMOS inverter**,
+complementary MOS. Frank Wanlass and C. T. Sah presented the circuit at the
+International Solid-State Circuits Conference in February 1963, under the title
+"Nanowatt Logic Using Field-Effect Metal-Oxide Semiconductor Triodes".
+
+<Figure caption="A CMOS inverter at rest. With a 0 at the input, the pMOS connects the output to 3.3 V. With a 1, the nMOS connects it to ground. Exactly one switch is closed in each state, so no current flows from the supply to ground.">
+  <InverterStates />
+</Figure>
+
+The title explains itself. In either resting state, one transistor is off, so
+there is no path from the supply to ground. Once the output has settled, the
+inverter draws almost no current.
+
+The switch picture explains the logic but hides the most important property. A
+MOSFET is not an ideal switch. Near the threshold it conducts partly, and two of
+them pulling against each other form an amplifier. The next figure computes the
+inverter's output for every input voltage, from the textbook square-law model of
+a transistor.
+
+<Figure caption="The transfer curve of a CMOS inverter, computed from the square-law model with VDD = 3.3 V and a threshold of 0.7 V. Between VIL and VIH the slope is steeper than −1, so the inverter amplifies. Outside that zone it squeezes a 1.0 V wide input band into a few hundredths of a volt near a rail.">
+  <InverterCurve />
+</Figure>
+
+This curve is `nearest()` in hardware. Any input from 0 to 1.0 V, a noisy 0,
+produces an output between 3.27 V and 3.30 V, a clean 1. The middle of the curve
+is steep, so a small input difference becomes a large output difference. The
+ends are flat, so a large input difference becomes almost none. Chain two
+inverters and a noisy bit comes out clean. That is the answer to the opening
+question. A gate with gain and flat ends has two stable outputs, and each gate
+restores them for the next one.
+
+More levels are possible, but they are expensive. QLC flash memory stores 4 bits
+per cell as 16 charge levels, and it relies on strong error correction to read
+them back. Storage can afford that cost. Logic, where a value crosses hundreds
+of gates per operation, cannot.
+
+## Four transistors make a NAND, and NAND gates make an adder
+
+Two pMOS in parallel above the output, and two nMOS in series below it, make a
+**NAND** gate. The output goes to 0 only when both nMOS conduct, which means
+both inputs are 1. In every other case at least one pMOS conducts and the output
+is 1.
+
+<Figure caption="A CMOS NAND gate drawn as switches, with both inputs at 1. Both nMOS are on and both pMOS are off, so the output is 0. For any other input, one pMOS is on and the output is 1.">
+  <NandGate />
+</Figure>
+
+NAND is universal: any logic function can be built from NAND gates alone. The
+next example treats each transistor as a switch, builds NAND from four of them,
+and builds a 4-bit adder from NAND gates only. The `assert` checks the CMOS
+rule: the pull-up and the pull-down are never on together and never off
+together.
+
+```python
+# A MOSFET, seen from logic, is a switch controlled by its gate voltage.
+def nmos_on(gate: int) -> bool:
+    return gate == 1  # conducts when the gate is high
+
+
+def pmos_on(gate: int) -> bool:
+    return gate == 0  # conducts when the gate is low
+
+
+class Chip:
+    """Gates built only from CMOS NANDs; records every gate's output."""
+
+    def __init__(self) -> None:
+        self.nodes: list[int] = []
+
+    def nand(self, a: int, b: int) -> int:
+        pull_up = pmos_on(a) or pmos_on(b)  # two pMOS in parallel to VDD
+        pull_down = nmos_on(a) and nmos_on(b)  # two nMOS in series to ground
+        assert pull_up != pull_down  # never both on, never both off
+        self.nodes.append(1 if pull_up else 0)
+        return self.nodes[-1]
+
+    def full_adder(self, a: int, b: int, carry: int) -> tuple[int, int]:
+        n1 = self.nand(a, b)
+        a_xor_b = self.nand(self.nand(a, n1), self.nand(b, n1))
+        n4 = self.nand(a_xor_b, carry)
+        total = self.nand(self.nand(a_xor_b, n4), self.nand(carry, n4))
+        return total, self.nand(n4, n1)
+
+    def add(self, x: int, y: int, bits: int = 4) -> int:
+        self.nodes = []
+        carry, result = 0, 0
+        for i in range(bits):  # ripple: each carry feeds the next bit
+            total, carry = self.full_adder(x >> i & 1, y >> i & 1, carry)
+            result |= total << i
+        return result | carry << bits
+
+
+chip = Chip()
+chip.add(0, 0)
+print(f"4-bit adder: {len(chip.nodes)} NAND gates,"
+      f" {4 * len(chip.nodes)} transistors")
+print(" x +  y = sum  binary  gate outputs that flipped")
+previous = chip.nodes
+for x, y in [(1, 1), (7, 1), (7, 1), (15, 1)]:
+    total = chip.add(x, y)
+    flips = sum(a != b for a, b in zip(previous, chip.nodes))
+    previous = chip.nodes
+    print(f"{x:>2} + {y:>2} = {total:>3}  {total:05b}   {flips}")
+```
+
+```text
+4-bit adder: 36 NAND gates, 144 transistors
+ x +  y = sum  binary  gate outputs that flipped
+ 1 +  1 =   2  00010   4
+ 7 +  1 =   8  01000   12
+ 7 +  1 =   8  01000   0
+15 +  1 =  16  10000   6
+```
+
+Each bit position uses a full adder of 9 NAND gates, 36 transistors. I also
+checked the circuit against all 256 pairs of 4-bit inputs. Real cell libraries
+do better: the CMOS mirror adder in Weste and Harris's textbook uses 28
+transistors per bit. The structure is the same, switches arranged so that the
+output always connects to exactly one rail.
+
+## A chip spends energy when bits flip, not while they hold
+
+The last column of the output is the important one. Adding 7 + 1 after 1 + 1
+flips 12 gate outputs. Adding 7 + 1 again flips none. The circuit computed the
+same answer, and in the switch model it did no work at all.
+
+Every gate output drives a small capacitance: the gates of the transistors it
+feeds, plus the wire. A 0 to 1 transition charges that capacitance through the
+pMOS. It draws an energy of C·V² from the supply. Half of it is stored in the
+capacitance and half is lost as heat in the transistor. The 1 to 0 transition
+dumps the stored half to ground through the nMOS. On average, each flip costs
+about ½·C·V². Summed over a chip, the dynamic power is P = α·C·V²·f, where α is
+the fraction of nodes that flip per clock cycle and f is the clock frequency.
+
+The square on V is why supply voltages fell. Take an output capacitance of about
+1 femtofarad, a plausible order of magnitude for one gate output on a modern
+chip. At 0.8 V, a flip costs about 0.32 femtojoules. At 5 V, the supply of
+classic TTL logic, it costs about 12.5 femtojoules, 39 times as much.
+
+In 1974, Robert Dennard and his colleagues showed that shrinking a MOSFET and
+its voltage together keeps the power per unit of area constant. That rule held
+for about three decades. Around 2005, it broke down: the threshold voltage could
+not keep falling without leakage current growing too fast, so the supply voltage
+stopped falling too. Power density rose, clock frequencies stopped climbing, and
+processor makers turned to multiple cores instead. An idle core still stays
+cool. When no bits flip, only leakage remains.
+
+## A 1 is a promise about a voltage, and every gate keeps it
+
+A voltage becomes a 1 when it falls inside the range that the receiver reads as
+
+1. Computers use two levels because two levels leave the widest margin, and
+   because a CMOS gate, two switches that are also an amplifier, restores two
+   levels at every stage. Ten levels would leave margins smaller than ordinary
+   noise, and no simple gate restores them.
+
+The promise also holds between chips, and that is where it breaks in practice.
+Before wiring the output of one chip to the input of another, subtract the
+datasheet values. The driver's VOH minus the receiver's VIH, and the receiver's
+VIL minus the driver's VOL, must both be positive. A 3.3 V microcontroller
+driving a 5 V logic chip is the classic case:
+
+```python
+# Datasheet minimums and maximums, in volts.
+DRIVER = {"VOH": 2.4, "VOL": 0.4}  # 3.3 V LVTTL output (JESD8C)
+RECEIVERS = {
+    "74HC00 at 4.5 V": {"VIH": 3.15, "VIL": 1.35},
+    "74HCT00 at 4.5 V": {"VIH": 2.0, "VIL": 0.8},
+}
+
+for name, rx in RECEIVERS.items():
+    high = DRIVER["VOH"] - rx["VIH"]  # room above the receiver's 1 threshold
+    low = rx["VIL"] - DRIVER["VOL"]  # room below the receiver's 0 threshold
+    verdict = "ok" if min(high, low) > 0 else "a 1 may read as anything"
+    print(f"{name:<17} high {high:+.2f} V  low {low:+.2f} V  {verdict}")
+```
+
+```text
+74HC00 at 4.5 V   high -0.75 V  low +0.95 V  a 1 may read as anything
+74HCT00 at 4.5 V  high +0.40 V  low +0.40 V  ok
+```
+
+The 74HC00 needs at least 3.15 V to guarantee a 1, and LVTTL only promises 2.4
+V. The circuit may still work on the bench, inside the undefined zone, and fail
+with a warmer chip or a longer wire. The 74HCT version exists for this reason:
+its inputs use the same 2.0 V and 0.8 V thresholds as LVTTL. When a margin is
+negative, use a part with matching thresholds or a level shifter.
+
+## References
+
+- JEDEC. JESD8C.01, _Interface Standard for Nominal 3 V/3.3 V Supply Digital
+  Integrated Circuits_. 2007.
+- NXP Semiconductors. _74HC00; 74HCT00 Quad 2-input NAND gate_, product data
+  sheet, table 6 (static characteristics).
+- Computer History Museum. _1960: Metal Oxide Semiconductor (MOS) Transistor
+  Demonstrated_.
+  [The Silicon Engine](https://www.computerhistory.org/siliconengine/metal-oxide-semiconductor-mos-transistor-demonstrated/).
+- Wanlass, F. M., & Sah, C. T. (1963). Nanowatt Logic Using Field-Effect
+  Metal-Oxide Semiconductor Triodes. _ISSCC Digest of Technical Papers_, 32–33.
+- Wanlass, F. M. U.S. Patent 3,356,858, _Low Stand-By Power Complementary Field
+  Effect Circuitry_, issued 5 December 1967.
+- Dennard, R. H., Gaensslen, F. H., Yu, H.-N., Rideout, V. L., Bassous, E., &
+  LeBlanc, A. R. (1974). Design of Ion-Implanted MOSFET's with Very Small
+  Physical Dimensions. _IEEE Journal of Solid-State Circuits_, 9(5), 256–268.
+- Weste, N. H. E., & Harris, D. M. _CMOS VLSI Design: A Circuits and Systems
+  Perspective_, 4th ed., chapter 11 (datapath subsystems). Addison-Wesley.

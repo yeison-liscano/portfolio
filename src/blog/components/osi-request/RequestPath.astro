@@ -1,0 +1,227 @@
+---
+/**
+ * RequestPath - One request from the checkout app to the orders API.
+ * Five nodes: the two hosts with all seven OSI layers, two switches that
+ * stop at layer 2 and a router that stops at layer 3. The path goes down
+ * the client, up and down each middle node as far as it reads, and up the
+ * server. Each node is one step for <Stepper>.
+ */
+const id = "request-path";
+
+interface Node {
+  name: string;
+  sub: string;
+  x: number;
+  w: number;
+  top: number;
+  note: [string, string];
+}
+
+const LAYER_NAMES: Record<number, string> = {
+  7: "Application",
+  6: "Presentation",
+  5: "Session",
+  4: "Transport",
+  3: "Network",
+  2: "Data link",
+  1: "Physical",
+};
+
+const NODES: Node[] = [
+  {
+    name: "checkout app",
+    sub: "10.0.1.20",
+    x: 0,
+    w: 132,
+    top: 7,
+    note: ["50 bytes in,", "142-byte frame out"],
+  },
+  {
+    name: "switch",
+    sub: "subnet 1",
+    x: 172,
+    w: 100,
+    top: 2,
+    note: ["reads dst MAC,", "frame unchanged"],
+  },
+  {
+    name: "router",
+    sub: "10.0.1.1 | 10.0.2.1",
+    x: 310,
+    w: 100,
+    top: 3,
+    note: ["TTL 64 → 63,", "new MAC header"],
+  },
+  {
+    name: "switch",
+    sub: "subnet 2",
+    x: 448,
+    w: 100,
+    top: 2,
+    note: ["reads dst MAC,", "frame unchanged"],
+  },
+  {
+    name: "orders API",
+    sub: "10.0.2.30",
+    x: 588,
+    w: 132,
+    top: 7,
+    note: ["checks, strips", "each header"],
+  },
+];
+
+const TOP = 16;
+const BOX_H = 26;
+const PITCH = 32;
+const layerY = (n: number) => TOP + (7 - n) * PITCH;
+const centerY = (n: number) => layerY(n) + BOX_H / 2;
+const wireY = centerY(1);
+const nameY = layerY(1) + BOX_H + 26;
+const range = (from: number) =>
+  Array.from({ length: from }, (_, i) => from - i);
+
+const [client, , , , server] = NODES;
+const clientLane = client.x + client.w + 10;
+const serverLane = server.x - 10;
+
+/** Up the left lane, over the top box, down the right lane. */
+const hop = (node: Node, from: number) => {
+  const left = node.x - 10;
+  const right = node.x + node.w + 10;
+  const over = layerY(node.top) - 7;
+  return `M ${from} ${wireY} H ${left} V ${over} H ${right} V ${wireY}`;
+};
+
+const paths = [
+  `M ${clientLane} ${centerY(7)} V ${wireY - 2}`,
+  hop(NODES[1], clientLane),
+  hop(NODES[2], NODES[1].x + NODES[1].w + 10),
+  hop(NODES[3], NODES[2].x + NODES[2].w + 10),
+  `M ${NODES[3].x + NODES[3].w + 10} ${wireY} H ${serverLane} V ${centerY(7) + 2}`,
+];
+---
+
+<svg
+  viewBox="0 0 724 330"
+  role="img"
+  aria-label="Five columns. The checkout app at 10.0.1.20 and the orders API at 10.0.2.30 each have all seven OSI layers. Between them, a switch with layers 1 and 2, a router with layers 1 to 3, and a second switch with layers 1 and 2. The request goes down the seven layers of the client, up to layer 2 in the first switch, up to layer 3 in the router, where the TTL drops from 64 to 63 and the MAC header is replaced, up to layer 2 in the second switch, and up the seven layers of the server."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  {NODES.map((node) => (
+    <g>
+      {range(node.top).map((n) => (
+        <g>
+          <rect
+            x={node.x}
+            y={layerY(n)}
+            width={node.w}
+            height={BOX_H}
+            rx="3"
+            class="box"
+          />
+          <text x={node.x + 8} y={centerY(n)} class="layer">
+            <tspan class="num">{n}</tspan> {LAYER_NAMES[n]}
+          </text>
+        </g>
+      ))}
+      <text x={node.x + node.w / 2} y={nameY} class="name">
+        {node.name}
+      </text>
+      <text x={node.x + node.w / 2} y={nameY + 16} class="sub">
+        {node.sub}
+      </text>
+    </g>
+  ))}
+
+  {NODES.map((node, i) => (
+    <g data-step={i + 1}>
+      {range(node.top).map((n) => (
+        <rect
+          x={node.x}
+          y={layerY(n)}
+          width={node.w}
+          height={BOX_H}
+          rx="3"
+          class="touch"
+        />
+      ))}
+      <path d={paths[i]} marker-end={`url(#${id}-arrow)`} class="link" />
+      <text x={node.x + node.w / 2} y={nameY + 40} class="note">
+        {node.note[0]}
+      </text>
+      <text x={node.x + node.w / 2} y={nameY + 56} class="note">
+        {node.note[1]}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .touch {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .layer {
+    fill: var(--text-color);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .num {
+    fill: var(--muted);
+  }
+
+  .link {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+  }
+</style>

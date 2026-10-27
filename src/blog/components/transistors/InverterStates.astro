@@ -1,0 +1,257 @@
+---
+/**
+ * InverterStates - A CMOS inverter in its two resting states, drawn with
+ * each transistor as the switch it acts like. A pMOS connects the output
+ * to VDD when its gate is 0; an nMOS connects it to ground when its gate
+ * is 1. In both states exactly one switch is closed, so no current flows
+ * from VDD to ground once the output has settled.
+ */
+interface Panel {
+  x: number;
+  input: 0 | 1;
+}
+
+const PANELS: Panel[] = [
+  { x: 0, input: 0 },
+  { x: 330, input: 1 },
+];
+
+const RAIL_Y = 44;
+const P_TOP = 80;
+const P_BOT = 116;
+const OUT_Y = 152;
+const N_TOP = 188;
+const N_BOT = 224;
+const GND_Y = 258;
+const P_GATE_Y = (P_TOP + P_BOT) / 2;
+const N_GATE_Y = (N_TOP + N_BOT) / 2;
+
+/** A switch between two terminals; open switches swing to the right. */
+const blade = (cx: number, top: number, bottom: number, closed: boolean) =>
+  closed
+    ? `M ${cx} ${top} V ${bottom}`
+    : `M ${cx} ${top} L ${cx + 18} ${bottom - 6}`;
+---
+
+<svg
+  viewBox="0 0 660 300"
+  role="img"
+  aria-label="Two copies of a CMOS inverter. Each has a pMOS switch between the 3.3 volt supply and the output, and an nMOS switch between the output and ground. With the input at 0 volts, the pMOS is on and the nMOS is off, so the output is connected to 3.3 volts and reads 1. With the input at 3.3 volts, the nMOS is on and the pMOS is off, so the output is connected to ground and reads 0. In neither state is there a path from the supply to ground."
+  class="diagram"
+>
+  {PANELS.map(({ x, input }) => {
+    const cx = x + 150;
+    const pOn = input === 0;
+    const nOn = input === 1;
+    return (
+      <g>
+        <text x={x + 10} y="16" class="title">
+          {input === 0 ? "input 0 V (a 0)" : "input 3.3 V (a 1)"}
+        </text>
+
+        <line x1={cx - 40} y1={RAIL_Y} x2={cx + 40} y2={RAIL_Y} class="rail" />
+        <text x={cx + 48} y={RAIL_Y} class="label">
+          VDD 3.3 V
+        </text>
+
+        <line
+          x1={cx}
+          y1={RAIL_Y}
+          x2={cx}
+          y2={P_TOP}
+          class:list={["wire", { hot: pOn }]}
+        />
+        <path
+          d={blade(cx, P_TOP, P_BOT, pOn)}
+          class:list={["wire", { hot: pOn }]}
+        />
+        <line
+          x1={cx}
+          y1={P_BOT}
+          x2={cx}
+          y2={OUT_Y}
+          class:list={["wire", { hot: pOn }]}
+        />
+        <circle cx={cx} cy={P_TOP} r="3" class="pin" />
+        <circle cx={cx} cy={P_BOT} r="3" class="pin" />
+
+        <line
+          x1={cx}
+          y1={OUT_Y}
+          x2={cx}
+          y2={N_TOP}
+          class:list={["wire", { hot: nOn }]}
+        />
+        <path
+          d={blade(cx, N_TOP, N_BOT, nOn)}
+          class:list={["wire", { hot: nOn }]}
+        />
+        <line
+          x1={cx}
+          y1={N_BOT}
+          x2={cx}
+          y2={GND_Y}
+          class:list={["wire", { hot: nOn }]}
+        />
+        <circle cx={cx} cy={N_TOP} r="3" class="pin" />
+        <circle cx={cx} cy={N_BOT} r="3" class="pin" />
+
+        <line x1={cx - 14} y1={GND_Y} x2={cx + 14} y2={GND_Y} class="rail" />
+        <line
+          x1={cx - 9}
+          y1={GND_Y + 5}
+          x2={cx + 9}
+          y2={GND_Y + 5}
+          class="rail"
+        />
+        <line
+          x1={cx - 4}
+          y1={GND_Y + 10}
+          x2={cx + 4}
+          y2={GND_Y + 10}
+          class="rail"
+        />
+        <text x={cx + 22} y={GND_Y + 4} class="label">
+          ground 0 V
+        </text>
+
+        <text x={x + 12} y={OUT_Y} class="label">
+          in
+        </text>
+        <line x1={x + 30} y1={OUT_Y} x2={x + 70} y2={OUT_Y} class="wire" />
+        <line
+          x1={x + 70}
+          y1={P_GATE_Y}
+          x2={x + 70}
+          y2={N_GATE_Y}
+          class="wire"
+        />
+        <line
+          x1={x + 70}
+          y1={P_GATE_Y}
+          x2={cx - 26}
+          y2={P_GATE_Y}
+          class="wire"
+        />
+        <circle cx={cx - 22} cy={P_GATE_Y} r="4" class="bubble" />
+        <line
+          x1={cx - 18}
+          y1={P_GATE_Y - 12}
+          x2={cx - 18}
+          y2={P_GATE_Y + 12}
+          class="gate"
+        />
+        <line
+          x1={x + 70}
+          y1={N_GATE_Y}
+          x2={cx - 18}
+          y2={N_GATE_Y}
+          class="wire"
+        />
+        <line
+          x1={cx - 18}
+          y1={N_GATE_Y - 12}
+          x2={cx - 18}
+          y2={N_GATE_Y + 12}
+          class="gate"
+        />
+        <circle cx={x + 70} cy={OUT_Y} r="3" class="node" />
+
+        <text x={cx + 26} y={P_GATE_Y - 8} class="label strong">
+          pMOS
+        </text>
+        <text x={cx + 26} y={P_GATE_Y + 8} class:list={["label", { on: pOn }]}>
+          {pOn ? "on" : "off"}
+        </text>
+        <text x={cx + 26} y={N_GATE_Y - 8} class="label strong">
+          nMOS
+        </text>
+        <text x={cx + 26} y={N_GATE_Y + 8} class:list={["label", { on: nOn }]}>
+          {nOn ? "on" : "off"}
+        </text>
+
+        <circle cx={cx} cy={OUT_Y} r="3.5" class="node" />
+        <line
+          x1={cx}
+          y1={OUT_Y}
+          x2={cx + 76}
+          y2={OUT_Y}
+          class:list={["wire", "hot"]}
+        />
+        <text x={cx + 82} y={OUT_Y - 8} class="label strong">
+          out
+        </text>
+        <text x={cx + 82} y={OUT_Y + 8} class="label on">
+          {pOn ? "3.3 V (a 1)" : "0 V (a 0)"}
+        </text>
+      </g>
+    );
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .label {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .label.strong {
+    fill: currentColor;
+  }
+
+  .label.on {
+    fill: var(--contrast);
+    font-weight: 600;
+  }
+
+  .rail {
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .wire {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.5;
+  }
+
+  .wire.hot {
+    stroke: var(--contrast);
+    stroke-width: 3;
+  }
+
+  .gate {
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .pin {
+    fill: var(--surface);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .bubble {
+    fill: var(--surface);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .node {
+    fill: currentColor;
+  }
+</style>

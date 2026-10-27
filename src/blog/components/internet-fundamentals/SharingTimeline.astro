@@ -1,0 +1,257 @@
+---
+/**
+ * SharingTimeline - The same bursty traffic from three users on one link,
+ * shared two ways. Top: time-division multiplexing, a circuit per user, so
+ * each user may send only in its own slot of every frame. Bottom: packet
+ * switching, one first-come, first-served queue. Both schedules are computed
+ * here from one list of arrivals.
+ */
+type User = "A" | "B" | "C";
+
+interface Sent {
+  user: User;
+  at: number;
+  slot: number;
+}
+
+interface Burst {
+  user: User;
+  at: number;
+  packets: number;
+}
+
+const BURSTS: Burst[] = [
+  { user: "A", at: 0, packets: 6 },
+  { user: "C", at: 2, packets: 2 },
+  { user: "B", at: 9, packets: 3 },
+];
+const USERS: User[] = ["A", "B", "C"];
+const SLOTS = 18;
+
+const arrivals = BURSTS.flatMap((burst) =>
+  Array.from({ length: burst.packets }, () => ({
+    user: burst.user,
+    at: burst.at,
+  })),
+);
+
+/** TDM: slot i belongs to USERS[i % 3]; a packet waits for its user's slot. */
+const tdm = USERS.flatMap((user, owner) =>
+  arrivals
+    .filter((p) => p.user === user)
+    .reduce<Sent[]>((sent, p) => {
+      const first = Math.max(p.at, sent.length ? sent.at(-1)!.slot + 1 : 0);
+      const slot = first + ((owner - (first % 3) + 3) % 3);
+      return [...sent, { ...p, slot }];
+    }, []),
+);
+
+/** Packet switching: one queue, served in arrival order. */
+const fifo = arrivals.reduce<Sent[]>((sent, p) => {
+  const free = sent.length ? sent.at(-1)!.slot + 1 : 0;
+  return [...sent, { ...p, slot: Math.max(p.at, free) }];
+}, []);
+
+const finish = (schedule: Sent[], user: User) =>
+  Math.max(...schedule.filter((p) => p.user === user).map((p) => p.slot)) + 1;
+
+/** Slots the link left empty while some packet was already waiting. */
+const wasted = (schedule: Sent[]) =>
+  Array.from({ length: SLOTS }, (_, i) => i).filter(
+    (i) =>
+      !schedule.some((p) => p.slot === i) &&
+      schedule.some((p) => p.at <= i && p.slot > i),
+  ).length;
+
+const X0 = 150;
+const CELL = 28;
+const ROWS = [
+  {
+    title: "Circuits (TDM)",
+    sub: "1 slot in 3 each",
+    y: 64,
+    schedule: tdm,
+    tdm: true,
+  },
+  {
+    title: "Packets",
+    sub: "one shared queue",
+    y: 156,
+    schedule: fifo,
+    tdm: false,
+  },
+];
+const ARRIVAL_Y = 30;
+---
+
+<svg
+  viewBox={`0 0 ${X0 + SLOTS * CELL + 44} 262`}
+  role="img"
+  aria-label={`Three users share one link for ${SLOTS} time slots. User A sends 6 packets at time 0, user C sends 2 packets at time 2 and user B sends 3 packets at time 9. With circuits, each user may only use every third slot, so A finishes at slot ${finish(tdm, "A")}, C at ${finish(tdm, "C")} and B at ${finish(tdm, "B")}, while ${wasted(tdm)} slots stay empty although packets are waiting. With packet switching, packets are sent in arrival order, so A finishes at slot ${finish(fifo, "A")}, C waits behind A and finishes at ${finish(fifo, "C")}, and B finishes at ${finish(fifo, "B")}.`}
+  class="diagram"
+>
+  <text x="0" y={ARRIVAL_Y} class="row-title">
+    arrivals
+  </text>
+  {BURSTS.map((burst) => (
+    <g>
+      <line
+        x1={X0 + burst.at * CELL + 2}
+        y1={ARRIVAL_Y + 6}
+        x2={X0 + burst.at * CELL + 2}
+        y2={ARRIVAL_Y - 12}
+        class:list={["arrow", burst.user]}
+      />
+      <text
+        x={X0 + burst.at * CELL + 8}
+        y={ARRIVAL_Y - 2}
+        class:list={["arrival", burst.user]}
+      >
+        {burst.user} ×{burst.packets}
+      </text>
+    </g>
+  ))}
+
+  {ROWS.map((row) => (
+    <g>
+      <text x="0" y={row.y + 12} class="row-title">
+        {row.title}
+      </text>
+      <text x="0" y={row.y + 30} class="row-sub">
+        {row.sub}
+      </text>
+      {Array.from({ length: SLOTS }, (_, i) => {
+        const sent = row.schedule.find((p) => p.slot === i);
+        return (
+          <g>
+            <rect
+              x={X0 + i * CELL}
+              y={row.y}
+              width={CELL - 3}
+              height="36"
+              rx="3"
+              class:list={["slot", sent ? sent.user : "idle"]}
+            />
+            <text
+              x={X0 + i * CELL + (CELL - 3) / 2}
+              y={row.y + 19}
+              class="cell"
+            >
+              {sent ? sent.user : row.tdm ? USERS[i % 3].toLowerCase() : ""}
+            </text>
+          </g>
+        );
+      })}
+      <text x={X0} y={row.y + 58} class="note">
+        {USERS.map((u) => `${u} done at ${finish(row.schedule, u)}`).join(
+          ",  ",
+        )}
+        {`;  ${wasted(row.schedule)} slots wasted while packets waited`}
+      </text>
+    </g>
+  ))}
+
+  {Array.from({ length: SLOTS / 3 + 1 }, (_, k) => (
+    <text x={X0 + k * 3 * CELL} y="252" class="tick">
+      {k * 3}
+    </text>
+  ))}
+  <text x={X0 - 10} y="252" class="tick-label">
+    time slots
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .row-title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .row-sub,
+  .note,
+  .tick,
+  .tick-label {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .tick {
+    text-anchor: start;
+  }
+
+  .tick-label {
+    text-anchor: end;
+  }
+
+  .slot {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .slot.idle {
+    fill: var(--surface);
+    stroke-dasharray: 3 3;
+  }
+
+  .slot.A {
+    fill: var(--cat-1);
+  }
+
+  .slot.B {
+    fill: var(--cat-2);
+  }
+
+  .slot.C {
+    fill: var(--cat-3);
+  }
+
+  .cell {
+    fill: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .idle + .cell {
+    fill: var(--muted);
+    font-weight: 400;
+  }
+
+  .arrow {
+    stroke-width: 2;
+  }
+
+  .arrow.A,
+  .arrival.A {
+    stroke: var(--cat-1);
+    fill: var(--cat-1);
+  }
+
+  .arrow.B,
+  .arrival.B {
+    stroke: var(--cat-2);
+    fill: var(--cat-2);
+  }
+
+  .arrow.C,
+  .arrival.C {
+    stroke: var(--cat-3);
+    fill: var(--cat-3);
+  }
+
+  .arrival {
+    stroke: none !important;
+    font-size: 12px;
+    font-weight: 600;
+  }
+</style>

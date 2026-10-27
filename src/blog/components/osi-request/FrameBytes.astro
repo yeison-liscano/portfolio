@@ -1,0 +1,261 @@
+---
+/**
+ * FrameBytes - The 162 byte times the request occupies on the wire, drawn to
+ * scale and colored by the layer that added each part. The second bar marks
+ * what the router changes: 19 bytes are rewritten, and the preamble and gap
+ * are produced again on every link. Sizes match the Python example.
+ */
+interface Part {
+  label: string;
+  bytes: number;
+  layer: string;
+}
+
+const PARTS: Part[] = [
+  { label: "pre", bytes: 8, layer: "l1" },
+  { label: "Ethernet", bytes: 14, layer: "l2" },
+  { label: "IPv4", bytes: 20, layer: "l3" },
+  { label: "TCP", bytes: 32, layer: "l4" },
+  { label: "TLS", bytes: 5, layer: "l56" },
+  { label: "request (encrypted)", bytes: 50, layer: "l7" },
+  { label: "type+tag", bytes: 17, layer: "l56" },
+  { label: "FCS", bytes: 4, layer: "l2" },
+  { label: "gap", bytes: 12, layer: "l1" },
+];
+
+/** Byte ranges, in wire order, that the router rewrites or regenerates. */
+const REWRITTEN = [
+  { from: 8, to: 20, what: "MACs" },
+  { from: 30, to: 31, what: "TTL" },
+  { from: 32, to: 34, what: "checksum" },
+  { from: 146, to: 150, what: "FCS" },
+];
+const REGENERATED = [
+  { from: 0, to: 8 },
+  { from: 150, to: 162 },
+];
+
+const LEGEND = [
+  { layer: "l7", text: "7 application: your 50 bytes" },
+  { layer: "l56", text: "5–6: TLS, 22 bytes" },
+  { layer: "l4", text: "4 transport: TCP, 32" },
+  { layer: "l3", text: "3 network: IPv4, 20" },
+  { layer: "l2", text: "2 data link: Ethernet, 18" },
+  { layer: "l1", text: "1 physical: preamble, gap, 20" },
+];
+
+const TOTAL = PARTS.reduce((sum, part) => sum + part.bytes, 0);
+const X0 = 8;
+const WIDTH = 680;
+const scale = WIDTH / TOTAL;
+const starts = PARTS.map((_, i) =>
+  PARTS.slice(0, i).reduce((sum, part) => sum + part.bytes, 0),
+);
+const BAR_Y = 40;
+const BAR_H = 34;
+const ROW2_Y = 132;
+const ROW2_H = 18;
+const rewrittenBytes = REWRITTEN.reduce((sum, r) => sum + r.to - r.from, 0);
+---
+
+<svg
+  viewBox="0 0 696 316"
+  role="img"
+  aria-label={`A bar of ${TOTAL} byte times drawn to scale. In wire order: preamble 8, Ethernet header 14, IPv4 header 20, TCP header 32, TLS record header 5, the request encrypted 50, TLS content type and tag 17, frame check sequence 4, and the idle gap 12. Only 50 of the ${TOTAL} are the request. A second bar shows what the router changes: both MAC addresses, the TTL, the IP checksum and the FCS, ${rewrittenBytes} bytes in all, while the preamble and gap are sent again on every link.`}
+  class="diagram"
+>
+  <text x={X0} y="16" class="title">
+    One request on the wire: {TOTAL} byte times
+  </text>
+
+  {PARTS.map((part, i) => {
+    const x = X0 + starts[i] * scale;
+    const w = part.bytes * scale;
+    return (
+      <g>
+        <rect
+          x={x}
+          y={BAR_Y}
+          width={w}
+          height={BAR_H}
+          class:list={["seg", part.layer]}
+        />
+        <text x={x + w / 2} y={BAR_Y + BAR_H / 2} class="count">
+          {part.bytes}
+        </text>
+        {w > 40 && (
+          <text x={x + w / 2} y={BAR_Y + BAR_H + 16} class="label">
+            {part.label}
+          </text>
+        )}
+      </g>
+    );
+  })}
+
+  <text x={X0} y={ROW2_Y - 10} class="title">
+    At the router: {rewrittenBytes} bytes rewritten, the rest untouched
+  </text>
+  <rect x={X0} y={ROW2_Y} width={WIDTH} height={ROW2_H} class="track"></rect>
+  {REGENERATED.map((r) => (
+    <rect
+      x={X0 + r.from * scale}
+      y={ROW2_Y}
+      width={(r.to - r.from) * scale}
+      height={ROW2_H}
+      class="regen"
+    />
+  ))}
+  {REWRITTEN.map((r, i) => {
+    const x = X0 + r.from * scale;
+    const w = (r.to - r.from) * scale;
+    return (
+      <g>
+        <rect x={x} y={ROW2_Y} width={w} height={ROW2_H} class="hit" />
+        <line
+          x1={x + w / 2}
+          y1={ROW2_Y + ROW2_H}
+          x2={x + w / 2}
+          y2={ROW2_Y + ROW2_H + 8 + (i % 2) * 14}
+          class="tick"
+        />
+        <text
+          x={x + w / 2}
+          y={ROW2_Y + ROW2_H + 18 + (i % 2) * 14}
+          class="hit-label"
+        >
+          {r.what}
+        </text>
+      </g>
+    );
+  })}
+  <rect
+    x={X0}
+    y={ROW2_Y + ROW2_H + 45}
+    width="14"
+    height="10"
+    class="regen"
+  ></rect>
+  <text x={X0 + 22} y={ROW2_Y + ROW2_H + 50} class="regen-label">
+    preamble and gap: not rewritten, but sent again on every link
+  </text>
+
+  {LEGEND.map((item, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = X0 + col * 340;
+    const y = 238 + row * 24;
+    return (
+      <g>
+        <rect
+          x={x}
+          y={y - 7}
+          width="14"
+          height="14"
+          class:list={["seg", item.layer]}
+        />
+        <text x={x + 22} y={y} class="legend">
+          {item.text}
+        </text>
+      </g>
+    );
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .seg {
+    stroke: var(--primary);
+    stroke-width: 1;
+  }
+
+  .l7 {
+    fill: var(--contrast);
+  }
+
+  .l56 {
+    fill: var(--cat-3);
+  }
+
+  .l4 {
+    fill: var(--cat-2);
+  }
+
+  .l3 {
+    fill: var(--cat-4);
+  }
+
+  .l2 {
+    fill: var(--cat-1);
+  }
+
+  .l1 {
+    fill: var(--line);
+  }
+
+  .count {
+    fill: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .l1 + .count {
+    fill: var(--text-color);
+  }
+
+  .label,
+  .hit-label {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .hit-label {
+    fill: currentColor;
+  }
+
+  .track {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .regen {
+    fill: var(--line);
+  }
+
+  .hit {
+    fill: var(--contrast);
+  }
+
+  .tick {
+    stroke: var(--muted);
+    stroke-width: 1;
+  }
+
+  .regen-label {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .legend {
+    fill: currentColor;
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+</style>

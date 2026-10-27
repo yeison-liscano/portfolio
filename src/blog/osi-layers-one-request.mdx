@@ -1,0 +1,525 @@
+---
+lang: "en"
+title: "OSI Layers Through One Request: How 50 Bytes Become 162 on the Wire, and What Changes at Each Hop"
+pubDate: 2026-10-26
+description:
+  "One HTTPS request from a checkout app to an orders API, followed through the
+  seven OSI layers: what each layer adds, byte by byte, which bytes a router
+  rewrites, and how to read a network error as the layer that failed."
+summary:
+  - "A 50-byte request leaves as a 142-byte frame and takes 162 byte times on
+    the cable. TLS adds 22 bytes, TCP 32, IPv4 20, Ethernet 18 and the physical
+    layer 20."
+  - "Layers 5 and 6 have no protocol of their own on the Internet. TLS and the
+    application do their jobs."
+  - "A router rewrites 19 bytes: both MAC addresses, the TTL, the IP checksum
+    and the frame check sequence. The IP addresses and everything above them
+    arrive as they were sent."
+  - "Each layer fails with its own error. A refused connection proves that
+    layers 1 to 3 work."
+tags: ["networking", "web"]
+isDraft: false
+---
+
+import Figure from "../components/blog/Figure.astro";
+import Mermaid from "../components/blog/Mermaid.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import RequestPath from "./components/osi-request/RequestPath.astro";
+import FrameBytes from "./components/osi-request/FrameBytes.astro";
+
+{/* cspell:ignore BBHHHBBH HHIIHHHH BBII */}
+
+Keywords: OSI model, encapsulation, TLS, TCP, IP, Ethernet, ARP, routing, TTL
+
+The OSI model is usually taught as a list of seven names. The list does not
+help when a call between two services fails with "connection refused" or "no
+route to host". This post follows one HTTPS request from one app to another,
+through every layer and across a switch and a router. The app writes 50 bytes.
+The network card sends 142, and the cable carries 162 byte times. On the way, a
+router rewrites some of those bytes and leaves the rest alone. You will see
+which layer adds each byte, which bytes change at each hop, and how to read any
+network error as the name of the layer that failed.
+
+## One request crosses a switch and a router to reach another app
+
+Two services live in two subnets of the same network. A checkout app at
+`10.0.1.20` calls an orders API at `10.0.2.30` over HTTPS. Each subnet has its
+own switch, and a router joins them. The request asks for order 42.
+
+The OSI reference model, published as ISO 7498 in 1984, splits that delivery
+into seven layers. Each layer talks to its peer on the other machine through a
+header that only the peer reads. To send, each layer hands its data to the layer
+below, which wraps it in its own header. This is **encapsulation**. On the
+receiving side, each layer reads and removes its header and passes the rest up.
+
+The Internet does not run the OSI protocols. It runs the TCP/IP stack, which
+RFC 1122 describes in four layers: application, transport, internet and link.
+The OSI names survived as the common vocabulary, so this post uses them and
+points out where the two models disagree.
+
+<Figure caption="The path of one request. The hosts use all seven layers. A switch reads up to layer 2, a router up to layer 3, and only the hosts read anything above.">
+  <Stepper
+    label="Path of the request through the network"
+    steps={[
+      "The checkout app writes 50 bytes. Going down the stack, TLS, TCP, IP and Ethernet each wrap them in a header, and the network card sends the result as signals.",
+      "The first switch reads only the destination MAC address, which is the router's, and forwards the frame unchanged.",
+      "The router checks the frame, strips the Ethernet header, looks up 10.0.2.30, lowers the TTL from 64 to 63 and wraps the packet in a new Ethernet header for subnet 2.",
+      "The second switch reads the new destination MAC address, the server's, and forwards the frame unchanged.",
+      "The server goes up the stack. Each layer checks its own header, removes it and hands the rest up, until the orders API reads the same 50 bytes.",
+    ]}
+  >
+    <RequestPath />
+  </Stepper>
+</Figure>
+
+Two things in that path deserve an explanation before the byte count. The frame
+that leaves the checkout app is addressed to the router, not to the server. And
+when the frame reaches the server, its MAC addresses and TTL have changed, but
+its IP addresses have not. Why? The answer is in layers 3 and 2.
+
+## The application layer writes 50 bytes, after DNS finds the address
+
+The checkout app's HTTP client writes this request:
+
+```text
+GET /orders/42 HTTP/1.1
+Host: orders.internal
+
+```
+
+Each line ends with a carriage return and a line feed, and an empty line ends
+the headers. That is 50 bytes. HTTP/1.1 requires the `Host` header, so one
+server can host several names.
+
+The app knows a name, not an address. Before anything else, it asks DNS, which
+is also an application-layer protocol, usually carried over UDP port 53. The
+resolver answers that `orders.internal` is `10.0.2.30`. The answer carries a
+time to live, and the client caches it for that long. That DNS TTL is unrelated
+to the TTL in the IP header that appears below.
+
+## Layers 6 and 5 have no protocol of their own, so TLS does their jobs
+
+In the OSI model, the presentation layer (6) decides how data is represented:
+character encoding, compression and encryption. The session layer (5) opens,
+maintains and resumes a dialog between two applications.
+
+The TCP/IP stack has no separate protocols for either layer. The application
+does the encoding itself: this request is ASCII, and the response will be JSON
+in UTF-8. Encryption and the session belong to **TLS 1.3** (RFC 8446). Its
+handshake authenticates the server's certificate and agrees on keys, which is a
+session job. Each record it sends is encrypted and authenticated, which is a
+presentation job. Where TLS fits in the OSI model is debated. In practice it
+sits between TCP and HTTP.
+
+TLS wraps the 50 bytes in one record. The record has a 5-byte header: content
+type 23 (application data), a legacy version field and a length. The encrypted
+part holds the request, plus 1 byte with the real content type, plus a 16-byte
+authentication tag. If any bit of the record changes on the way, the tag check
+fails and the receiver closes the connection. Total so far: 50 + 22 = 72 bytes.
+
+## The transport layer connects two ports, and the setup costs two round trips
+
+TCP (RFC 9293) turns the stream of bytes the app writes into numbered segments
+between two ports. The kernel picks a free source port for the client, here
+51334 from Linux's default range of 32768 to 60999. The destination port is 443.
+The sequence and acknowledgment numbers let the receiver reorder segments and
+ask for missing ones. The window field tells the sender how much data the
+receiver can accept. A checksum covers the segment and both IP addresses.
+
+The basic TCP header is 20 bytes. Linux also adds a 12-byte timestamp option to
+every segment, which helps to measure round-trip time and to reject old
+duplicate segments. Total so far: 72 + 32 = 104 bytes.
+
+This segment is not the first one. TCP opens a connection with a three-way
+handshake, and TLS 1.3 needs one more round trip to agree on keys. The request
+leaves only after two round trips, and the response arrives after the third.
+
+<Figure caption="A new HTTPS connection. TCP's handshake takes one round trip and TLS 1.3's another, so the request leaves after two round trips and the response arrives after three. Reusing the connection skips both handshakes.">
+  <Mermaid
+    label="Sequence diagram: TCP SYN, SYN-ACK and ACK; TLS ClientHello, ServerHello to Finished, client Finished with the HTTP request; then the HTTP response"
+    code={`
+sequenceDiagram
+  participant C as checkout app
+  participant S as orders API
+  C->>S: TCP SYN
+  S-->>C: TCP SYN-ACK
+  Note over C,S: round trip 1, TCP is connected
+  C->>S: ACK and TLS ClientHello with key share
+  S-->>C: ServerHello, certificate, Finished
+  Note over C,S: round trip 2, keys agreed
+  C->>S: TLS Finished, then GET /orders/42
+  S-->>C: HTTP/1.1 200 OK, JSON body
+  Note over C,S: round trip 3, response received
+`}
+  />
+</Figure>
+
+On a path with a 50 ms round-trip time, the first response cannot arrive before
+150 ms, before the server does any work. This is why HTTP clients keep
+connections open and reuse them from a pool.
+
+## The network layer adds the only addresses that survive the whole trip
+
+IP (RFC 791) adds a 20-byte header. It holds the source address `10.0.1.20` and
+the destination address `10.0.2.30`. It also holds the total length (124
+bytes), the protocol number of what it carries (6, for TCP), a header checksum,
+and a **time to live** (TTL). Linux starts the TTL at 64. Every router lowers it
+by one and drops the packet when it would reach zero, so a routing loop cannot
+keep a packet alive forever. Total so far: 104 + 20 = 124 bytes.
+
+Before sending, the host decides where the packet goes next. Its own subnet is
+`10.0.1.0/24`, the 256 addresses from `10.0.1.0` to `10.0.1.255`. The address
+`10.0.2.30` is outside that range, so the packet must go through the default
+gateway, the router at `10.0.1.1`. `ip route get 10.0.2.30` shows the same
+decision: `10.0.2.30 via 10.0.1.1 dev eth0`.
+
+That decision answers half of the opening question. The IP header names the two
+ends of the conversation, so no router on the way has a reason to change it.
+
+## The data link layer addresses the next hop, not the destination
+
+Ethernet delivers frames only within one local network, and it uses MAC
+addresses, the hardware addresses of network cards, not IP addresses. The client knows that the next hop is `10.0.1.1`,
+but not its MAC address. It asks with **ARP** (RFC 826): a broadcast that says
+"who has `10.0.1.1`?". The router answers with its MAC address,
+`02:00:00:00:01:01`, and the client caches it. `ip neigh` lists that cache.
+
+The Ethernet header is 14 bytes: the destination MAC (the router's), the source
+MAC (the client's) and a type field, `0x0800`, which means that an IPv4 packet
+follows. A 4-byte **frame check sequence** (FCS) goes at the end. It is a CRC-32
+of the frame, and any receiver that finds a mismatch drops the frame. Total:
+124 + 18 = 142 bytes.
+
+This is the other half of the answer. The frame is addressed to the router
+because Ethernet only reaches the next hop. Each link on the way needs its own
+Ethernet header.
+
+## The physical layer turns the frame into symbols on four pairs of wire
+
+The network card sends the frame as signals. Before the frame go 7 bytes of
+preamble and a 1-byte start frame delimiter (SFD), which let the receiver lock
+onto the timing. After it, the sender must stay silent for at least 12 byte
+times, the interframe gap. Those 20 byte times carry no data, but no other frame
+can use them.
+
+On gigabit Ethernet over copper (1000BASE-T), the bits travel on all four pairs
+of the cable at once. Each pair carries 125 million symbols per second, and each
+symbol is one of five voltage levels. At 1 Gb/s, the 162 byte times take 1,296
+nanoseconds. The cable uses five levels to fit more bits into each symbol, and
+pays with smaller gaps between levels. The logic inside the chips uses only two.
+The [transistors post](/portfolio/blog/transistors-bits-to-voltage/) explains
+why.
+
+## Built byte by byte, the request is 142 bytes in a 162-byte slot
+
+The following example builds the whole frame with the standard library: the
+TLS record, the TCP and IP headers with real checksums, and the Ethernet header
+with its FCS. A hash stands in for the encrypted bytes, because only their size
+matters here.
+
+```python
+import hashlib
+import struct
+import zlib
+
+
+def checksum(data: bytes) -> int:
+    """Internet checksum (RFC 1071): one's complement sum of 16-bit words."""
+    if len(data) % 2:
+        data += b"\x00"
+    total = sum(struct.unpack(f"!{len(data) // 2}H", data))
+    while total >> 16:
+        total = (total & 0xFFFF) + (total >> 16)
+    return ~total & 0xFFFF
+
+
+def mac(text: str) -> bytes:
+    return bytes.fromhex(text.replace(":", ""))
+
+
+def ip(text: str) -> bytes:
+    return bytes(int(part) for part in text.split("."))
+
+
+CLIENT_MAC, ROUTER_MAC = "02:00:00:00:01:20", "02:00:00:00:01:01"
+CLIENT_IP, SERVER_IP = "10.0.1.20", "10.0.2.30"
+CLIENT_PORT, SERVER_PORT = 51334, 443
+
+# Layer 7: the request the checkout app writes.
+http = b"GET /orders/42 HTTP/1.1\r\nHost: orders.internal\r\n\r\n"
+
+# Layers 6 and 5, done by TLS 1.3: a 5-byte record header, then the
+# encrypted request plus 1 byte of inner content type and a 16-byte tag.
+# A hash stands in for AES-GCM output; only the sizes matter here.
+sealed_len = len(http) + 1 + 16
+ciphertext = hashlib.shake_256(http).digest(sealed_len)
+tls = struct.pack("!BHH", 23, 0x0303, sealed_len) + ciphertext
+
+# Layer 4: TCP. 20 bytes plus the 12-byte timestamp option Linux adds.
+options = b"\x01\x01" + struct.pack("!BBII", 8, 10, 1_000_000, 2_000_000)
+offset_flags = ((20 + len(options)) // 4) << 12 | 0x18  # PSH + ACK
+tcp = struct.pack(
+    "!HHIIHHHH", CLIENT_PORT, SERVER_PORT, 1001, 5001, offset_flags,
+    64240, 0, 0,
+) + options
+pseudo = ip(CLIENT_IP) + ip(SERVER_IP) + struct.pack(
+    "!BBH", 0, 6, len(tcp) + len(tls)
+)
+tcp_sum = struct.pack("!H", checksum(pseudo + tcp + tls))
+tcp = tcp[:16] + tcp_sum + tcp[18:]
+
+# Layer 3: IPv4. TTL 64 is the Linux default; protocol 6 means TCP.
+total_len = 20 + len(tcp) + len(tls)
+ip_header = struct.pack(
+    "!BBHHHBBH4s4s", 0x45, 0, total_len, 0x1C46, 0x4000, 64, 6, 0,
+    ip(CLIENT_IP), ip(SERVER_IP),
+)
+ip_sum = struct.pack("!H", checksum(ip_header))
+ip_header = ip_header[:10] + ip_sum + ip_header[12:]
+
+# Layer 2: Ethernet. The destination is the router, not the server.
+eth = mac(ROUTER_MAC) + mac(CLIENT_MAC) + struct.pack("!H", 0x0800)
+frame = eth + ip_header + tcp + tls
+frame += struct.pack("<I", zlib.crc32(frame))  # frame check sequence
+
+# Layer 1: preamble and start delimiter before, idle gap after.
+PREAMBLE, GAP = 8, 12
+
+rows = [
+    ("7 application", "HTTP request", len(http)),
+    ("6-5 TLS", "record header + type + tag", len(tls) - len(http)),
+    ("4 transport", "TCP header + timestamps", len(tcp)),
+    ("3 network", "IPv4 header", len(ip_header)),
+    ("2 data link", "Ethernet header + FCS", len(eth) + 4),
+    ("1 physical", "preamble + SFD + gap", PREAMBLE + GAP),
+]
+running = 0
+for layer, what, size in rows:
+    running += size
+    print(f"{layer:<14} {what:<27} +{size:>3}  = {running:>3}")
+print(f"frame: {len(frame)} bytes | on the wire: {running} byte times"
+      f" | useful: {len(http) / running:.0%}")
+```
+
+```text
+7 application  HTTP request                + 50  =  50
+6-5 TLS        record header + type + tag  + 22  =  72
+4 transport    TCP header + timestamps     + 32  = 104
+3 network      IPv4 header                 + 20  = 124
+2 data link    Ethernet header + FCS       + 18  = 142
+1 physical     preamble + SFD + gap        + 20  = 162
+frame: 142 bytes | on the wire: 162 byte times | useful: 31%
+```
+
+I checked the result with Scapy, a packet library, and it accepts both
+checksums and the FCS. The headers are a fixed cost per frame, so they dominate
+small requests. A bulk download is different. It fills each frame with up to
+1,448 bytes of TCP data, the most that fits in a 1,500-byte IP packet. TLS adds
+its 22 bytes once per record of up to 16 KB. The 90 byte times that TCP, IP,
+Ethernet and the physical layer add then cost about 6% of the wire time instead
+of 56%.
+
+<Figure caption="The request on the wire, to scale and colored by layer. Your 50 bytes are less than a third of the slot. The second bar shows what the router changes: 19 bytes are rewritten, and the preamble and gap are sent again on every link.">
+  <FrameBytes />
+</Figure>
+
+## A switch forwards the frame untouched, and a router rewrites 19 bytes
+
+The first switch learns which MAC address lives behind each of its ports by
+reading source addresses. It looks up the destination MAC, the router's, and
+sends the frame out of that one port. It does not change a byte.
+
+The router does more. It runs these checks and changes, in this order:
+
+1. Check the FCS and that the frame is addressed to it. Drop it otherwise.
+2. Remove the Ethernet header and check the IP header checksum.
+3. Look up `10.0.2.30` in its forwarding table. The most specific matching
+   prefix wins, here the directly connected `10.0.2.0/24`.
+4. Lower the TTL from 64 to 63. If it would reach 0, drop the packet and send
+   a "time exceeded" message back to the sender over ICMP, the protocol IP
+   uses to report errors.
+5. Recompute the IP checksum, because the TTL is part of the header.
+6. Find the server's MAC address with ARP, write a new Ethernet header with its
+   own port's MAC as the source, and compute a new FCS.
+
+The next example runs those steps on the frame that the previous example built,
+then compares the frame before and after, field by field.
+
+```python
+import ipaddress
+import struct
+import zlib
+
+# The 142-byte frame from the previous example, as it reaches the router.
+frame = bytes.fromhex(
+    "02000000010102000000012008004500007c1c464000400607050a0001140a00"
+    "021ec88601bb000003e9000013898018faf0278800000101080a000f4240001e"
+    "848017030300430032942e1fcb90341659b21020d6e392da564a406939fa3fae"
+    "37d2a9a2923ed5a5cf3f758a0c13e6c7dc2f01761f50dbcfa40f2cb711f88e6e"
+    "7657f756adf64fd1bc6ea5ab4539"
+)
+
+MY_MAC = bytes.fromhex("020000000101")  # router port on 10.0.1.0/24
+ROUTES = {  # prefix -> (outgoing port's MAC, next hop or None if local)
+    "10.0.1.0/24": ("020000000101", None),
+    "10.0.2.0/24": ("020000000201", None),
+    "0.0.0.0/0": ("020000000301", "10.0.3.1"),
+}
+ARP = {"10.0.2.30": "020000000230", "10.0.3.1": "020000000302"}
+
+
+def checksum(data: bytes) -> int:
+    total = sum(struct.unpack(f"!{len(data) // 2}H", data))
+    while total >> 16:
+        total = (total & 0xFFFF) + (total >> 16)
+    return ~total & 0xFFFF
+
+
+def forward(frame: bytes) -> bytes:
+    body, fcs = frame[:-4], frame[-4:]
+    assert struct.pack("<I", zlib.crc32(body)) == fcs, "bad FCS: drop"
+    assert body[0:6] == MY_MAC, "not addressed to me: drop"
+    packet = bytearray(body[14:])
+    assert checksum(bytes(packet[:20])) == 0, "bad IP checksum: drop"
+    assert packet[8] > 1, "TTL expired: drop, send ICMP time exceeded"
+
+    dst = ipaddress.ip_address(bytes(packet[16:20]))
+    matches = [p for p in map(ipaddress.ip_network, ROUTES) if dst in p]
+    best = max(matches, key=lambda p: p.prefixlen)  # longest prefix wins
+    port_mac, next_hop = ROUTES[str(best)]
+
+    packet[8] -= 1  # TTL
+    packet[10:12] = b"\x00\x00"
+    packet[10:12] = struct.pack("!H", checksum(bytes(packet[:20])))
+
+    dst_mac = bytes.fromhex(ARP[next_hop or str(dst)])
+    new = dst_mac + bytes.fromhex(port_mac) + body[12:14] + bytes(packet)
+    return new + struct.pack("<I", zlib.crc32(new))
+
+
+FIELDS = [  # (name, start, end) of every field in the frame
+    ("dst MAC", 0, 6), ("src MAC", 6, 12), ("EtherType", 12, 14),
+    ("IP ver..frag", 14, 22), ("TTL", 22, 23), ("protocol", 23, 24),
+    ("IP checksum", 24, 26), ("src IP", 26, 30), ("dst IP", 30, 34),
+    ("TCP header", 34, 66), ("TLS record", 66, 138), ("FCS", 138, 142),
+]
+
+
+def short(hex_bytes: str) -> str:
+    return hex_bytes if len(hex_bytes) <= 12 else hex_bytes[:10] + ".."
+
+
+out = forward(frame)
+rewritten = 0
+for name, start, end in FIELDS:
+    before, after = frame[start:end].hex(), out[start:end].hex()
+    changed = before != after
+    rewritten += (end - start) * changed
+    mark = "rewritten" if changed else ""
+    print(f"{name:<12} {short(before):<12} -> {short(after):<12} {mark}")
+print(f"{rewritten} bytes rewritten, {len(frame) - rewritten} untouched")
+```
+
+```text
+dst MAC      020000000101 -> 020000000230 rewritten
+src MAC      020000000120 -> 020000000201 rewritten
+EtherType    0800         -> 0800
+IP ver..frag 4500007c1c.. -> 4500007c1c..
+TTL          40           -> 3f           rewritten
+protocol     06           -> 06
+IP checksum  0705         -> 0805         rewritten
+src IP       0a000114     -> 0a000114
+dst IP       0a00021e     -> 0a00021e
+TCP header   c88601bb00.. -> c88601bb00..
+TLS record   1703030043.. -> 1703030043..
+FCS          a5ab4539     -> abdce4b5     rewritten
+19 bytes rewritten, 123 untouched
+```
+
+The checksum moved from `0x0705` to `0x0805`, exactly `0x0100`. The TTL sits in
+the high byte of its 16-bit word, so lowering it by one changes the sum by
+`0x0100`. RFC 1624 lets routers apply that difference instead of summing the
+whole header again.
+
+The rule has exceptions that you will meet in production. A NAT gateway, such as
+a home router, also rewrites the source IP address and port, and the TCP
+checksum with them. A load balancer that terminates TLS ends the TCP and TLS
+connections and opens new ones to the server. In both cases, the device works
+above layer 3 on purpose. How the router filled its forwarding table is a
+separate job, routing, covered in the
+[Internet fundamentals post](/portfolio/blog/internet-fundamentals-packet-switching/).
+
+## The server climbs the stack, and each layer checks one header
+
+The second switch reads the new destination MAC and delivers the frame to the
+server. Then the server's layers run in reverse:
+
+- **Physical and data link.** The network card recovers the bits, checks the
+  FCS and the destination MAC, and removes the Ethernet header.
+- **Network.** The kernel checks that `10.0.2.30` is one of its addresses and
+  that the header checksum is valid, then removes the IP header.
+- **Transport.** TCP finds the socket by four numbers: source IP, source port,
+  destination IP and destination port. It checks the sequence number, queues
+  the data in order and acknowledges it.
+- **Session and presentation.** TLS decrypts the record and checks the tag.
+- **Application.** The HTTP parser reads the same 50 bytes the checkout app
+  wrote, and the orders API looks up order 42.
+
+The response makes the same trip in the other direction, with the addresses
+swapped.
+
+## Each layer fails with its own error, so debug from the bottom up
+
+The 50 bytes became 162 because five layers wrapped them, and each wrapper has
+one job. TLS protects the data, and TCP numbers it between two ports. IP names
+the two ends, Ethernet names the next hop, and the physical layer frames the
+signal. At
+each hop, only the layers that the hop reads are rebuilt. A switch changes
+nothing. A router rebuilds layer 2 and changes two fields of layer 3. The IP
+addresses and everything above them arrive as they were sent.
+
+That structure makes errors readable. Each layer fails in its own way, and each
+has a command that checks it alone:
+
+| Layer       | Adds            | Typical error when it fails                  | Check it with                      |
+| ----------- | --------------- | -------------------------------------------- | ---------------------------------- |
+| 7 DNS, HTTP | 50-byte request | `Could not resolve host`, HTTP 4xx or 5xx    | `dig`, `curl -v`                   |
+| 6–5 TLS     | 22 bytes        | `certificate verify failed`, handshake alert | `openssl s_client -servername`     |
+| 4 TCP       | 32 bytes        | `Connection refused`, `Connection timed out` | `nc -vz host 443`                  |
+| 3 IP        | 20 bytes        | `Network is unreachable`, TTL exceeded       | `ip route get`, `traceroute`       |
+| 2 Ethernet  | 18 bytes        | `No route to host` when ARP gets no answer   | `ip neigh`                         |
+| 1 Physical  | 20 byte times   | link down, `NO-CARRIER`, rising CRC errors   | `ip link`, `ip -s link`, `ethtool` |
+
+Start at the bottom and stop at the first check that fails. Every layer above
+it depends on it, so its errors are only echoes.
+
+The one habit worth sharing is to read the error as the name of a layer.
+`Connection refused` is the most useful example. It usually means that the
+SYN, the first segment of TCP's handshake, reached the server, and the server's
+kernel answered with a reset because nothing listens on that port. The cable, the switches, ARP and every router worked. The
+problem is on the server, at layer 4 or above. A timeout says the opposite:
+something dropped the packets without answering, usually a firewall or a
+missing route.
+
+## References
+
+- ISO/IEC 7498-1:1994. _Information technology, Open Systems Interconnection,
+  Basic Reference Model: The Basic Model_. First edition as ISO 7498, 1984.
+- Braden, R. (Ed.). (1989). RFC 1122, _Requirements for Internet Hosts,
+  Communication Layers_. IETF.
+- Postel, J. (1981). RFC 791, _Internet Protocol_. IETF.
+- Eddy, W. (Ed.). (2022). RFC 9293, _Transmission Control Protocol_. IETF.
+- Borman, D., Braden, B., Jacobson, V., & Scheffenegger, R. (Ed.). (2014).
+  RFC 7323, _TCP Extensions for High Performance_. IETF.
+- Rescorla, E. (2018). RFC 8446, _The Transport Layer Security (TLS) Protocol
+  Version 1.3_. IETF.
+- Fielding, R., Nottingham, M., & Reschke, J. (Eds.). (2022). RFC 9112,
+  _HTTP/1.1_. IETF.
+- Plummer, D. C. (1982). RFC 826, _An Ethernet Address Resolution Protocol_.
+  IETF.
+- Baker, F. (Ed.). (1995). RFC 1812, _Requirements for IP Version 4 Routers_.
+  IETF.
+- Rijsinghani, A. (Ed.). (1994). RFC 1624, _Computation of the Internet
+  Checksum via Incremental Update_. IETF.
+- IEEE 802.3, _IEEE Standard for Ethernet_, clauses 3 (frame format), 4
+  (interframe gap) and 40 (1000BASE-T).
