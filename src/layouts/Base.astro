@@ -9,14 +9,20 @@ export interface Props {
   description: string;
   /** Schema.org data for this page, rendered as JSON-LD. */
   jsonLd?: Record<string, unknown>;
+  noindex?: boolean;
 }
 
-const { title, description, jsonLd } = Astro.props;
+const { title, description, jsonLd, noindex = false } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
-  <Head title={title} description={description} jsonLd={jsonLd} />
+  <Head
+    title={title}
+    description={description}
+    jsonLd={jsonLd}
+    noindex={noindex}
+  />
   <body>
     <Aside />
     <div id="app-wrapper">

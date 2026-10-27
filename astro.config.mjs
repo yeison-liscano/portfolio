@@ -56,8 +56,13 @@ export default defineConfig({
   integrations: [
     mdx(),
     sitemap({
-      filter: (page) =>
-        !new URL(page).pathname.startsWith("/portfolio/blog/drafs/"),
+      filter: (page) => {
+        const { pathname } = new URL(page);
+        return (
+          !pathname.startsWith("/portfolio/blog/drafs/") &&
+          !pathname.startsWith("/portfolio/blog/drafts/")
+        );
+      },
     }),
   ],
 });

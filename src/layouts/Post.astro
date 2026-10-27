@@ -56,8 +56,11 @@ const {
     <Aside posts={allPosts} />
     <div id="app-wrapper">
       <main id="main-content">
-        <a class="back-link" href={`${import.meta.env.BASE_URL}blog/`}>
-          ← All articles
+        <a
+          class="back-link"
+          href={`${import.meta.env.BASE_URL}blog/${isDraft ? "drafts/" : ""}`}
+        >
+          {isDraft ? "← All drafts" : "← All articles"}
         </a>
         {isDraft && <p>Draft preview — this article is still in progress.</p>}
         <Hero
