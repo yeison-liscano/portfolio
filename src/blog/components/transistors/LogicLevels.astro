@@ -1,0 +1,186 @@
+---
+/**
+ * LogicLevels - What 0 and 1 mean in volts for 3.3 V LVTTL (JESD8C).
+ * Left: what a driver promises to output. Right: how a receiver reads its
+ * input. The gaps between the promises and the thresholds are the noise
+ * margins, 0.4 V on each side.
+ */
+const VDD = 3.3;
+const TOP = 34;
+const H = 264;
+const y = (volts: number) => TOP + H * (1 - volts / VDD);
+
+const OUT_X = 150;
+const IN_X = 400;
+const COL_W = 130;
+
+interface Band {
+  from: number;
+  to: number;
+  label: string;
+  kind: "one" | "zero" | "none";
+}
+
+const OUTPUT: Band[] = [
+  { from: 2.4, to: VDD, label: "drives a 1", kind: "one" },
+  { from: 0.4, to: 2.4, label: "never driven", kind: "none" },
+  { from: 0, to: 0.4, label: "drives a 0", kind: "zero" },
+];
+
+const INPUT: Band[] = [
+  { from: 2.0, to: VDD, label: "reads 1", kind: "one" },
+  { from: 0.8, to: 2.0, label: "undefined", kind: "none" },
+  { from: 0, to: 0.8, label: "reads 0", kind: "zero" },
+];
+
+const TICKS = [0, 0.4, 0.8, 2.0, 2.4, 3.3];
+const MARGINS = [
+  { from: 2.0, to: 2.4, label: "high margin" },
+  { from: 0.4, to: 0.8, label: "low margin" },
+];
+const bridgeX = (OUT_X + COL_W + IN_X) / 2;
+---
+
+<svg
+  viewBox="0 0 640 320"
+  role="img"
+  aria-label="Two voltage columns from 0 to 3.3 volts. A driver outputs a 1 as at least 2.4 volts and a 0 as at most 0.4 volts, and never drives anything in between. A receiver reads anything above 2.0 volts as 1, anything below 0.8 volts as 0, and the range from 0.8 to 2.0 volts is undefined. The gaps from 2.0 to 2.4 volts and from 0.4 to 0.8 volts are the noise margins, 0.4 volts each."
+  class="diagram"
+>
+  <text x={OUT_X + COL_W / 2} y="18" class="head">
+    driver output
+  </text>
+  <text x={IN_X + COL_W / 2} y="18" class="head">
+    receiver input
+  </text>
+
+  {TICKS.map((v) => (
+    <g>
+      <line x1="96" y1={y(v)} x2="104" y2={y(v)} class="tick" />
+      <text x="90" y={y(v)} class="axis">
+        {v.toFixed(1)} V
+      </text>
+      <line x1="104" y1={y(v)} x2={IN_X + COL_W} y2={y(v)} class="grid" />
+    </g>
+  ))}
+  <line x1="104" y1={y(0)} x2="104" y2={y(VDD)} class="axis-line" />
+
+  {[
+    { x: OUT_X, bands: OUTPUT },
+    { x: IN_X, bands: INPUT },
+  ].map((col) =>
+    col.bands.map((band) => (
+      <g>
+        <rect
+          x={col.x}
+          y={y(band.to)}
+          width={COL_W}
+          height={y(band.from) - y(band.to)}
+          class:list={["band", band.kind]}
+        />
+        <text
+          x={col.x + COL_W / 2}
+          y={(y(band.from) + y(band.to)) / 2}
+          class:list={["band-label", band.kind]}
+        >
+          {band.label}
+        </text>
+      </g>
+    )),
+  )}
+
+  {MARGINS.map((m) => (
+    <g>
+      <rect
+        x={OUT_X + COL_W}
+        y={y(m.to)}
+        width={IN_X - OUT_X - COL_W}
+        height={y(m.from) - y(m.to)}
+        class="margin"
+      />
+      <text x={bridgeX} y={(y(m.from) + y(m.to)) / 2 - 7} class="margin-label">
+        {m.label}
+      </text>
+      <text x={bridgeX} y={(y(m.from) + y(m.to)) / 2 + 8} class="margin-label">
+        {(m.to - m.from).toFixed(1)} V
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 520px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .head {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .axis {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: end;
+    dominant-baseline: middle;
+  }
+
+  .tick,
+  .axis-line {
+    stroke: var(--muted);
+    stroke-width: 1;
+  }
+
+  .grid {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
+  }
+
+  .band {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .band.one {
+    fill: color-mix(in oklab, var(--cat-1) 35%, var(--surface));
+  }
+
+  .band.zero {
+    fill: color-mix(in oklab, var(--cat-3) 35%, var(--surface));
+  }
+
+  .band.none {
+    fill: var(--surface);
+  }
+
+  .band-label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .band-label.none {
+    fill: var(--muted);
+  }
+
+  .margin {
+    fill: color-mix(in oklab, var(--contrast) 30%, transparent);
+    stroke: var(--contrast);
+    stroke-width: 1;
+  }
+
+  .margin-label {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+</style>

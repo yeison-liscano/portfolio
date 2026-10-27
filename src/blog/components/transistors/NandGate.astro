@@ -1,0 +1,309 @@
+---
+/**
+ * NandGate - A CMOS NAND drawn as switches, with inputs A = 1 and B = 1,
+ * the only case that outputs 0. Two pMOS in parallel pull the output up
+ * when either input is 0; two nMOS in series pull it down only when both
+ * inputs are 1. The truth table beside it covers all four cases.
+ */
+const A = 1;
+const B = 1;
+
+const RAIL_Y = 40;
+const OUT_Y = 132;
+const GND_Y = 282;
+const P_TOP = 66;
+const P_BOT = 100;
+const NA_TOP = 158;
+const NA_BOT = 190;
+const NB_TOP = 216;
+const NB_BOT = 248;
+
+const PULL_UP = [
+  { cx: 96, gate: "A", value: A },
+  { cx: 232, gate: "B", value: B },
+];
+const PULL_DOWN = [
+  { top: NA_TOP, bot: NA_BOT, gate: "A", value: A },
+  { top: NB_TOP, bot: NB_BOT, gate: "B", value: B },
+];
+const NX = 160;
+const downOn = A === 1 && B === 1;
+
+const ROWS = [
+  [0, 0],
+  [0, 1],
+  [1, 0],
+  [1, 1],
+].map(([a, b]) => ({ a, b, out: a === 1 && b === 1 ? 0 : 1 }));
+
+const blade = (cx: number, top: number, bottom: number, closed: boolean) =>
+  closed
+    ? `M ${cx} ${top} V ${bottom}`
+    : `M ${cx} ${top} L ${cx + 18} ${bottom - 6}`;
+const TABLE_X = 420;
+---
+
+<svg
+  viewBox="0 0 640 300"
+  role="img"
+  aria-label="A CMOS NAND gate with inputs A equal to 1 and B equal to 1. Two pMOS switches in parallel connect the output to the 3.3 volt supply; both are off. Two nMOS switches in series connect the output to ground; both are on, so the output is 0 volts. A truth table beside it shows that the output is 1 for inputs 00, 01 and 10, and 0 only for 11."
+  class="diagram"
+>
+  <text x="10" y="16" class="title">
+    NAND with A = 1, B = 1
+  </text>
+
+  <line x1="66" y1={RAIL_Y} x2="262" y2={RAIL_Y} class="rail" />
+  <text x="270" y={RAIL_Y} class="label">
+    VDD 3.3 V
+  </text>
+
+  {PULL_UP.map(({ cx, gate, value }) => {
+    const on = value === 0;
+    return (
+      <g>
+        <line
+          x1={cx}
+          y1={RAIL_Y}
+          x2={cx}
+          y2={P_TOP}
+          class:list={["wire", { hot: on }]}
+        />
+        <path
+          d={blade(cx, P_TOP, P_BOT, on)}
+          class:list={["wire", { hot: on }]}
+        />
+        <line
+          x1={cx}
+          y1={P_BOT}
+          x2={cx}
+          y2={OUT_Y}
+          class:list={["wire", { hot: on }]}
+        />
+        <circle cx={cx} cy={P_TOP} r="3" class="pin" />
+        <circle cx={cx} cy={P_BOT} r="3" class="pin" />
+        <circle cx={cx - 22} cy={(P_TOP + P_BOT) / 2} r="4" class="bubble" />
+        <line
+          x1={cx - 18}
+          y1={(P_TOP + P_BOT) / 2 - 12}
+          x2={cx - 18}
+          y2={(P_TOP + P_BOT) / 2 + 12}
+          class="gate"
+        />
+        <text x={cx - 30} y={(P_TOP + P_BOT) / 2} class="label end">
+          {gate}={value}
+        </text>
+        <text
+          x={cx + 26}
+          y={(P_TOP + P_BOT) / 2}
+          class:list={["label", { on }]}
+        >
+          {on ? "on" : "off"}
+        </text>
+      </g>
+    );
+  })}
+  <line x1="96" y1={OUT_Y} x2="232" y2={OUT_Y} class="wire" />
+
+  {PULL_DOWN.map(({ top, bot, gate, value }, i) => {
+    const on = value === 1;
+    return (
+      <g>
+        <line
+          x1={NX}
+          y1={i === 0 ? OUT_Y : NA_BOT}
+          x2={NX}
+          y2={top}
+          class:list={["wire", { hot: downOn }]}
+        />
+        <path
+          d={blade(NX, top, bot, on)}
+          class:list={["wire", { hot: downOn }]}
+        />
+        <circle cx={NX} cy={top} r="3" class="pin" />
+        <circle cx={NX} cy={bot} r="3" class="pin" />
+        <line
+          x1={NX - 18}
+          y1={(top + bot) / 2 - 12}
+          x2={NX - 18}
+          y2={(top + bot) / 2 + 12}
+          class="gate"
+        />
+        <text x={NX - 26} y={(top + bot) / 2} class="label end">
+          {gate}={value}
+        </text>
+        <text x={NX + 26} y={(top + bot) / 2} class:list={["label", { on }]}>
+          {on ? "on" : "off"}
+        </text>
+      </g>
+    );
+  })}
+  <line
+    x1={NX}
+    y1={NB_BOT}
+    x2={NX}
+    y2={GND_Y - 12}
+    class:list={["wire", { hot: downOn }]}
+  />
+  <line
+    x1={NX - 14}
+    y1={GND_Y - 12}
+    x2={NX + 14}
+    y2={GND_Y - 12}
+    class="rail"
+  />
+  <line x1={NX - 9} y1={GND_Y - 7} x2={NX + 9} y2={GND_Y - 7} class="rail" />
+  <line x1={NX - 4} y1={GND_Y - 2} x2={NX + 4} y2={GND_Y - 2} class="rail" />
+
+  <circle cx={NX} cy={OUT_Y} r="3.5" class="node" />
+  <line x1="232" y1={OUT_Y} x2="300" y2={OUT_Y} class="wire hot" />
+  <text x="306" y={OUT_Y - 8} class="label strong">
+    out
+  </text>
+  <text x="306" y={OUT_Y + 8} class="label on">
+    {downOn ? "0 V (a 0)" : "3.3 V (a 1)"}
+  </text>
+
+  <text x={TABLE_X} y="62" class="th">
+    A
+  </text>
+  <text x={TABLE_X + 50} y="62" class="th">
+    B
+  </text>
+  <text x={TABLE_X + 110} y="62" class="th">
+    out
+  </text>
+  <line x1={TABLE_X - 20} y1="74" x2={TABLE_X + 140} y2="74" class="grid" />
+  {ROWS.map((row, i) => {
+    const rowY = 96 + i * 30;
+    const current = row.a === A && row.b === B;
+    return (
+      <g>
+        {current && (
+          <rect
+            x={TABLE_X - 20}
+            y={rowY - 14}
+            width="160"
+            height="28"
+            rx="3"
+            class="current"
+          />
+        )}
+        <text x={TABLE_X} y={rowY} class="td">
+          {row.a}
+        </text>
+        <text x={TABLE_X + 50} y={rowY} class="td">
+          {row.b}
+        </text>
+        <text
+          x={TABLE_X + 110}
+          y={rowY}
+          class:list={["td", { strong: current }]}
+        >
+          {row.out}
+        </text>
+      </g>
+    );
+  })}
+  <text x={TABLE_X - 20} y="234" class="label">
+    out is 0 only when
+  </text>
+  <text x={TABLE_X - 20} y="250" class="label">
+    both inputs are 1
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .label {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .label.end {
+    fill: currentColor;
+    text-anchor: end;
+  }
+
+  .label.strong {
+    fill: currentColor;
+  }
+
+  .label.on {
+    fill: var(--contrast);
+    font-weight: 600;
+  }
+
+  .rail {
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .wire {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.5;
+  }
+
+  .wire.hot {
+    stroke: var(--contrast);
+    stroke-width: 3;
+  }
+
+  .gate {
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .pin,
+  .bubble {
+    fill: var(--surface);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .node {
+    fill: currentColor;
+  }
+
+  .th,
+  .td {
+    fill: currentColor;
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .th {
+    fill: var(--muted);
+  }
+
+  .td.strong {
+    fill: var(--contrast);
+    font-weight: 700;
+  }
+
+  .grid {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .current {
+    fill: color-mix(in oklab, var(--contrast) 18%, transparent);
+    stroke: var(--contrast);
+    stroke-width: 1;
+  }
+</style>

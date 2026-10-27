@@ -1,0 +1,157 @@
+---
+/**
+ * QueueCurve - Average queueing delay at a router port against the port's
+ * load, for packets of one size arriving at random (an M/D/1 queue). The
+ * delay is ρ / (2(1 − ρ)) transmission times: small at half load, and
+ * without bound as the load approaches 1. The marked points are the loads
+ * in the simulation table.
+ */
+const MAX_LOAD = 0.97;
+const MAX_WAIT = 16;
+const wait = (load: number) => load / (2 * (1 - load));
+
+const X0 = 56;
+const Y0 = 16;
+const W = 460;
+const H = 250;
+const px = (load: number) => X0 + load * W;
+const py = (w: number) => Y0 + H - (Math.min(w, MAX_WAIT) / MAX_WAIT) * H;
+
+const STEPS = 194;
+const curve = Array.from(
+  { length: STEPS + 1 },
+  (_, i) => (i / STEPS) * MAX_LOAD,
+)
+  .map(
+    (load, i) =>
+      `${i === 0 ? "M" : "L"} ${px(load).toFixed(1)} ${py(wait(load)).toFixed(1)}`,
+  )
+  .join(" ");
+
+const POINTS = [0.5, 0.8, 0.9, 0.95].map((load) => ({ load, w: wait(load) }));
+const X_TICKS = [0, 0.2, 0.4, 0.6, 0.8, 1];
+const Y_TICKS = [0, 4, 8, 12, 16];
+---
+
+<svg
+  viewBox="0 0 640 316"
+  role="img"
+  aria-label="Average waiting time in a router queue, in packet transmission times, against the load on the link. The curve is almost flat at first: half a transmission time at 50 percent load. Then it bends upward: 2 at 80 percent, 4.5 at 90 percent and 9.5 at 95 percent, and it grows without bound as the load approaches 100 percent."
+  class="diagram"
+>
+  {Y_TICKS.map((w) => (
+    <g>
+      <line x1={X0} y1={py(w)} x2={X0 + W} y2={py(w)} class="grid" />
+      <text x={X0 - 10} y={py(w)} class="tick-y">
+        {w}
+      </text>
+    </g>
+  ))}
+  {X_TICKS.map((load) => (
+    <text x={px(load)} y={Y0 + H + 18} class="tick-x">
+      {`${Math.round(load * 100)}%`}
+    </text>
+  ))}
+  <line x1={X0} y1={Y0 + H} x2={X0 + W} y2={Y0 + H} class="axis" />
+  <line x1={px(1)} y1={Y0} x2={px(1)} y2={Y0 + H} class="limit" />
+  <text x={px(1) + 6} y={Y0 + 10} class="note">
+    100% load:
+  </text>
+  <text x={px(1) + 6} y={Y0 + 26} class="note">
+    the queue
+  </text>
+  <text x={px(1) + 6} y={Y0 + 42} class="note">
+    never drains
+  </text>
+
+  <path d={curve} class="curve" />
+  {POINTS.map((p) => (
+    <g>
+      <circle cx={px(p.load)} cy={py(p.w)} r="4.5" class="point" />
+      <text x={px(p.load) - 10} y={py(p.w) - 2} class="label">
+        {p.w.toFixed(1)}
+      </text>
+    </g>
+  ))}
+
+  <text x={X0 + W / 2} y={Y0 + H + 40} class="axis-label">
+    load on the link (utilization)
+  </text>
+  <text
+    x="14"
+    y={Y0 + H / 2}
+    class="axis-label"
+    transform={`rotate(-90 14 ${Y0 + H / 2})`}
+  >
+    average wait (transmission times)
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
+  }
+
+  .axis {
+    stroke: var(--muted);
+    stroke-width: 1;
+  }
+
+  .limit {
+    stroke: var(--bad);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+  }
+
+  .tick-x,
+  .tick-y,
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .tick-x {
+    text-anchor: middle;
+  }
+
+  .tick-y {
+    text-anchor: end;
+  }
+
+  .axis-label {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .curve {
+    fill: none;
+    stroke: var(--contrast);
+    stroke-width: 2.5;
+  }
+
+  .point {
+    fill: var(--surface);
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: end;
+  }
+</style>

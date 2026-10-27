@@ -1,0 +1,232 @@
+---
+/**
+ * NetworkOfNetworks - How independent networks join into the Internet.
+ * Access ISPs at the edge buy transit from regional ISPs, which buy it from
+ * tier-1 ISPs; tier-1s peer with each other. An Internet exchange point
+ * (IXP) lets networks peer locally, and a content provider runs its own
+ * network that connects to access ISPs directly.
+ */
+interface Net {
+  id: string;
+  label: string;
+  sub: string;
+  x: number;
+  y: number;
+  kind?: "ixp" | "content";
+}
+
+const NETS: Net[] = [
+  { id: "t1x", label: "tier-1 ISP", sub: "global reach", x: 210, y: 58 },
+  { id: "t1y", label: "tier-1 ISP", sub: "global reach", x: 470, y: 58 },
+  { id: "r1", label: "regional ISP", sub: "country or region", x: 110, y: 168 },
+  {
+    id: "ixp",
+    label: "IXP",
+    sub: "exchange point",
+    x: 340,
+    y: 168,
+    kind: "ixp",
+  },
+  { id: "r2", label: "regional ISP", sub: "country or region", x: 570, y: 168 },
+  { id: "a1", label: "access ISP", sub: "homes: FTTH, cable", x: 70, y: 290 },
+  { id: "a2", label: "access ISP", sub: "mobile: 4G, 5G", x: 250, y: 290 },
+  { id: "a3", label: "access ISP", sub: "businesses", x: 430, y: 290 },
+  {
+    id: "cp",
+    label: "content provider",
+    sub: "own network",
+    x: 610,
+    y: 290,
+    kind: "content",
+  },
+];
+
+/** [customer, provider] pairs: the customer pays for transit. */
+const TRANSIT: [string, string][] = [
+  ["r1", "t1x"],
+  ["r2", "t1y"],
+  ["a1", "r1"],
+  ["a2", "r1"],
+  ["a3", "r2"],
+  ["cp", "r2"],
+];
+/** Peering links, usually settlement-free. */
+const PEERING: [string, string][] = [
+  ["t1x", "t1y"],
+  ["r1", "ixp"],
+  ["r2", "ixp"],
+  ["a2", "ixp"],
+  ["cp", "ixp"],
+  ["cp", "a3"],
+];
+
+const BOX_W = 128;
+const BOX_H = 40;
+const byId = (id: string) => NETS.find((n) => n.id === id)!;
+
+/** Point where the segment from a to b leaves a's box. */
+const edgePoint = (a: Net, b: Net) => {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const sx = dx === 0 ? Infinity : BOX_W / 2 / Math.abs(dx);
+  const sy = dy === 0 ? Infinity : BOX_H / 2 / Math.abs(dy);
+  const s = Math.min(sx, sy);
+  return { x: a.x + dx * s, y: a.y + dy * s };
+};
+
+const segment = ([from, to]: [string, string]) => {
+  const a = byId(from);
+  const b = byId(to);
+  const p = edgePoint(a, b);
+  const q = edgePoint(b, a);
+  return `M ${p.x.toFixed(1)} ${p.y.toFixed(1)} L ${q.x.toFixed(1)} ${q.y.toFixed(1)}`;
+};
+---
+
+<svg
+  viewBox="0 0 700 400"
+  role="img"
+  aria-label="The Internet as a network of networks. At the top, two tier-1 ISPs with global reach peer with each other. Below them, two regional ISPs buy transit from the tier-1s. At the edge, access ISPs for homes, mobile phones and businesses buy transit from the regional ISPs. An Internet exchange point in the middle lets regional ISPs, a mobile access ISP and a content provider peer with each other. The content provider also buys transit from a regional ISP and peers directly with a business access ISP. The tier-1 and regional ISPs form the network core; the access ISPs and their customers form the edge."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id="non-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <rect x="4" y="18" width="692" height="196" rx="8" class="zone core"></rect>
+  <text x="16" y="36" class="zone-label">
+    network core
+  </text>
+  <rect x="4" y="236" width="692" height="104" rx="8" class="zone edge"></rect>
+  <text x="16" y="254" class="zone-label">
+    network edge
+  </text>
+
+  {TRANSIT.map((pair) => (
+    <path d={segment(pair)} marker-end="url(#non-arrow)" class="transit" />
+  ))}
+  {PEERING.map((pair) => (
+    <path d={segment(pair)} class="peering" />
+  ))}
+
+  {NETS.map((net) => (
+    <g>
+      <rect
+        x={net.x - BOX_W / 2}
+        y={net.y - BOX_H / 2}
+        width={BOX_W}
+        height={BOX_H}
+        rx={net.kind === "ixp" ? 20 : 5}
+        class:list={["net", net.kind]}
+      />
+      <text x={net.x} y={net.y - 7} class="net-label">
+        {net.label}
+      </text>
+      <text x={net.x} y={net.y + 9} class="net-sub">
+        {net.sub}
+      </text>
+    </g>
+  ))}
+
+  <line
+    x1="24"
+    y1="370"
+    x2="70"
+    y2="370"
+    marker-end="url(#non-arrow)"
+    class="transit"
+  />
+  <text x="80" y="370" class="legend">
+    transit: the customer pays the provider
+  </text>
+  <line x1="380" y1="370" x2="426" y2="370" class="peering" />
+  <text x="436" y="370" class="legend">
+    peering: usually no payment
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 620px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .zone {
+    stroke: none;
+  }
+
+  .zone.core {
+    fill: color-mix(in oklab, var(--cat-1) 10%, transparent);
+  }
+
+  .zone.edge {
+    fill: color-mix(in oklab, var(--cat-3) 10%, transparent);
+  }
+
+  .zone-label {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .net {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .net.ixp {
+    stroke: var(--contrast);
+  }
+
+  .net.content {
+    stroke: var(--cat-2);
+  }
+
+  .net-label {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .net-sub {
+    fill: var(--muted);
+    font-size: 10px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .transit {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .peering {
+    fill: none;
+    stroke: var(--contrast);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+  }
+
+  .legend {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+</style>

@@ -1,0 +1,257 @@
+---
+/**
+ * InverterCurve - Output voltage against input voltage for a CMOS inverter,
+ * computed here from the long-channel (square-law) transistor model with
+ * VDD = 3.3 V, matched transistors and |Vt| = 0.7 V. VIL and VIH are where
+ * the slope is -1. Between them the inverter amplifies; outside them it
+ * squeezes a wide input band into a narrow output band near a rail.
+ */
+const VDD = 3.3;
+const VT = 0.7;
+const LAMBDA = 0.005; // slight channel-length modulation keeps Vout unique
+
+/** Drain current of one transistor, in units of its gain factor. */
+const current = (vgs: number, vds: number): number => {
+  if (vgs <= VT) return 0;
+  const vov = vgs - VT;
+  const base = vds < vov ? vov * vds - (vds * vds) / 2 : (vov * vov) / 2;
+  return base * (1 + LAMBDA * vds);
+};
+
+/** Output voltage where the nMOS and pMOS currents are equal. */
+const vout = (vin: number): number => {
+  let lo = 0;
+  let hi = VDD;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const net = current(vin, mid) - current(VDD - vin, VDD - mid);
+    if (net > 0) hi = mid;
+    else lo = mid;
+  }
+  return (lo + hi) / 2;
+};
+
+const N = 3301; // 1 mV steps
+const xs = Array.from({ length: N }, (_, i) => (VDD * i) / (N - 1));
+const ys = xs.map(vout);
+const slope = xs.map((_, i) =>
+  i === 0 || i === N - 1
+    ? 0
+    : (ys[i + 1] - ys[i - 1]) / (xs[i + 1] - xs[i - 1]),
+);
+const vil = xs[slope.findIndex((g) => g < -1)];
+const vih = xs[slope.findLastIndex((g) => g < -1)];
+
+const X0 = 64;
+const Y0 = 24;
+const SIZE = 300;
+const px = (v: number) => X0 + (v / VDD) * SIZE;
+const py = (v: number) => Y0 + SIZE - (v / VDD) * SIZE;
+
+const curve = xs
+  .map((x, i) => [x, ys[i]])
+  .filter((_, i) => i % 5 === 0 || i === N - 1)
+  .map(
+    ([x, y], i) =>
+      `${i === 0 ? "M" : "L"} ${px(x).toFixed(1)} ${py(y).toFixed(1)}`,
+  )
+  .join(" ");
+
+const BANDS = [
+  { from: 0, to: 1.0, label: "a noisy 0" },
+  { from: 2.3, to: VDD, label: "a noisy 1" },
+].map((band) => {
+  const outs = [vout(band.from), vout(band.to)];
+  return { ...band, outLo: Math.min(...outs), outHi: Math.max(...outs) };
+});
+
+const TICKS = [0, 1, 2, 3];
+const fmt = (v: number) => v.toFixed(2);
+const NOTE_X = X0 + SIZE + 28;
+---
+
+<svg
+  viewBox="0 0 640 384"
+  role="img"
+  aria-label={`Output voltage of a CMOS inverter against its input voltage, both from 0 to 3.3 volts. The curve stays near 3.3 volts for low inputs, falls steeply between ${fmt(vil)} and ${fmt(vih)} volts, and stays near 0 volts for high inputs. Inputs from 0 to 1.0 volt, a noisy 0, all produce outputs between ${fmt(BANDS[0].outLo)} and 3.3 volts. Inputs from 2.3 to 3.3 volts, a noisy 1, all produce outputs between 0 and ${fmt(BANDS[1].outHi)} volts.`}
+  class="diagram"
+>
+  <rect
+    x={px(vil)}
+    y={Y0}
+    width={px(vih) - px(vil)}
+    height={SIZE}
+    class="gain"
+  ></rect>
+  <text x={(px(vil) + px(vih)) / 2} y={Y0 + 14} class="gain-label">
+    gain
+  </text>
+  <text x={(px(vil) + px(vih)) / 2} y={Y0 + 28} class="gain-label">
+    &gt; 1
+  </text>
+
+  {BANDS.map((band) => (
+    <g>
+      <rect
+        x={px(band.from)}
+        y={Y0 + SIZE + 1}
+        width={px(band.to) - px(band.from)}
+        height="8"
+        class="band"
+      />
+      <rect
+        x={X0 - 9}
+        y={py(band.outHi)}
+        width="8"
+        height={Math.max(py(band.outLo) - py(band.outHi), 2)}
+        class="band"
+      />
+      <path
+        d={`M ${px(band.from)} ${Y0 + SIZE} V ${py(vout(band.from))} H ${X0} M ${px(band.to)} ${Y0 + SIZE} V ${py(vout(band.to))} H ${X0}`}
+        class="guide"
+      />
+    </g>
+  ))}
+
+  <line x1={X0} y1={Y0 + SIZE} x2={X0 + SIZE} y2={Y0 + SIZE} class="axis" />
+  <line x1={X0} y1={Y0} x2={X0} y2={Y0 + SIZE} class="axis" />
+  {TICKS.map((v) => (
+    <g>
+      <text x={px(v)} y={Y0 + SIZE + 24} class="tick-x">
+        {v}
+      </text>
+      <text x={X0 - 14} y={py(v)} class="tick-y">
+        {v}
+      </text>
+    </g>
+  ))}
+  <text x={X0 + SIZE / 2} y={Y0 + SIZE + 44} class="axis-label">
+    input voltage (V)
+  </text>
+  <text
+    x="14"
+    y={Y0 + SIZE / 2}
+    class="axis-label"
+    transform={`rotate(-90 14 ${Y0 + SIZE / 2})`}
+  >
+    output voltage (V)
+  </text>
+
+  <line x1={px(vil)} y1={Y0} x2={px(vil)} y2={Y0 + SIZE} class="mark" />
+  <line x1={px(vih)} y1={Y0} x2={px(vih)} y2={Y0 + SIZE} class="mark" />
+  <path d={curve} class="curve" />
+
+  <text x={NOTE_X} y={Y0 + 20} class="note strong">
+    VIL = {fmt(vil)} V, VIH = {fmt(vih)} V
+  </text>
+  <text x={NOTE_X} y={Y0 + 38} class="note">
+    where the slope is −1
+  </text>
+
+  <text x={NOTE_X} y={Y0 + 86} class="note strong">
+    a noisy 0
+  </text>
+  <text x={NOTE_X} y={Y0 + 104} class="note">
+    in: {fmt(BANDS[0].from)} to {fmt(BANDS[0].to)} V
+  </text>
+  <text x={NOTE_X} y={Y0 + 122} class="note">
+    out: {fmt(BANDS[0].outLo)} to {fmt(BANDS[0].outHi)} V
+  </text>
+
+  <text x={NOTE_X} y={Y0 + 170} class="note strong">
+    a noisy 1
+  </text>
+  <text x={NOTE_X} y={Y0 + 188} class="note">
+    in: {fmt(BANDS[1].from)} to {fmt(BANDS[1].to)} V
+  </text>
+  <text x={NOTE_X} y={Y0 + 206} class="note">
+    out: {fmt(BANDS[1].outLo)} to {fmt(BANDS[1].outHi)} V
+  </text>
+
+  <text x={NOTE_X} y={Y0 + 254} class="note">
+    a 1.0 V wide band in,
+  </text>
+  <text x={NOTE_X} y={Y0 + 272} class="note">
+    a band of a few hundredths
+  </text>
+  <text x={NOTE_X} y={Y0 + 290} class="note">
+    of a volt out
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 580px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .axis {
+    stroke: var(--muted);
+    stroke-width: 1;
+  }
+
+  .tick-x,
+  .tick-y,
+  .axis-label {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .tick-y {
+    text-anchor: end;
+  }
+
+  .axis-label {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .curve {
+    fill: none;
+    stroke: var(--contrast);
+    stroke-width: 2.5;
+  }
+
+  .mark {
+    stroke: var(--muted);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .gain {
+    fill: color-mix(in oklab, var(--contrast) 12%, transparent);
+  }
+
+  .gain-label {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .band {
+    fill: var(--cat-1);
+  }
+
+  .guide {
+    fill: none;
+    stroke: var(--cat-1);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .note.strong {
+    fill: currentColor;
+    font-weight: 600;
+  }
+</style>
