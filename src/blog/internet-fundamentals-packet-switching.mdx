@@ -274,7 +274,11 @@ front of a 100 Mb/s link holds 80 ms of traffic.
 
 ## Forwarding moves each packet, and routing decides where packets go
 
-A router does two different jobs on two different time scales.
+Davies's design had a consequence for every router. A circuit knows its path
+from the moment it is set up. A packet does not: it carries only its
+destination, and every router on the way decides where it goes next. To make
+that decision fast, a router does two different jobs on two different time
+scales.
 
 **Forwarding** is local and happens for every packet. The router reads the
 destination address, looks it up in its forwarding table and moves the packet
@@ -329,8 +333,8 @@ seconds or minutes.
 
 ## The edge reaches the core through access networks, and many are shared
 
-The **network edge** is made of hosts, the laptops, phones and servers that run
-applications, and the **access networks** that connect them to their first
+The decision to share reaches all the way to your home. The **network edge** is
+made of hosts, the laptops, phones and servers that run applications, and the **access networks** that connect them to their first
 router. The **network core** is the mesh of routers and links that joins the
 access networks to each other.
 
@@ -352,8 +356,8 @@ operator's equipment, a few milliseconds at a time.
 
 ## The Internet is a network of networks, joined by transit and peering
 
-No single company runs the core. It is built from tens of thousands of
-independent networks, each called an **autonomous system**, and each run by an **ISP**,
+Sharing also happens between companies. No single company runs the core. It is
+built from tens of thousands of independent networks, each called an **autonomous system**, and each run by an **ISP**,
 an Internet service provider, or by a large company. They connect in two ways.
 
 - **Transit.** A smaller network pays a larger one to carry its traffic to the
