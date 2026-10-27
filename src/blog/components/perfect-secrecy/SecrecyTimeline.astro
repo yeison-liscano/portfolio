@@ -1,0 +1,206 @@
+---
+/**
+ * SecrecyTimeline - Theory and practice of the one-time pad side by side.
+ * Theory on the left, practice on the right, one row per event in date
+ * order. The accented rows are the failure (duplicate pages) and its
+ * exploitation (the first message read).
+ */
+type Lane = "theory" | "practice";
+
+interface Event {
+  year: string;
+  lane: Lane;
+  who: string;
+  what: string;
+  accent?: boolean;
+}
+
+const events: Event[] = [
+  {
+    year: "1882",
+    lane: "practice",
+    who: "Frank Miller",
+    what: "one-time pad for telegraph codes",
+  },
+  {
+    year: "1883",
+    lane: "theory",
+    who: "Kerckhoffs",
+    what: "only the key may be secret",
+  },
+  {
+    year: "1917–19",
+    lane: "practice",
+    who: "Vernam and Mauborgne",
+    what: "random key tape, used once",
+  },
+  {
+    year: "1941",
+    lane: "theory",
+    who: "Kotelnikov",
+    what: "proves the pad secure (unpublished)",
+  },
+  {
+    year: "1942",
+    lane: "practice",
+    who: "Soviet pad production",
+    what: "about 35,000 duplicate pages",
+    accent: true,
+  },
+  {
+    year: "1943",
+    lane: "practice",
+    who: "Venona begins",
+    what: "US Army, 1 February",
+  },
+  {
+    year: "1945",
+    lane: "theory",
+    who: "Shannon",
+    what: "classified memo with the proof",
+  },
+  {
+    year: "1946",
+    lane: "practice",
+    who: "Meredith Gardner",
+    what: "reads the first message",
+    accent: true,
+  },
+  {
+    year: "1949",
+    lane: "theory",
+    who: "Shannon",
+    what: "publishes the theory",
+  },
+  {
+    year: "1980",
+    lane: "practice",
+    who: "Venona ends",
+    what: "about 3,000 messages at least partly read",
+  },
+  {
+    year: "1995",
+    lane: "practice",
+    who: "Venona released",
+    what: "the translations become public",
+  },
+];
+
+const W = 640;
+const MID = W / 2;
+const HEADER = 44;
+const ROW = 42;
+const H = HEADER + events.length * ROW + 8;
+const y = (i: number) => HEADER + i * ROW + ROW / 2;
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label="Timeline of the one-time pad with theory on the left and practice on the right. 1882, Frank Miller describes a one-time pad for telegraph codes. 1883, Kerckhoffs: only the key may be secret. 1917 to 1919, Vernam and Mauborgne: a random key tape used once. 1941, Kotelnikov proves the pad secure in an unpublished report. 1942, Soviet pad production prints about 35,000 duplicate pages. 1943, the US Army starts Venona on 1 February. 1945, Shannon's classified memo contains the proof. 1946, Meredith Gardner reads the first message. 1949, Shannon publishes the theory. 1980, Venona ends with about 3,000 messages at least partly read. 1995, the translations become public."
+  class="diagram"
+>
+  <text x={MID - 40} y="16" class="lane-title" text-anchor="end">
+    theory
+  </text>
+  <text x={MID + 40} y="16" class="lane-title">
+    practice
+  </text>
+
+  <line x1={MID} x2={MID} y1={HEADER - 8} y2={H - 8} class="spine"></line>
+
+  {events.map((e, i) => {
+    const left = e.lane === "theory";
+    const x = left ? MID - 40 : MID + 40;
+    const anchor = left ? "end" : "start";
+    return (
+      <g class:list={{ accent: e.accent }}>
+        <circle cx={MID} cy={y(i)} r="4" class="dot" />
+        <line
+          x1={left ? MID - 32 : MID + 8}
+          x2={left ? MID - 8 : MID + 32}
+          y1={y(i)}
+          y2={y(i)}
+          class="tick"
+        />
+        <text
+          x={left ? MID + 12 : MID - 12}
+          y={y(i)}
+          class="year"
+          text-anchor={left ? "start" : "end"}
+        >
+          {e.year}
+        </text>
+        <text x={x} y={y(i) - 8} class="who" text-anchor={anchor}>
+          {e.who}
+        </text>
+        <text x={x} y={y(i) + 9} class="what" text-anchor={anchor}>
+          {e.what}
+        </text>
+      </g>
+    );
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lane-title {
+    fill: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    dominant-baseline: middle;
+  }
+
+  .spine {
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .dot {
+    fill: var(--surface);
+    stroke: var(--muted);
+    stroke-width: 1.5;
+  }
+
+  .tick {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .year {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .who {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .what {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .accent .dot {
+    fill: var(--contrast);
+    stroke: var(--contrast);
+  }
+
+  .accent .who,
+  .accent .year {
+    fill: var(--contrast);
+  }
+</style>
