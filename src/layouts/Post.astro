@@ -28,6 +28,7 @@ const {
     author,
     tags,
     summary,
+    isDraft,
   },
   headings,
   allPosts,
@@ -46,6 +47,7 @@ const {
     lang={lang}
     image={image}
     jsonLd={jsonLd}
+    noindex={isDraft}
   />
   <body>
     <div class="reading-progress" aria-hidden="true">
@@ -57,6 +59,7 @@ const {
         <a class="back-link" href={`${import.meta.env.BASE_URL}blog/`}>
           ← All articles
         </a>
+        {isDraft && <p>Draft preview — this article is still in progress.</p>}
         <Hero
           author={author}
           pubDate={pubDate}

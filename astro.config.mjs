@@ -53,5 +53,11 @@ export default defineConfig({
       wrap: true,
     },
   },
-  integrations: [mdx(), sitemap()],
+  integrations: [
+    mdx(),
+    sitemap({
+      filter: (page) =>
+        !new URL(page).pathname.startsWith("/portfolio/blog/drafs/"),
+    }),
+  ],
 });
