@@ -1,0 +1,64 @@
+---
+import { getCollection } from "astro:content";
+import Base from "layouts/Base.astro";
+import PostPreview from "components/PostPreview.astro";
+import { readingTime } from "../../../utils/format";
+
+const drafts = (await getCollection("blog", ({ data }) => data.isDraft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<Base
+  title="Draft posts | Yeison Liscano"
+  description="Browse draft articles and work in progress."
+  noindex
+>
+  <div class="drafts-header">
+    <h1>Draft posts</h1>
+    <p>Articles in progress. These previews may change before publication.</p>
+    <p class="draft-count">
+      {drafts.length} {drafts.length === 1 ? "draft" : "drafts"}
+    </p>
+  </div>
+  <div class="posts-container">
+    {drafts.map(({ data, id, body }) => (
+      <PostPreview
+        title={data.title}
+        pubDate={data.pubDate}
+        description={data.description}
+        tags={data.tags}
+        slug={id}
+        readingTime={data.readingTime ?? readingTime(body)}
+        isDraft
+      />
+    ))}
+    {drafts.length === 0 && <p>No draft posts yet.</p>}
+  </div>
+</Base>
+
+<style>
+  .drafts-header,
+  .posts-container {
+    width: 100%;
+    max-width: 1000px;
+  }
+  .drafts-header {
+    padding: 16px 0 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 {
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    letter-spacing: -0.045em;
+    line-height: 1.15;
+    margin-bottom: 18px;
+  }
+  .drafts-header p {
+    color: var(--muted);
+    line-height: 1.75;
+  }
+  .draft-count {
+    margin-top: 16px;
+    font-size: 0.85rem;
+  }
+</style>

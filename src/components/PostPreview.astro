@@ -11,18 +11,27 @@ interface Props {
   readingTime: string;
   pubDate: Date;
   dataTags?: string;
+  isDraft?: boolean;
 }
 
-const { title, pubDate, description, tags, slug, readingTime, dataTags } =
-  Astro.props;
+const {
+  title,
+  pubDate,
+  description,
+  tags,
+  slug,
+  readingTime,
+  dataTags,
+  isDraft = false,
+} = Astro.props;
 
 const date = formatDate(pubDate);
-const postUrl = `${BASE_URL}blog/${slug}/`;
+const postUrl = `${BASE_URL}blog/${isDraft ? "drafs/" : ""}${slug}/`;
 ---
 
 <div class="preview-container visible" data-tags={dataTags}>
   <div class="description-container">
-    <span class="label">Article</span>
+    <span class="label">{isDraft ? "Draft" : "Article"}</span>
     <h2>
       <a href={postUrl}>{title}</a>
     </h2>
@@ -30,11 +39,15 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
       <p>{description}</p>
     </div>
     <div class="tags-container">
-      {tags.map((tag) => (
-        <button class="tag" data-filter-tag={tag} type="button">
-          {label(tag)}
-        </button>
-      ))}
+      {tags.map((tag) =>
+        dataTags !== undefined ? (
+          <button class="tag" data-filter-tag={tag} type="button">
+            {label(tag)}
+          </button>
+        ) : (
+          <span class="tag">{label(tag)}</span>
+        ),
+      )}
     </div>
     <div class="meta">
       <time datetime={isoDate(pubDate)}>{date}</time>
@@ -87,9 +100,11 @@ const postUrl = `${BASE_URL}blog/${slug}/`;
     background: transparent;
     border-radius: 6px;
     padding: 4px 9px;
+  }
+  button.tag {
     cursor: pointer;
   }
-  .tag:hover {
+  button.tag:hover {
     color: var(--contrast);
     border-color: var(--contrast);
   }
