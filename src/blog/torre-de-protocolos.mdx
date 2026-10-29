@@ -252,13 +252,13 @@ bandera, dirección, control, protocolo IPv4 | paquete IP de 124 bytes | FCS | b
 ```
 
 Dentro del paquete se leen la longitud, `0x007c` (124 bytes), el
-identificador, `0x198e` (6542), y el TTL, `0x3f` (63), ya bajado por el router
+identificador, `0x198e` (6542), y el TTL, `0x3f` (63), ya bajado por el primer
+router. Si se cambia un solo bit de la trama, `unframe` devuelve `None`, porque
+la verificación no coincide.
 
-1. Si se cambia un solo bit de la trama, `unframe` devuelve `None`, porque la
-verificación no coincide. Un detalle del RFC 1662 sorprende al medirlo: sin
-negociación, se escapan todos los bytes menores que `0x20`, y esta trama de 132
-bytes ocupó 167 en la línea. LCP suele negociar un mapa de escape vacío para
-evitar ese costo.
+Un detalle del RFC 1662 sorprende al medirlo. Sin negociación, se escapan todos
+los bytes menores que `0x20`, y esta trama de 132 bytes ocupó 167 en la línea.
+LCP suele negociar un mapa de escape vacío para evitar ese costo.
 
 Las capturas a ambos lados de la ruta muestran el mismo paquete en tramas
 distintas. En el enlace del portátil y en el del servidor:
