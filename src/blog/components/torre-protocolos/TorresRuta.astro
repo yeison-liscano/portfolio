@@ -1,0 +1,237 @@
+---
+/**
+ * TorresRuta - The protocol stack of every device on the path from a laptop
+ * on Wi-Fi to a web server on Ethernet. Hosts run five layers. Routers run
+ * three on each interface and switches two. Each interface column shows the
+ * protocols it runs, so peers line up across each link. Each device is one
+ * step for <Stepper>.
+ */
+interface Device {
+  name: string;
+  sub: string;
+  x: number;
+  /** One protocol list per interface, from layer 5 (index 0) down. */
+  sides: string[][];
+  note: [string, string];
+}
+
+const LAYERS = ["Aplicación", "Transporte", "Red", "Enlace", "Física"];
+const COL = 66;
+
+const DEVICES: Device[] = [
+  {
+    name: "portátil",
+    sub: "Chrome",
+    x: 70,
+    sides: [["HTTP", "TCP", "IP", "802.11", "802.11ax"]],
+    note: ["encapsula y envía", "una trama 802.11"],
+  },
+  {
+    name: "router 1",
+    sub: "R1",
+    x: 176,
+    sides: [
+      ["", "", "IP", "802.11", "802.11ax"],
+      ["", "", "IP", "PPP", "serie"],
+    ],
+    note: ["TTL 64 → 63,", "trama nueva: PPP"],
+  },
+  {
+    name: "router 2",
+    sub: "R2",
+    x: 348,
+    sides: [
+      ["", "", "IP", "PPP", "serie"],
+      ["", "", "IP", "802.3", "802.3ab"],
+    ],
+    note: ["TTL 63 → 62,", "trama nueva: Ethernet"],
+  },
+  {
+    name: "switch",
+    sub: "",
+    x: 520,
+    sides: [
+      ["", "", "", "802.3", "802.3ab"],
+      ["", "", "", "802.3", "802.3ab"],
+    ],
+    note: ["lee la MAC destino,", "no cambia la trama"],
+  },
+  {
+    name: "servidor",
+    sub: "Apache",
+    x: 692,
+    sides: [["HTTP", "TCP", "IP", "802.3", "802.3ab"]],
+    note: ["sube las cinco capas", "y lee la petición"],
+  },
+];
+
+const LINKS = [
+  { from: 0, label: "WiFi" },
+  { from: 1, label: "PPP" },
+  { from: 2, label: "Ethernet" },
+  { from: 3, label: "Ethernet" },
+];
+
+const TOP = 16;
+const BOX_H = 26;
+const PITCH = 32;
+const rowY = (i: number) => TOP + i * PITCH;
+const WIRE_Y = rowY(5) + 18;
+const NAME_Y = WIRE_Y + 34;
+const width = (d: Device) => d.sides.length * COL;
+const right = (d: Device) => d.x + width(d);
+---
+
+<svg
+  viewBox="0 0 795 296"
+  role="img"
+  aria-label="Cinco equipos en fila con sus torres de protocolos. El portátil ejecuta HTTP, TCP, IP, 802.11 y 802.11ax. El router 1 tiene dos interfaces: IP, 802.11 y 802.11ax hacia el portátil, e IP, PPP y una línea serie hacia el router 2. El router 2 tiene IP, PPP y serie hacia el router 1, e IP, 802.3 y 802.3ab hacia el switch. El switch tiene 802.3 y 802.3ab en sus dos puertos. El servidor ejecuta HTTP, TCP, IP, 802.3 y 802.3ab. Los enlaces son WiFi, PPP, Ethernet y Ethernet. Las capas de aplicación y transporte solo existen en los extremos; IP existe en todos los equipos menos el switch; el enlace y la física cambian en cada enlace."
+  class="diagram"
+>
+  {LAYERS.map((layer, i) => (
+    <text x="0" y={rowY(i) + BOX_H / 2} class="layer">
+      {layer}
+    </text>
+  ))}
+
+  {DEVICES.map((device, d) => (
+    <g data-step={d + 1}>
+      {device.sides.map((side, s) =>
+        side.map((protocol, i) =>
+          protocol ? (
+            <g>
+              <rect
+                x={device.x + s * COL + 2}
+                y={rowY(i)}
+                width={COL - 4}
+                height={BOX_H}
+                rx="3"
+                class:list={["box", `l${5 - i}`]}
+              />
+              <text
+                x={device.x + s * COL + COL / 2}
+                y={rowY(i) + BOX_H / 2}
+                class="protocol"
+              >
+                {protocol}
+              </text>
+            </g>
+          ) : null,
+        ),
+      )}
+      <text x={device.x + width(device) / 2} y={NAME_Y} class="name">
+        {device.name}
+      </text>
+      <text x={device.x + width(device) / 2} y={NAME_Y + 16} class="sub">
+        {device.sub}
+      </text>
+      <text x={device.x + width(device) / 2} y={NAME_Y + 40} class="note">
+        {device.note[0]}
+      </text>
+      <text x={device.x + width(device) / 2} y={NAME_Y + 56} class="note">
+        {device.note[1]}
+      </text>
+    </g>
+  ))}
+
+  {LINKS.map((link) => {
+    const a = DEVICES[link.from];
+    const b = DEVICES[link.from + 1];
+    const x1 = right(a) - COL / 2;
+    const x2 = b.x + COL / 2;
+    return (
+      <g>
+        <path
+          d={`M ${x1} ${rowY(4) + BOX_H} V ${WIRE_Y} H ${x2} V ${rowY(4) + BOX_H}`}
+          class:list={["wire", link.label === "WiFi" && "radio"]}
+        />
+        <text x={(right(a) + b.x) / 2} y={WIRE_Y - 6} class="link">
+          {link.label}
+        </text>
+      </g>
+    );
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .layer {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .box {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .l5 {
+    fill: color-mix(in oklab, var(--contrast) 35%, var(--primary));
+  }
+
+  .l4 {
+    fill: color-mix(in oklab, var(--cat-2) 35%, var(--primary));
+  }
+
+  .l3 {
+    fill: color-mix(in oklab, var(--cat-4) 35%, var(--primary));
+  }
+
+  .l2 {
+    fill: color-mix(in oklab, var(--cat-1) 35%, var(--primary));
+  }
+
+  .l1 {
+    fill: var(--code-background);
+  }
+
+  .protocol {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .wire {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  .radio {
+    stroke-dasharray: 4 4;
+  }
+
+  .link {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .name {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+  }
+</style>

@@ -1,0 +1,194 @@
+---
+/**
+ * TresTramas - The same 124-byte IP packet in the three frames of the path,
+ * drawn to scale and aligned on the packet. Wi-Fi (WPA2, CCMP) wraps it in
+ * 54 bytes and three MAC addresses, PPP in 8 bytes and no address at all,
+ * Ethernet in 18 bytes and two MAC addresses. Only the TTL inside the
+ * packet changes from link to link.
+ */
+interface Part {
+  label: string;
+  bytes: number;
+  below?: string;
+  /** Put the label under the bar on a second line, to avoid a neighbor. */
+  lower?: boolean;
+  ip?: boolean;
+}
+
+interface Frame {
+  name: string;
+  sub: string;
+  before: Part[];
+  ttl: number;
+  after: Part[];
+  addresses: string;
+}
+
+const IP_BYTES = 124;
+
+const FRAMES: Frame[] = [
+  {
+    name: "WiFi",
+    sub: "802.11, WPA2",
+    before: [
+      { label: "802.11", bytes: 26 },
+      { label: "", bytes: 8, below: "LLC/SNAP" },
+      { label: "", bytes: 8, below: "CCMP", lower: true },
+    ],
+    ttl: 64,
+    after: [
+      { label: "", bytes: 8, below: "MIC" },
+      { label: "", bytes: 4, below: "FCS", lower: true },
+    ],
+    addresses: "3 direcciones MAC",
+  },
+  {
+    name: "PPP",
+    sub: "RFC 1662",
+    before: [{ label: "", bytes: 5, below: "7E FF 03 0021" }],
+    ttl: 63,
+    after: [{ label: "", bytes: 3, below: "FCS 7E" }],
+    addresses: "ninguna dirección",
+  },
+  {
+    name: "Ethernet",
+    sub: "802.3",
+    before: [{ label: "Eth", bytes: 14 }],
+    ttl: 62,
+    after: [{ label: "", bytes: 4, below: "FCS" }],
+    addresses: "2 direcciones MAC",
+  },
+];
+
+const SCALE = 3.1;
+const X0 = 110;
+const IP_X = X0 + 42 * SCALE;
+const BAR_H = 30;
+const rowY = (i: number) => 20 + i * 76;
+
+const sum = (parts: Part[]) => parts.reduce((t, p) => t + p.bytes, 0);
+
+const layout = (frame: Frame) => {
+  let x = IP_X - sum(frame.before) * SCALE;
+  const parts: Part[] = [
+    ...frame.before,
+    {
+      label: `paquete IP ${IP_BYTES} · TTL ${frame.ttl}`,
+      bytes: IP_BYTES,
+      ip: true,
+    },
+    ...frame.after,
+  ];
+  return parts.map((part) => {
+    const start = x;
+    x += part.bytes * SCALE;
+    return { ...part, x: start, w: part.bytes * SCALE };
+  });
+};
+
+const RIGHT_X = IP_X + (IP_BYTES + 12) * SCALE + 16;
+---
+
+<svg
+  viewBox="0 0 820 236"
+  role="img"
+  aria-label="Tres tramas a escala, alineadas sobre el mismo paquete IP de 124 bytes. WiFi con WPA2: 26 bytes de cabecera 802.11, 8 de LLC/SNAP y 8 de CCMP antes del paquete, 8 de MIC y 4 de FCS después; 178 bytes y tres direcciones MAC; el paquete lleva TTL 64. PPP: 5 bytes antes (bandera 7E, dirección FF, control 03, protocolo 0021) y 3 después (FCS de 2 bytes y bandera 7E); 132 bytes y ninguna dirección; TTL 63. Ethernet: 14 bytes antes y 4 de FCS después; 142 bytes y dos direcciones MAC; TTL 62."
+  class="diagram"
+>
+  {FRAMES.map((frame, i) => {
+    const y = rowY(i);
+    const total = sum(frame.before) + IP_BYTES + sum(frame.after);
+    return (
+      <g>
+        <text x="0" y={y + BAR_H / 2 - 7} class="name">
+          {frame.name}
+        </text>
+        <text x="0" y={y + BAR_H / 2 + 9} class="sub">
+          {frame.sub}
+        </text>
+        {layout(frame).map((part) => (
+          <g>
+            <rect
+              x={part.x}
+              y={y}
+              width={part.w}
+              height={BAR_H}
+              class:list={["seg", part.ip ? "ip" : "link"]}
+            />
+            {part.w > 30 && (
+              <text x={part.x + part.w / 2} y={y + BAR_H / 2} class="count">
+                {part.ip ? part.label : `${part.label} ${part.bytes}`.trim()}
+              </text>
+            )}
+            {part.below && (
+              <text
+                x={part.x + part.w / 2}
+                y={y + BAR_H + (part.lower ? 26 : 14)}
+                class="below"
+              >
+                {part.below}
+              </text>
+            )}
+          </g>
+        ))}
+        <text x={RIGHT_X} y={y + BAR_H / 2 - 7} class="total">
+          {total} bytes
+        </text>
+        <text x={RIGHT_X} y={y + BAR_H / 2 + 9} class="sub">
+          {frame.addresses}
+        </text>
+      </g>
+    );
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .name,
+  .total {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .seg {
+    stroke: var(--primary);
+    stroke-width: 1;
+  }
+
+  .link {
+    fill: var(--cat-1);
+  }
+
+  .ip {
+    fill: var(--cat-4);
+  }
+
+  .count {
+    fill: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .below {
+    fill: var(--muted);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+</style>

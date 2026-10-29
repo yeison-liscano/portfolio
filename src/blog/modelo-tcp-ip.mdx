@@ -1,0 +1,304 @@
+---
+lang: "es"
+title: "Modelo TCP/IP: cuatro capas, y solo una corre dentro de tu programa"
+pubDate: 2026-10-28
+description:
+  "Una petición HTTP real, seguida en un laboratorio de Linux, para entender el
+  modelo TCP/IP: las cuatro capas del RFC 1122, por qué los cursos dibujan
+  cinco, por qué IP promete tan poco y qué parte de la red corre dentro de tu
+  programa."
+summary:
+  - "El RFC 1122 define cuatro capas: aplicación, transporte, internet y enlace.
+    Los cursos dibujan cinco porque separan el enlace del medio físico."
+  - "curl escribe 72 bytes. El kernel les antepone 66 de TCP, IP y Ethernet, y
+    la tarjeta de red agrega 4 de verificación: salen 142."
+  - "Tu programa solo ejecuta la capa de aplicación. Las otras tres le hablan
+    con códigos de error, y cada código señala una capa."
+  - "IP promete poco a propósito. Por eso funciona sobre cualquier red, incluso
+    sobre palomas mensajeras."
+tags: ["networking"]
+isDraft: false
+---
+
+import Figure from "../components/blog/Figure.astro";
+import FronteraKernel from "./components/modelo-tcp-ip/FronteraKernel.astro";
+import ModelosCapas from "./components/modelo-tcp-ip/ModelosCapas.astro";
+import RelojDeArena from "./components/modelo-tcp-ip/RelojDeArena.astro";
+
+{/* cspell:ignore INET IPPROTO NOSIGNAL getsockopt htons inet recvfrom CPIP blug */}
+
+Palabras clave: modelo TCP/IP, RFC 1122, encapsulación, socket, llamada al
+sistema, IP, TCP, Ethernet, errno
+
+Los cursos de redes presentan el modelo TCP/IP como una lista de capas, y no se
+ponen de acuerdo en cuántas son. El RFC 1122 define cuatro, muchos libros
+dibujan cinco y el modelo OSI tiene siete. La lista no dice quién hace cada
+trabajo cuando un programa pide una página. Ese dato es el que importa al
+depurar o al asegurar un sistema, porque un error en tu código y un paquete
+descartado por un router ocurren en lugares distintos. Este post sigue una
+petición HTTP real en un laboratorio de Linux. Muestra los bytes que agrega cada
+capa, explica por qué los cursos dibujan cinco y comprueba que tu programa solo
+ejecuta una de las cuatro.
+
+## Una petición de 72 bytes sale de la tarjeta de red con 142
+
+El laboratorio tiene un portátil en `10.0.1.20`, dos routers, un switch y un
+servidor web en `10.0.2.30`. Cada equipo vive en su propio espacio de nombres de
+red (_network namespace_) de Linux, así que todos corren en una sola máquina. El
+[post sobre la torre de protocolos](/portfolio/blog/torre-de-protocolos/)
+describe la red completa. Aquí basta con una petición:
+
+```text
+$ curl http://10.0.2.30/
+hola desde el servidor
+```
+
+`strace` muestra lo que curl le pide al sistema operativo para conseguir esa
+respuesta. Son pocas llamadas:
+
+```text
+socket(AF_INET, SOCK_STREAM, IPPROTO_TCP) = 5
+connect(5, {sa_family=AF_INET, sin_port=htons(80), sin_addr=inet_addr("10.0.2.30")}, 16) = -1 EINPROGRESS
+sendto(5, "GET / HTTP/1.1\r\nHost: 10.0.2.30\r\nUser-Agent: curl/8.5.0\r\nAcc"..., 72, MSG_NOSIGNAL, NULL, 0) = 72
+recvfrom(5, "HTTP/1.0 200 OK\r\nServer: SimpleHTTP/0.6 Python/3.13.18\r\nDate"..., 102400, 0, NULL, NULL) = 186
+```
+
+curl escribe 72 bytes. Al mismo tiempo, `tcpdump` captura lo que sale por la
+interfaz del portátil. Esta es la línea del mismo envío, recortada a los campos
+que importan aquí:
+
+```text
+02:00:00:00:01:20 > 02:00:00:00:01:01, ethertype IPv4 (0x0800), length 138:
+  (ttl 64, id 6542, proto TCP (6), length 124)
+  10.0.1.20.34106 > 10.0.2.30.80: Flags [P.], seq 831344847:831344919,
+  options [nop,nop,TS val 4286150794 ecr 2593891457], length 72: HTTP
+```
+
+La trama mide 138 bytes, y la tarjeta le agrega 4 de verificación al enviarla.
+curl nunca escribió una dirección MAC ni un número de secuencia. Tampoco el
+TTL, un contador que empieza en 64 y que cada router baja en uno. ¿Quién
+escribió los otros 70 bytes? ¿Y por qué hacen falta tantas capas para llevar 72?
+La respuesta empieza en el problema que TCP/IP vino a resolver.
+
+## TCP/IP nació para unir redes distintas, y esa meta fijó sus capas
+
+En 1974, Vinton Cerf y Robert Kahn publicaron un protocolo para comunicar redes
+de paquetes que no se parecían entre sí: ARPANET, redes de radio y enlaces
+satelitales. Cada red tenía su propio tamaño de paquete, sus propias fallas y su
+propia forma de direccionar. La propuesta fue un formato común que viaja por
+encima de todas ellas, y unos equipos llamados _gateways_, hoy routers, que lo
+pasan de una red a la siguiente.
+
+En la primavera de 1978, el diseño se dividió en dos protocolos. IP lleva
+datagramas de red en red. TCP convierte esos datagramas en una conexión
+confiable entre dos programas. Los RFC 791 y 793 los describieron en septiembre
+de 1981, y ARPANET cambió a TCP/IP el 1 de enero de 1983.
+
+La división reflejó una decisión de diseño: la red hace lo mínimo y los extremos
+hacen el resto. Un router solo reenvía datagramas. Si uno se pierde, el TCP de
+los extremos lo detecta y lo envía de nuevo. Saltzer, Reed y Clark le dieron
+nombre a la idea en 1984: el argumento extremo a extremo (_end-to-end
+argument_). Esa decisión explica casi todo lo que sigue, incluida una pregunta
+que este post responde más adelante: ¿por qué IP promete tan poco?
+
+## El RFC 1122 define cuatro capas, y cada una responde una sola pregunta
+
+El RFC 1122, de 1989, fija los requisitos de un equipo conectado a Internet y
+ordena sus protocolos en cuatro capas. Cada capa responde una pregunta, usa su
+propia unidad de datos y su propia dirección:
+
+| Capa       | Pregunta que responde                       | Unidad    | Dirección    | Protocolos                | En la petición                     |
+| ---------- | ------------------------------------------- | --------- | ------------ | ------------------------- | ---------------------------------- |
+| Aplicación | ¿Qué pide el programa?                      | mensaje   | nombre, URL  | HTTP, DNS, SMTP, SSH      | 72 bytes de `GET /`                |
+| Transporte | ¿A qué programa va, y llegó completo?       | segmento  | puerto       | TCP, UDP                  | 32 bytes, puerto 34106 → 80        |
+| Internet   | ¿A qué equipo, a través de qué redes?       | datagrama | dirección IP | IP, ICMP                  | 20 bytes, 10.0.1.20 → 10.0.2.30    |
+| Enlace     | ¿Cómo llega al siguiente equipo del enlace? | trama     | MAC          | Ethernet, Wi-Fi, PPP, ARP | 14 + 4 bytes, solo hasta el router |
+
+Para enviar, cada capa recibe los datos de la capa de arriba, les antepone su
+cabecera y entrega el resultado a la capa de abajo. Esto se llama
+**encapsulación**. Al recibir, cada capa lee su cabecera, la quita y entrega el
+resto hacia arriba.
+
+Dos detalles de la tabla se usan todos los días. El primero es el alcance de
+cada dirección. El puerto identifica un programa dentro de un equipo, la
+dirección IP identifica un equipo en toda la red y la dirección MAC solo vale
+dentro de un enlace. Por eso la trama del portátil va dirigida al router y no al
+servidor. El segundo es que la capa de enlace no es un protocolo sino un lugar.
+El RFC 1122 deja ahí cualquier tecnología capaz de llevar un datagrama hasta el
+siguiente equipo.
+
+## Los cursos dibujan cinco capas porque separan el enlace del medio físico
+
+El RFC 1122 mete en la capa de enlace todo lo que está debajo de IP. Ahí caben
+el formato de la trama, el acceso al medio y las señales en el cable o en el
+aire. Los
+libros de texto más usados, como los de Kurose y Ross o Tanenbaum, la parten en
+dos para enseñarla mejor. La capa de **enlace** se queda con las tramas y las
+direcciones. La capa **física** se queda con los bits convertidos en voltajes,
+luz u ondas de radio. El curso de fundamentos de Internet del que salió este
+post usa ese modelo de cinco capas: un portátil con WiFi ejecuta HTTP, TCP, IP,
+802.11 y 802.11ax.
+
+<Figure caption="La misma pila cortada de tres formas. La capa de aplicación de TCP/IP ocupa el lugar de las tres de arriba de OSI, y su capa de enlace ocupa el lugar de enlace y física.">
+  <ModelosCapas />
+</Figure>
+
+El modelo OSI agrega dos capas más arriba: presentación y sesión. TCP/IP no
+tiene protocolos propios para ellas. La aplicación decide la codificación de sus
+datos, como JSON en UTF-8, y una biblioteca de TLS cifra y mantiene la sesión
+dentro del mismo programa. No hay contradicción entre los tres modelos. Son tres
+cortes de la misma pila. Este post usa los cuatro del RFC. El de la torre de
+protocolos usa cinco, porque allí importa qué medio físico tiene cada enlace.
+
+## IP promete poco para poder correr sobre cualquier red
+
+IP entrega datagramas con "el mejor esfuerzo" (_best effort_). Puede perderlos,
+duplicarlos o entregarlos en otro orden, y no avisa. No abre conexiones ni
+repite nada. A la capa de abajo solo le pide una cosa: llevar un datagrama hasta
+el siguiente equipo.
+
+Esa promesa mínima es la respuesta a la pregunta de antes. Como IP exige tan
+poco, cualquier tecnología de enlace lo puede llevar. Y como todas las
+aplicaciones se apoyan en IP, ninguna necesita conocer la red que hay debajo. La
+pila toma la forma de un reloj de arena: muchas aplicaciones arriba, pocos
+transportes, un solo protocolo en la cintura y muchas tecnologías de enlace
+abajo. El RFC 1958, de 1996, lo pone como principio: debe haber un protocolo, y
+solo uno, en la capa internet.
+
+<Figure caption="El reloj de arena de Internet. Una aplicación nueva solo necesita TCP o UDP, y una red nueva solo necesita llevar datagramas IP. Ninguna de las dos tiene que conocer a la otra.">
+  <RelojDeArena />
+</Figure>
+
+El caso extremo es una broma que alguien cumplió. El RFC 1149, publicado el 1 de
+abril de 1990, describe cómo llevar IP en palomas mensajeras. En abril de 2001,
+el grupo de usuarios de Linux de Bergen, en Noruega, lo implementó. Envió 9
+pings y recibió 4 respuestas: 55 % de pérdida, con tiempos de ida y vuelta de
+entre 53 y 106 minutos. Nada por encima de IP tuvo que cambiar.
+
+El costo de esa promesa mínima es que alguien tiene que recuperar lo que se
+pierde. Ese trabajo es de TCP, en los extremos. Y eso lleva a la otra pregunta
+del principio: ¿quién escribió los 70 bytes que curl no escribió?
+
+## Tu programa ejecuta la aplicación; el kernel hace las otras tres capas
+
+Las tres llamadas de `strace` son la frontera entre curl y el sistema operativo.
+Cada una le entrega al kernel un trabajo de las capas de abajo:
+
+- **`socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)`**. curl pide un extremo de
+  conexión TCP sobre IPv4. Elige el transporte, pero no lo ejecuta.
+- **`connect()`**. El kernel elige un puerto de origen libre, el 34106, busca la
+  ruta y hace el saludo de tres vías de TCP: SYN, SYN-ACK y ACK. curl no ve esos
+  tres segmentos. Solo se entera de que la conexión quedó lista.
+- **`sendto()`**. curl entrega sus 72 bytes. El kernel escribe la cabecera TCP
+  de 32 bytes, 20 básicos más 12 de la opción de marcas de tiempo que Linux
+  agrega a cada segmento. Luego escribe la cabecera IP de 20 bytes con TTL 64 y
+  la cabecera Ethernet de 14. La tarjeta calcula los 4 bytes de verificación al
+  transmitir.
+
+Las decisiones que tomó el kernel se pueden consultar. La tabla de rutas dice
+que el siguiente salto es el router `10.0.1.1`. La caché de ARP, el protocolo
+que traduce direcciones IP a MAC, tiene su dirección MAC, que es justo el
+destino de la trama que capturó `tcpdump`:
+
+```text
+$ ip route get 10.0.2.30
+10.0.2.30 via 10.0.1.1 dev eth0 src 10.0.1.20
+$ ip neigh
+10.0.1.1 dev eth0 lladdr 02:00:00:00:01:01 REACHABLE
+```
+
+<Figure caption="Los 72 bytes de curl, envueltos capa por capa hasta los 142 que envía la tarjeta. Solo la primera fila corre dentro del programa. Todo lo que está bajo la línea discontinua lo hacen el kernel y la tarjeta de red.">
+  <FronteraKernel />
+</Figure>
+
+Esa es la respuesta a la primera pregunta. Los 70 bytes que faltaban son 32 de
+TCP, 20 de IP, 14 de Ethernet y 4 de verificación, y ninguno sale de curl. La
+frontera tiene excepciones. Una biblioteca de TLS como OpenSSL corre dentro del
+programa, así que en términos de TCP/IP el cifrado es parte de la capa de
+aplicación. QUIC, el transporte de HTTP/3, va más lejos: implementa
+retransmisiones y control de flujo dentro del programa, sobre UDP. Pero en una
+petición HTTP o HTTPS sobre TCP, la regla se cumple.
+
+## Las capas de abajo le avisan a tu programa con códigos de error
+
+Como el programa no ejecuta las capas de abajo, solo se entera de sus fallas por
+los códigos de error que el kernel deja en el socket. El laboratorio permite
+provocar tres fallas distintas, cada una en una capa:
+
+```text
+$ strace -e trace=getsockopt curl http://10.0.2.30:81/
+getsockopt(5, SOL_SOCKET, SO_ERROR, [ECONNREFUSED], [4]) = 0
+
+$ strace -e trace=getsockopt curl http://10.9.9.9/
+getsockopt(5, SOL_SOCKET, SO_ERROR, [ENETUNREACH], [4]) = 0
+
+$ strace -e trace=getsockopt curl http://10.0.2.99/
+getsockopt(5, SOL_SOCKET, SO_ERROR, [EHOSTUNREACH], [4]) = 0
+```
+
+Una captura en el portátil muestra quién envió las dos últimas noticias. Son
+mensajes de ICMP, el protocolo con el que IP reporta errores: uno del primer
+router y otro del segundo.
+
+```text
+IP 10.0.1.1 > 10.0.1.20: ICMP net 10.9.9.9 unreachable, length 68
+IP 10.0.12.2 > 10.0.1.20: ICMP host 10.0.2.99 unreachable, length 68
+```
+
+| Código         | Quién lo provocó                                                  | Capa que falló | Qué te dice                                                   |
+| -------------- | ----------------------------------------------------------------- | -------------- | ------------------------------------------------------------- |
+| `ECONNREFUSED` | el TCP del servidor, que respondió con un _reset_                 | transporte     | la red funciona de punta a punta; nadie escucha en ese puerto |
+| `ENETUNREACH`  | el primer router, con ICMP, al instante                           | internet       | un router no tiene ruta hacia esa red                         |
+| `EHOSTUNREACH` | el segundo router, con ICMP, tras 3 segundos de ARP sin respuesta | enlace         | la red existe, pero el equipo final no responde en su enlace  |
+
+`ECONNREFUSED` es el más útil de los tres, porque prueba mucho. El primer
+segmento de TCP cruzó los dos routers y el switch y llegó al servidor. Todas las
+capas de abajo funcionan, y el problema está en el servidor. Un cuarto caso es
+el silencio. Si un firewall descarta los paquetes sin responder, `connect()`
+espera y termina con `ETIMEDOUT`. Con la configuración por defecto de Linux, que
+repite el primer segmento 6 veces, la espera dura unos 127 segundos.
+
+## La frontera entre tu programa y el kernel dice dónde buscar una falla
+
+El modelo TCP/IP tiene cuatro capas en el RFC 1122: aplicación, transporte,
+internet y enlace. Los cursos dibujan cinco porque separan el medio físico, y
+OSI siete porque agrega presentación y sesión. Las cuatro nacieron de una
+decisión: la red hace lo mínimo y los extremos hacen el resto. Por eso IP
+promete tan poco y corre sobre cualquier cosa, y por eso TCP vive en los
+extremos.
+
+En un computador, esa pila tiene una frontera concreta. Tu programa ejecuta la
+capa de aplicación. El kernel y la tarjeta ejecutan las otras tres, y solo le
+hablan a tu programa con unas pocas llamadas al sistema y unos cuantos códigos
+de error.
+
+La idea para llevarse es una pregunta para cuando algo falle: ¿de qué lado de la
+frontera ocurrió? Si el error lo devuelve `connect()`, el problema está debajo
+de tu programa, y el código dice en qué capa. Si llega después, como un HTTP 500
+o un certificado rechazado, está en una aplicación, la tuya o la del otro lado.
+Para verlo en tu propio programa, ejecútalo con
+`strace -f -e trace=network`.
+
+## Referencias
+
+- Cerf, V., & Kahn, R. (1974). A Protocol for Packet Network
+  Intercommunication. _IEEE Transactions on Communications_, 22(5), 637–648.
+- Postel, J. (1981). RFC 791, _Internet Protocol_. IETF.
+- Postel, J. (1981). RFC 793, _Transmission Control Protocol_. IETF.
+- Braden, R. (Ed.). (1989). RFC 1122, _Requirements for Internet Hosts,
+  Communication Layers_. IETF.
+- Saltzer, J. H., Reed, D. P., & Clark, D. D. (1984). End-to-End Arguments in
+  System Design. _ACM Transactions on Computer Systems_, 2(4), 277–288.
+- Carpenter, B. (Ed.). (1996). RFC 1958, _Architectural Principles of the
+  Internet_. IETF.
+- Waitzman, D. (1990). RFC 1149, _A Standard for the Transmission of IP
+  Datagrams on Avian Carriers_. IETF.
+- Bergen Linux User Group. (2001). _CPIP, Carrier Pigeon Internet Protocol_.
+  [blug.linux.no/rfc1149](https://www.blug.linux.no/rfc1149).
+- Kurose, J. F., & Ross, K. W. (2021). _Computer Networking: A Top-Down
+  Approach_ (8.ª ed.). Pearson.
+- Tanenbaum, A. S., Feamster, N., & Wetherall, D. (2021). _Computer Networks_
+  (6.ª ed.). Pearson.
+- Eddy, W. (Ed.). (2022). RFC 9293, _Transmission Control Protocol_. IETF.
+- Iyengar, J., & Thomson, M. (Eds.). (2021). RFC 9000, _QUIC: A UDP-Based
+  Multiplexed and Secure Transport_. IETF.

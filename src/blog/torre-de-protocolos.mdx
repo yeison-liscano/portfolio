@@ -1,0 +1,356 @@
+---
+lang: "es"
+title: "Torre de protocolos: tres enlaces, un mismo paquete IP y el equipo que traceroute no ve"
+pubDate: 2026-10-28
+description:
+  "Un navegador en WiFi pide una página a un servidor en Ethernet, a través de
+  un enlace PPP. La torre de protocolos de cada equipo explica cómo se entienden
+  sin compartir un solo protocolo de enlace, qué puede leer y cambiar cada
+  equipo, y por qué traceroute muestra los routers pero no el switch."
+summary:
+  - "Cada protocolo habla solo con su entidad par, en la misma capa de otro
+    equipo. HTTP y TCP se hablan de punta a punta; el enlace y la capa física,
+    solo dentro de cada enlace."
+  - "Por eso los extremos no necesitan compartir un protocolo de enlace. Solo
+    necesitan IP, que corre en cada equipo de la ruta capaz de leerlo."
+  - "PPP no lleva direcciones: en un enlace punto a punto solo hay un receptor
+    posible. WiFi lleva tres direcciones MAC y Ethernet dos."
+  - "Un switch no aparece en traceroute porque no llega a la capa de red. La
+    capa más alta que lee un equipo decide qué puede ver, cambiar y filtrar."
+tags: ["networking", "security"]
+isDraft: false
+---
+
+import Figure from "../components/blog/Figure.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import TorresRuta from "./components/torre-protocolos/TorresRuta.astro";
+import TresTramas from "./components/torre-protocolos/TresTramas.astro";
+
+{/* cspell:ignore unframe */}
+
+Palabras clave: torre de protocolos, pila de protocolos, entidades pares,
+encapsulación, repetidor, switch, router, WiFi, PPP, Ethernet, traceroute
+
+Un ejemplo clásico de los cursos de redes es este. Chrome, en un portátil con
+WiFi, pide una página a un servidor Apache conectado por cable. Entre los dos
+hay dos routers unidos por un enlace PPP. Los extremos no comparten ni un
+protocolo de enlace ni uno de capa física, y aun así se entienden. Y un
+`traceroute` por esa ruta muestra los routers, pero no el switch que está junto
+al servidor. Las dos cosas se explican con la torre de protocolos de cada
+equipo. Entenderla dice dónde buscar una falla y dónde puede actuar un control
+de seguridad. Este post arma la torre de cada equipo de la ruta y la comprueba
+en un laboratorio de Linux, con un enlace PPP escrito en Python.
+
+## La ruta del ejemplo cruza tres enlaces distintos: WiFi, PPP y Ethernet
+
+El portátil se conecta por WiFi al router 1. El router 1 se une al router 2 por
+una línea serie con PPP, un protocolo de enlace para conexiones punto a punto.
+El router 2 se conecta por Ethernet a un switch, y el switch al servidor. Este
+post usa el modelo de cinco capas de los cursos: aplicación, transporte, red,
+enlace y física. El
+[post sobre el modelo TCP/IP](/portfolio/blog/modelo-tcp-ip/) explica por qué
+los cursos usan cinco y el RFC 1122 cuatro.
+
+<Figure caption="La torre de protocolos de cada equipo de la ruta. Solo los extremos tienen aplicación y transporte. IP corre en todos los equipos menos el switch. El enlace y la capa física cambian en cada enlace.">
+  <Stepper
+    lang="es"
+    label="Recorrido de la petición por la ruta"
+    steps={[
+      "El portátil encapsula la petición: HTTP dentro de TCP, dentro de IP, dentro de una trama 802.11 que viaja por radio.",
+      "El router 1 sube hasta IP, baja el TTL (el contador de saltos) de 64 a 63 y envuelve el mismo paquete en una trama PPP para la línea serie.",
+      "El router 2 hace lo mismo: baja el TTL de 63 a 62 y arma una trama Ethernet nueva hacia el switch.",
+      "El switch solo lee la dirección MAC de destino y reenvía la trama sin cambiar un byte.",
+      "El servidor sube las cinco capas. Apache lee la misma petición HTTP que escribió Chrome.",
+    ]}
+  >
+    <TorresRuta />
+  </Stepper>
+</Figure>
+
+La figura deja dos preguntas abiertas. La primera: si el portátil habla 802.11 y
+el servidor habla 802.3, ¿cómo se entienden? La segunda: el switch está en la
+ruta, igual que los routers, pero `traceroute` no lo muestra. ¿Por qué?
+
+## Una torre de protocolos es la lista de protocolos que ejecuta un equipo
+
+Una **torre de protocolos**, también llamada pila de protocolos, es el conjunto
+de protocolos que ejecuta un equipo, ordenados por la capa en la que trabajan.
+La torre del portátil tiene cinco pisos: HTTP en aplicación, TCP en transporte,
+IP en red, 802.11 en enlace y 802.11ax, conocido como Wi-Fi 6, en la capa
+física.
+
+Cada piso lo ejecuta una **entidad**: la parte del equipo que implementa ese
+protocolo. En el portátil, la entidad de aplicación es Chrome. Las de
+transporte y red son el kernel del sistema operativo. Las de enlace y física
+son el chip WiFi y su controlador. Para enviar, cada entidad le pasa sus datos a
+la de abajo, que les antepone su cabecera. Para recibir, cada una quita su
+cabecera y le pasa el resto a la de arriba.
+
+La torre de un equipo no tiene que ser completa. Un router solo tiene tres
+pisos, y los tiene por duplicado, uno por cada interfaz. Un switch solo tiene
+dos. Esa diferencia es la que responde las dos preguntas.
+
+## Cada protocolo habla con su entidad par, y cada capa tiene otro alcance
+
+Un protocolo define los mensajes que intercambian dos entidades de la misma
+capa en equipos distintos. Esas dos entidades se llaman **entidades pares**. La
+cabecera que escribe el TCP del portátil solo la lee el TCP del servidor. La
+cabecera 802.11 que escribe el chip WiFi del portátil solo la lee la interfaz
+WiFi del router 1.
+
+La clave está en dónde vive el par de cada capa:
+
+| Capa       | Protocolo en la ruta     | Entidades pares                         | Alcance                     |
+| ---------- | ------------------------ | --------------------------------------- | --------------------------- |
+| Aplicación | HTTP                     | Chrome y Apache                         | de punta a punta            |
+| Transporte | TCP                      | el TCP del portátil y el del servidor   | de punta a punta            |
+| Red        | IP                       | portátil, router 1, router 2 y servidor | toda la ruta, salto a salto |
+| Enlace     | 802.11, PPP, 802.3       | los dos extremos de cada enlace         | un enlace                   |
+| Física     | 802.11ax, serie, 802.3ab | los dos extremos de cada medio          | un enlace                   |
+
+Esto responde la primera pregunta. El portátil y el servidor no necesitan
+compartir un protocolo de enlace, porque sus entidades de enlace nunca se
+hablan. El portátil se entiende con el router 1 en 802.11, los routers se
+entienden en PPP, y el router 2 se entiende con el servidor en 802.3. Lo único
+que todos deben compartir es IP, y lo único que deben compartir los extremos es
+TCP y HTTP.
+
+Los pares tampoco necesitan la misma versión de fábrica. Se ponen de acuerdo al
+conectarse. Un punto de acceso Wi-Fi 6 atiende a un portátil más viejo con
+802.11ac. Dos tarjetas Ethernet negocian la mayor velocidad que ambas soportan.
+Y PPP abre cada enlace con LCP, su protocolo de control, para acordar opciones
+como el tamaño máximo de trama.
+
+## Cada equipo llega hasta una capa, y esa capa limita lo que puede leer
+
+La altura de la torre de un equipo dice hasta dónde puede desencapsular. Lo que
+está por encima de esa altura viaja dentro de los datos, y el equipo lo trata
+como bytes opacos:
+
+| Equipo               | Llega hasta | Lee                      | Cambia                                          | ¿Aparece en `traceroute`? |
+| -------------------- | ----------- | ------------------------ | ----------------------------------------------- | ------------------------- |
+| Repetidor o hub      | física      | señales y bits           | nada: copia los bits en sus otros puertos       | no                        |
+| Switch               | enlace      | la dirección MAC destino | nada; aprende qué MAC hay detrás de cada puerto | no                        |
+| Punto de acceso WiFi | enlace      | las direcciones 802.11   | el formato: traduce tramas 802.11 a 802.3       | no                        |
+| Router               | red         | la dirección IP destino  | la trama entera, el TTL y el checksum de IP     | sí                        |
+| Sistema final        | aplicación  | todo                     | produce y consume los datos                     | sí, si es el destino      |
+
+El repetidor es el caso límite. No desencapsula nada, porque no sabe qué es una
+trama. Lo que entra por un puerto sale por los otros. El switch, también llamado
+puente, sí lee la trama: mira la dirección MAC de destino y la envía solo por
+el puerto donde vio esa dirección antes. Un router desencapsula hasta IP, decide
+el siguiente salto y vuelve a encapsular para el enlace de salida.
+
+Un detalle práctico: un switch administrable tiene una dirección IP. Esa
+dirección sirve para hablar con el switch, por ejemplo por SSH. No cambia cómo
+reenvía las tramas de los demás, que sigue siendo por dirección MAC.
+
+## En cada enlace cambia la trama, y el paquete IP solo cambia su TTL
+
+Las tres tramas de la ruta llevan el mismo paquete IP, pero no se parecen entre
+sí. El mismo paquete de 124 bytes, una petición HTTP pequeña, viaja así:
+
+<Figure caption="El mismo paquete IP de 124 bytes en las tres tramas de la ruta, a escala. WiFi agrega 54 bytes con WPA2, PPP agrega 8 y Ethernet 18. Dentro del paquete, solo cambian el TTL y el checksum de su cabecera.">
+  <TresTramas />
+</Figure>
+
+- **WiFi (802.11)**. La cabecera de una trama de datos con calidad de servicio
+  mide 26 bytes y lleva tres direcciones MAC: el receptor inmediato (el punto
+  de acceso), el emisor inmediato (el portátil) y el destino de la trama. Le
+  siguen 8 bytes de LLC/SNAP, cuyo último campo, `0x0800`, dice que adentro va
+  IPv4. Con WPA2, el cifrado CCMP agrega 8 bytes antes del paquete y 8 de
+  código de integridad después. Cierra una verificación de 4 bytes.
+- **PPP**. La trama empieza y termina con la bandera `0x7E`. Lleva un campo de
+  dirección fijo, `0xFF`, que significa "todas las estaciones", un campo de
+  control fijo, `0x03`, el protocolo `0x0021` para IPv4 y una verificación de 2
+  bytes. No hay direcciones reales porque en un enlace punto a punto solo hay
+  un receptor posible.
+- **Ethernet (802.3)**. Una cabecera de 14 bytes con dos direcciones MAC y el
+  tipo `0x0800`, más una verificación de 4 bytes al final.
+
+Cada router tira la trama que recibe y arma una nueva para el enlace de salida.
+El paquete que va adentro solo cambia en dos campos. El TTL, un contador de
+saltos que evita que un paquete circule para siempre, baja en uno. Y el checksum
+de la cabecera IP se recalcula, porque el TTL es parte de ella. Las direcciones
+IP, el segmento TCP y la petición HTTP llegan como salieron.
+
+## Un enlace PPP escrito en Python basta para que IP no note el cambio
+
+Para comprobarlo, armé la ruta en un laboratorio de Linux. Cada equipo es un
+espacio de nombres de red (_network namespace_), y los cables Ethernet son
+pares de interfaces virtuales `veth`. El switch es un puente de Linux sin
+dirección IP. El laboratorio tiene dos diferencias con el ejemplo. El primer
+enlace es Ethernet y no WiFi, porque no hay radio que emular. Y el kernel del
+laboratorio no trae soporte para PPP, así que escribí el enlace entre los
+routers en Python.
+
+El script crea en cada router una interfaz TUN llamada `ppp0`. Una interfaz TUN
+le entrega a un programa los paquetes IP que el kernel envía por ella, sin
+cabecera de enlace. El script envuelve cada paquete en una trama PPP según el
+RFC 1662 y la escribe en una tubería que hace de línea serie. Del otro lado, la
+desenvuelve y le entrega el paquete al otro router. No negocia nada con LCP: usa
+los valores por defecto. Esta es la parte que implementa la capa de enlace:
+
+```python
+import struct
+
+FLAG, ESC = 0x7E, 0x7D
+PROTO_IPV4 = 0x0021
+
+
+def fcs16(data: bytes) -> int:
+    """16-bit frame check sequence of RFC 1662 (CRC-CCITT, reflected)."""
+    fcs = 0xFFFF
+    for byte in data:
+        fcs ^= byte
+        for _ in range(8):
+            fcs = (fcs >> 1) ^ 0x8408 if fcs & 1 else fcs >> 1
+    return fcs ^ 0xFFFF
+
+
+def frame(packet: bytes) -> bytes:
+    """IP packet -> flag, address, control, protocol, packet, FCS, flag."""
+    body = bytes([0xFF, 0x03]) + struct.pack("!H", PROTO_IPV4) + packet
+    body += struct.pack("<H", fcs16(body))
+    out = bytearray([FLAG])
+    for byte in body:  # escape the flag, the escape and control characters
+        if byte in (FLAG, ESC) or byte < 0x20:
+            out += bytes([ESC, byte ^ 0x20])
+        else:
+            out.append(byte)
+    out.append(FLAG)
+    return bytes(out)
+
+
+def unframe(raw: bytes) -> bytes | None:
+    """Bytes between two flags -> IP packet, or None if the FCS fails."""
+    body, escaped = bytearray(), False
+    for byte in raw:
+        if escaped:
+            body.append(byte ^ 0x20)
+            escaped = False
+        elif byte == ESC:
+            escaped = True
+        else:
+            body.append(byte)
+    if len(body) < 6:
+        return None
+    if fcs16(bytes(body[:-2])) != struct.unpack("<H", body[-2:])[0]:
+        return None
+    if body[:4] != bytes([0xFF, 0x03, 0x00, 0x21]):
+        return None
+    return bytes(body[4:-2])
+```
+
+Con el enlace arriba, `curl` desde el portátil recibe la página del servidor.
+Nada por encima de IP sabe que existe un enlace escrito en Python. Así se ve la
+trama PPP de la petición HTTP, sin el escape de bytes, con sus campos separados:
+
+```text
+7e ff 03 00 21 | 45 00 00 7c 19 8e 40 00 3f 06 0a bd ... | 76 f2 | 7e
+bandera, dirección, control, protocolo IPv4 | paquete IP de 124 bytes | FCS | bandera
+```
+
+Dentro del paquete se leen la longitud, `0x007c` (124 bytes), el
+identificador, `0x198e` (6542), y el TTL, `0x3f` (63), ya bajado por el router
+
+1. Si se cambia un solo bit de la trama, `unframe` devuelve `None`, porque la
+verificación no coincide. Un detalle del RFC 1662 sorprende al medirlo: sin
+negociación, se escapan todos los bytes menores que `0x20`, y esta trama de 132
+bytes ocupó 167 en la línea. LCP suele negociar un mapa de escape vacío para
+evitar ese costo.
+
+Las capturas a ambos lados de la ruta muestran el mismo paquete en tramas
+distintas. En el enlace del portátil y en el del servidor:
+
+```text
+02:00:00:00:01:20 > 02:00:00:00:01:01, ethertype IPv4 (0x0800), length 138:
+  (ttl 64, id 6542, proto TCP (6), length 124) 10.0.1.20.34106 > 10.0.2.30.80
+
+02:00:00:00:02:01 > 02:00:00:00:02:30, ethertype IPv4 (0x0800), length 138:
+  (ttl 62, id 6542, proto TCP (6), length 124) 10.0.1.20.34106 > 10.0.2.30.80
+```
+
+Las direcciones MAC son otras, porque cada enlace tiene sus propios pares. El
+identificador, la longitud, las direcciones IP y los puertos son los mismos. El
+TTL bajó de 64 a 62: dos routers. La trama del servidor tiene como origen la MAC
+del router 2, aunque pasó por el switch, porque el switch no la cambió. Lo que
+el switch sí sabe se ve en su tabla de direcciones. Tiene una dirección MAC por
+puerto y ninguna dirección IP:
+
+```text
+$ bridge fdb show br br0
+02:00:00:00:02:01 dev port1 master br0
+02:00:00:00:02:30 dev port2 master br0
+```
+
+## traceroute muestra los routers porque solo ellos llegan a la capa de red
+
+Este es el resultado de `traceroute` desde el portátil:
+
+```text
+$ traceroute -n -q 1 10.0.2.30
+traceroute to 10.0.2.30 (10.0.2.30), 30 hops max, 60 byte packets
+ 1  10.0.1.1  0.039 ms
+ 2  10.0.12.2  2.231 ms
+ 3  10.0.2.30  2.704 ms
+```
+
+Tres líneas para cuatro equipos: el router 1, el router 2 y el servidor. El
+switch no aparece. La razón está en la tabla de la sección anterior.
+`traceroute` envía paquetes con TTL 1, 2, 3 y así sucesivamente. Cada router
+que recibe un paquete con TTL 1 lo descarta y responde con un mensaje de ICMP,
+el protocolo con el que IP reporta errores. El mensaje dice "tiempo excedido" y
+sale de la dirección IP del router. Esa respuesta es la línea
+que imprime `traceroute`. Al final, el servidor responde con otro mensaje ICMP,
+"puerto inalcanzable", y ahí termina la lista.
+
+El switch no lee la cabecera IP, así que no baja el TTL, no descarta nada y no
+responde. Para IP, el switch no existe. Lo mismo vale para un repetidor y para
+un punto de acceso WiFi que no hace de router. `traceroute` no muestra la ruta
+física: muestra los equipos que llegan a la capa de red.
+
+## Para leer una ruta, pregunta hasta qué capa llega cada equipo
+
+El título prometía explicar tres cosas. Los tres enlaces se entienden porque
+cada protocolo solo habla con su entidad par. HTTP y TCP se hablan de punta a
+punta, IP en cada equipo que llega a la capa de red, y el enlace y la capa
+física dentro de cada enlace. El mismo paquete IP cruza WiFi, PPP y Ethernet
+porque cada router lo saca de una trama y lo mete en otra, cambiando solo el TTL
+y el checksum. Y el switch no aparece en `traceroute` porque su torre termina en
+la capa de enlace.
+
+La regla para llevarse sirve para cualquier ruta: dibuja la torre de cada
+equipo y mira su piso más alto. Ese piso dice qué puede leer el equipo, qué
+puede cambiar, si `traceroute` lo verá y qué puede filtrar.
+
+Eso decide dónde tiene sentido un control de seguridad. Un switch de capa 2
+puede filtrar por dirección MAC, pero no por IP; si un modelo filtra por IP, es
+porque para esa función lee la capa de red. Un firewall de red llega a IP y a
+los puertos, pero no ve la URL. Solo un equipo que llega a la capa de
+aplicación, como un proxy o un firewall de aplicaciones web, puede decidir por
+la URL, y con HTTPS solo si termina el TLS. Antes de elegir dónde poner un
+control de seguridad, pregunta hasta qué capa llega el equipo que lo va a
+aplicar.
+
+## Referencias
+
+- Simpson, W. (Ed.). (1994). RFC 1661, _The Point-to-Point Protocol (PPP)_.
+  IETF.
+- Simpson, W. (Ed.). (1994). RFC 1662, _PPP in HDLC-like Framing_. IETF.
+- Postel, J. (1981). RFC 791, _Internet Protocol_. IETF.
+- Postel, J. (1981). RFC 792, _Internet Control Message Protocol_. IETF.
+- Braden, R. (Ed.). (1989). RFC 1122, _Requirements for Internet Hosts,
+  Communication Layers_. IETF.
+- Baker, F. (Ed.). (1995). RFC 1812, _Requirements for IP Version 4 Routers_.
+  IETF.
+- IEEE 802.11-2020, _IEEE Standard for Information Technology,
+  Telecommunications and Information Exchange between Systems, Local and
+  Metropolitan Area Networks, Specific Requirements, Part 11: Wireless LAN
+  Medium Access Control (MAC) and Physical Layer (PHY) Specifications_.
+- IEEE 802.11ax-2021, _Amendment 1: Enhancements for High-Efficiency WLAN_.
+- IEEE 802.3, _IEEE Standard for Ethernet_, cláusulas 3 (formato de trama) y 40
+  (1000BASE-T, antes 802.3ab).
+- IEEE 802.1D, _Media Access Control (MAC) Bridges_.
+- Kurose, J. F., & Ross, K. W. (2021). _Computer Networking: A Top-Down
+  Approach_ (8.ª ed.). Pearson.
