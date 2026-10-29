@@ -1,0 +1,155 @@
+---
+/**
+ * RelojDeArena - The Internet's hourglass. Many applications at the top, a
+ * few transports, one protocol at the waist (IP), many link technologies and
+ * media below. Row widths follow the number of options at each level.
+ */
+interface Row {
+  layer: string;
+  label: string;
+  text: string;
+  w: number;
+  tone: string;
+}
+
+const ROWS: Row[] = [
+  {
+    layer: "Aplicación",
+    label: "muchas",
+    text: "HTTP · DNS · SMTP · SSH · WebRTC · tu programa",
+    w: 520,
+    tone: "l7",
+  },
+  {
+    layer: "Transporte",
+    label: "pocos",
+    text: "TCP · UDP",
+    w: 260,
+    tone: "l4",
+  },
+  { layer: "Internet", label: "uno", text: "IP", w: 90, tone: "l3" },
+  {
+    layer: "Enlace",
+    label: "muchos",
+    text: "Ethernet · Wi-Fi · PPP · 4G/5G · DOCSIS",
+    w: 400,
+    tone: "l2",
+  },
+  {
+    layer: "Medio",
+    label: "cualquiera",
+    text: "cobre · fibra · radio · satélite · palomas",
+    w: 520,
+    tone: "l1",
+  },
+];
+
+const CX = 430;
+const TOP = 12;
+const H = 34;
+const STEP = 50;
+const rowY = (i: number) => TOP + i * STEP;
+---
+
+<svg
+  viewBox="0 0 720 256"
+  role="img"
+  aria-label="Un reloj de arena de cinco filas. Arriba, muchas aplicaciones: HTTP, DNS, SMTP, SSH, WebRTC y tu programa. Luego pocos transportes: TCP y UDP. En la cintura, un solo protocolo: IP. Debajo, muchas tecnologías de enlace: Ethernet, Wi-Fi, PPP, 4G y 5G, DOCSIS. Abajo, cualquier medio: cobre, fibra, radio, satélite y palomas."
+  class="diagram"
+>
+  {ROWS.slice(0, -1).map((row, i) => {
+    const next = ROWS[i + 1];
+    const y1 = rowY(i) + H;
+    const y2 = rowY(i + 1);
+    const points = [
+      `${CX - row.w / 2},${y1}`,
+      `${CX + row.w / 2},${y1}`,
+      `${CX + next.w / 2},${y2}`,
+      `${CX - next.w / 2},${y2}`,
+    ].join(" ");
+    return <polygon points={points} class="neck" />;
+  })}
+
+  {ROWS.map((row, i) => (
+    <g>
+      <text x="0" y={rowY(i) + H / 2 - 7} class="layer">
+        {row.layer}
+      </text>
+      <text x="0" y={rowY(i) + H / 2 + 9} class="count">
+        {row.label}
+      </text>
+      <rect
+        x={CX - row.w / 2}
+        y={rowY(i)}
+        width={row.w}
+        height={H}
+        rx="4"
+        class:list={["box", row.tone]}
+      />
+      <text x={CX} y={rowY(i) + H / 2} class="text">
+        {row.text}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .layer {
+    fill: currentColor;
+    font-size: 13px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .count {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .neck {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .box {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .l7 {
+    fill: color-mix(in oklab, var(--contrast) 35%, var(--primary));
+  }
+
+  .l4 {
+    fill: color-mix(in oklab, var(--cat-2) 35%, var(--primary));
+  }
+
+  .l3 {
+    fill: color-mix(in oklab, var(--cat-4) 55%, var(--primary));
+  }
+
+  .l2 {
+    fill: color-mix(in oklab, var(--cat-1) 35%, var(--primary));
+  }
+
+  .l1 {
+    fill: var(--code-background);
+  }
+
+  .text {
+    fill: currentColor;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+</style>

@@ -1,0 +1,188 @@
+---
+/**
+ * ModelosCapas - The same stack cut three ways: the seven OSI layers, the
+ * five layers most courses draw, and the four layers of RFC 1122. Rows are
+ * aligned on the OSI grid so the reader sees which layers merge. A last
+ * column lists example protocols for each row.
+ */
+interface Block {
+  label: string;
+  from: number;
+  span: number;
+  layer: string;
+}
+
+interface Column {
+  title: string;
+  sub: string;
+  blocks: Block[];
+}
+
+const COLUMNS: Column[] = [
+  {
+    title: "OSI",
+    sub: "ISO 7498, 7 capas",
+    blocks: [
+      { label: "Aplicación", from: 0, span: 1, layer: "l7" },
+      { label: "Presentación", from: 1, span: 1, layer: "l7" },
+      { label: "Sesión", from: 2, span: 1, layer: "l7" },
+      { label: "Transporte", from: 3, span: 1, layer: "l4" },
+      { label: "Red", from: 4, span: 1, layer: "l3" },
+      { label: "Enlace de datos", from: 5, span: 1, layer: "l2" },
+      { label: "Física", from: 6, span: 1, layer: "l1" },
+    ],
+  },
+  {
+    title: "Cursos",
+    sub: "Kurose y Ross, Tanenbaum: 5",
+    blocks: [
+      { label: "Aplicación", from: 0, span: 3, layer: "l7" },
+      { label: "Transporte", from: 3, span: 1, layer: "l4" },
+      { label: "Red", from: 4, span: 1, layer: "l3" },
+      { label: "Enlace", from: 5, span: 1, layer: "l2" },
+      { label: "Física", from: 6, span: 1, layer: "l1" },
+    ],
+  },
+  {
+    title: "TCP/IP",
+    sub: "RFC 1122, 4 capas",
+    blocks: [
+      { label: "Aplicación", from: 0, span: 3, layer: "l7" },
+      { label: "Transporte", from: 3, span: 1, layer: "l4" },
+      { label: "Internet", from: 4, span: 1, layer: "l3" },
+      { label: "Enlace", from: 5, span: 2, layer: "l2" },
+    ],
+  },
+];
+
+const EXAMPLES: { from: number; span: number; text: string[] }[] = [
+  { from: 0, span: 3, text: ["HTTP, DNS, SSH,", "TLS, JSON, UTF-8"] },
+  { from: 3, span: 1, text: ["TCP, UDP"] },
+  { from: 4, span: 1, text: ["IP, ICMP"] },
+  { from: 5, span: 1, text: ["Ethernet, Wi-Fi, PPP"] },
+  { from: 6, span: 1, text: ["cobre, radio, fibra"] },
+];
+
+const TOP = 44;
+const ROW = 32;
+const GAP = 3;
+const COL_W = 150;
+const COL_GAP = 18;
+const colX = (i: number) => i * (COL_W + COL_GAP);
+const EX_X = colX(3) + 4;
+---
+
+<svg
+  viewBox="0 0 690 276"
+  role="img"
+  aria-label="Tres columnas alineadas. OSI tiene siete capas: aplicación, presentación, sesión, transporte, red, enlace de datos y física. Los cursos usan cinco: una sola capa de aplicación ocupa el lugar de las tres de arriba de OSI, y luego transporte, red, enlace y física. El RFC 1122 usa cuatro: aplicación, transporte, internet y una capa de enlace que ocupa el lugar de enlace y física. A la derecha, ejemplos: HTTP, DNS, SSH, TLS, JSON y UTF-8 arriba; TCP y UDP; IP e ICMP; Ethernet, Wi-Fi y PPP; cobre, radio y fibra."
+  class="diagram"
+>
+  {COLUMNS.map((column, i) => (
+    <g>
+      <text x={colX(i) + COL_W / 2} y="16" class="title">
+        {column.title}
+      </text>
+      <text x={colX(i) + COL_W / 2} y="32" class="sub">
+        {column.sub}
+      </text>
+      {column.blocks.map((block) => {
+        const y = TOP + block.from * ROW;
+        const h = block.span * ROW - GAP;
+        return (
+          <g>
+            <rect
+              x={colX(i)}
+              y={y}
+              width={COL_W}
+              height={h}
+              rx="3"
+              class:list={["box", block.layer]}
+            />
+            <text x={colX(i) + COL_W / 2} y={y + h / 2} class="label">
+              {block.label}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  ))}
+
+  <text x={EX_X} y="16" class="title start">
+    Ejemplos
+  </text>
+  {EXAMPLES.map((example) => {
+    const y = TOP + example.from * ROW + (example.span * ROW - GAP) / 2;
+    const offset = ((example.text.length - 1) * 15) / 2;
+    return example.text.map((line, j) => (
+      <text x={EX_X} y={y - offset + j * 15} class="example">
+        {line}
+      </text>
+    ));
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .title {
+    fill: currentColor;
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .title.start {
+    text-anchor: start;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+
+  .box {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .l7 {
+    fill: color-mix(in oklab, var(--contrast) 35%, var(--primary));
+  }
+
+  .l4 {
+    fill: color-mix(in oklab, var(--cat-2) 35%, var(--primary));
+  }
+
+  .l3 {
+    fill: color-mix(in oklab, var(--cat-4) 35%, var(--primary));
+  }
+
+  .l2 {
+    fill: color-mix(in oklab, var(--cat-1) 35%, var(--primary));
+  }
+
+  .l1 {
+    fill: var(--code-background);
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .example {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+</style>

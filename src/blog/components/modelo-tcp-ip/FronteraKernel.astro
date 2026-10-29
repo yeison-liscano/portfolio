@@ -1,0 +1,174 @@
+---
+/**
+ * FronteraKernel - The 72 bytes curl writes, wrapped layer by layer until the
+ * network card sends 142. Drawn to scale. The data stays at the same x in
+ * every row, so each header visibly lands in front of it. A dashed line marks
+ * the system call: only the first row runs inside the program.
+ */
+interface Part {
+  label: string;
+  bytes: number;
+  layer: string;
+}
+
+interface Row {
+  name: string;
+  who: string;
+  parts: Part[];
+  total: string;
+}
+
+const DATA: Part = { label: "GET /", bytes: 72, layer: "l7" };
+const TCP: Part = { label: "TCP", bytes: 32, layer: "l4" };
+const IP: Part = { label: "IP", bytes: 20, layer: "l3" };
+const ETH: Part = { label: "Eth", bytes: 14, layer: "l2" };
+const FCS: Part = { label: "FCS", bytes: 4, layer: "l2" };
+
+const ROWS: Row[] = [
+  { name: "Aplicación", who: "curl", parts: [DATA], total: "72" },
+  { name: "Transporte", who: "kernel", parts: [TCP, DATA], total: "104" },
+  { name: "Internet", who: "kernel", parts: [IP, TCP, DATA], total: "124" },
+  {
+    name: "Enlace",
+    who: "kernel y tarjeta",
+    parts: [ETH, IP, TCP, DATA, FCS],
+    total: "142",
+  },
+];
+
+const SCALE = 3.3;
+const DATA_X = 170 + (14 + 20 + 32) * SCALE;
+const BAR_H = 30;
+const rowY = (i: number) => (i === 0 ? 34 : 70 + i * 52);
+const BOUNDARY_Y = 94;
+
+/** x where each part starts, keeping the data at DATA_X in every row. */
+const layout = (parts: Part[]) => {
+  const dataIndex = parts.indexOf(DATA);
+  const before = parts
+    .slice(0, dataIndex)
+    .reduce((sum, part) => sum + part.bytes, 0);
+  let x = DATA_X - before * SCALE;
+  return parts.map((part) => {
+    const start = x;
+    x += part.bytes * SCALE;
+    return { ...part, x: start, w: part.bytes * SCALE };
+  });
+};
+---
+
+<svg
+  viewBox="0 0 720 268"
+  role="img"
+  aria-label="Cuatro filas a escala. Arriba, en el espacio de usuario, curl escribe 72 bytes. Una línea discontinua marca la llamada al sistema. Debajo, en el kernel, la capa de transporte antepone 32 bytes de TCP (104 en total), la capa internet antepone 20 bytes de IP (124) y la capa de enlace antepone 14 bytes de Ethernet y agrega 4 de verificación al final (142). Los 72 bytes de datos quedan alineados en todas las filas."
+  class="diagram"
+>
+  {ROWS.map((row, i) => {
+    const y = rowY(i);
+    return (
+      <g>
+        <text x="0" y={y + BAR_H / 2 - 7} class="name">
+          {row.name}
+        </text>
+        <text x="0" y={y + BAR_H / 2 + 9} class="who">
+          {row.who}
+        </text>
+        {layout(row.parts).map((part) => (
+          <g>
+            <rect
+              x={part.x}
+              y={y}
+              width={part.w}
+              height={BAR_H}
+              class:list={["seg", part.layer]}
+            />
+            <text x={part.x + part.w / 2} y={y + BAR_H / 2} class="count">
+              {part.w > 34 ? `${part.label} ${part.bytes}` : part.bytes}
+            </text>
+          </g>
+        ))}
+        <text x="712" y={y + BAR_H / 2} class="total">
+          {row.total} B
+        </text>
+      </g>
+    );
+  })}
+
+  <line x1="0" y1={BOUNDARY_Y} x2="720" y2={BOUNDARY_Y} class="boundary" />
+  <text x="0" y={BOUNDARY_Y - 8} class="boundary-label">
+    espacio de usuario
+  </text>
+  <text x="0" y={BOUNDARY_Y + 16} class="boundary-label">
+    kernel: socket(), connect(), sendto()
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .name {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .who {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .seg {
+    stroke: var(--primary);
+    stroke-width: 1;
+  }
+
+  .l7 {
+    fill: var(--contrast);
+  }
+
+  .l4 {
+    fill: var(--cat-2);
+  }
+
+  .l3 {
+    fill: var(--cat-4);
+  }
+
+  .l2 {
+    fill: var(--cat-1);
+  }
+
+  .count {
+    fill: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .total {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: end;
+    dominant-baseline: middle;
+  }
+
+  .boundary {
+    stroke: var(--muted);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 4;
+  }
+
+  .boundary-label {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+</style>
