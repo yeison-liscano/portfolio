@@ -612,3 +612,7 @@ satelitales
 tcpdump
 veth
 sendto
+EECS
+Kerrisk
+epoll
+interprocess

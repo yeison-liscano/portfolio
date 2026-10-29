@@ -1,0 +1,240 @@
+---
+/**
+ * StreamVsDatagram - The same three writes, "one", "two" and "three", sent
+ * over a TCP socket and over a UDP socket. TCP turns them into one run of
+ * 11 bytes with no boundaries, and a single read returns all of them. UDP
+ * keeps three datagrams, and three reads return them one by one. Numbers
+ * come from the lab in the post.
+ */
+// cspell:ignore onetwothree
+const WORDS = ["one", "two", "three"];
+const CELL = 16;
+const WRITE_X = [0, 50, 100];
+const WRITE_W = [44, 44, 60];
+const READ_X = 480;
+
+interface Row {
+  name: string;
+  sub: string;
+  y: number;
+  gap: number;
+  note: string;
+  reads: { x: number; w: number; label: string }[];
+  readNote: string;
+}
+
+const ROWS: Row[] = [
+  {
+    name: "TCP",
+    sub: "stream socket",
+    y: 56,
+    gap: 0,
+    note: "11 bytes, no boundaries",
+    reads: [{ x: READ_X, w: 160, label: "onetwothree" }],
+    readNote: "1 read",
+  },
+  {
+    name: "UDP",
+    sub: "datagram socket",
+    y: 168,
+    gap: 12,
+    note: "3 datagrams",
+    reads: WORDS.map((word, i) => ({
+      x: READ_X + WRITE_X[i],
+      w: WRITE_W[i],
+      label: word,
+    })),
+    readNote: "3 reads",
+  },
+];
+
+const BOX_H = 30;
+const STREAM_X = 216;
+
+/** One cell per byte; a gap between datagrams, none inside the stream. */
+const cells = (gap: number) => {
+  let x = STREAM_X;
+  return WORDS.flatMap((word) => {
+    const out = [...word].map((char, i) => ({ x: x + i * CELL, char }));
+    x += word.length * CELL + gap;
+    return out;
+  });
+};
+
+const streamEnd = (gap: number) => {
+  const last = cells(gap).at(-1);
+  return last ? last.x + CELL : STREAM_X;
+};
+---
+
+<svg
+  viewBox="0 0 720 250"
+  role="img"
+  aria-label="Two rows. In both, a program makes three writes: one, two and three. In the TCP row, the kernel carries them as one run of 11 bytes with no gaps, and one read returns onetwothree. In the UDP row, the kernel carries three separate datagrams, and three reads return one, two and three."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id="stream-datagram-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="80" y="14" class="head">
+    program writes
+  </text>
+  <text x="312" y="14" class="head">
+    kernel carries
+  </text>
+  <text x="560" y="14" class="head">
+    program reads
+  </text>
+
+  {ROWS.map((row) => (
+    <g>
+      <text x="0" y={row.y - 14} class="name">
+        {row.name} <tspan class="sub">{row.sub}</tspan>
+      </text>
+
+      {WORDS.map((word, i) => (
+        <g>
+          <rect
+            x={WRITE_X[i]}
+            y={row.y}
+            width={WRITE_W[i]}
+            height={BOX_H}
+            rx="3"
+            class="msg"
+          />
+          <text
+            x={WRITE_X[i] + WRITE_W[i] / 2}
+            y={row.y + BOX_H / 2}
+            class="label"
+          >
+            {word}
+          </text>
+        </g>
+      ))}
+
+      <line
+        x1="168"
+        y1={row.y + BOX_H / 2}
+        x2="206"
+        y2={row.y + BOX_H / 2}
+        marker-end="url(#stream-datagram-arrow)"
+        class="link"
+      />
+
+      {cells(row.gap).map((cell) => (
+        <g>
+          <rect x={cell.x} y={row.y} width={CELL} height={BOX_H} class="byte" />
+          <text x={cell.x + CELL / 2} y={row.y + BOX_H / 2} class="label">
+            {cell.char}
+          </text>
+        </g>
+      ))}
+      <text
+        x={(STREAM_X + streamEnd(row.gap)) / 2}
+        y={row.y + BOX_H + 18}
+        class="note"
+      >
+        {row.note}
+      </text>
+
+      <line
+        x1={streamEnd(row.gap) + 8}
+        y1={row.y + BOX_H / 2}
+        x2={READ_X - 10}
+        y2={row.y + BOX_H / 2}
+        marker-end="url(#stream-datagram-arrow)"
+        class="link"
+      />
+
+      {row.reads.map((read) => (
+        <g>
+          <rect
+            x={read.x}
+            y={row.y}
+            width={read.w}
+            height={BOX_H}
+            rx="3"
+            class="msg"
+          />
+          <text x={read.x + read.w / 2} y={row.y + BOX_H / 2} class="label">
+            {read.label}
+          </text>
+        </g>
+      ))}
+      <text x={READ_X + 80} y={row.y + BOX_H + 18} class="note">
+        {row.readNote}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .head {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .name {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  .msg {
+    fill: var(--contrast);
+    stroke: var(--primary);
+    stroke-width: 1;
+  }
+
+  .byte {
+    fill: var(--cat-2);
+    stroke: var(--primary);
+    stroke-width: 1;
+  }
+
+  .label {
+    fill: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .link {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+</style>

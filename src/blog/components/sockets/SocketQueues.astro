@@ -1,0 +1,258 @@
+---
+/**
+ * SocketQueues - Where the bytes were when the receiving program read
+ * nothing. The sender's send() calls accepted 3,910,656 bytes. The receiver's
+ * kernel held and acknowledged 128,512 of them; the sender's kernel held the
+ * other 3,782,144, not yet acknowledged. A dashed line marks the system call
+ * boundary. Numbers come from ss in the lab described in the post.
+ */
+interface Box {
+  x: number;
+  y: number;
+  title: string;
+  sub: string;
+  layer: "app" | "transport";
+}
+
+const W = 260;
+const H = 52;
+const LEFT = 10;
+const RIGHT = 450;
+const APP_Y = 34;
+const KERNEL_Y = 136;
+const BOUNDARY_Y = 110;
+
+const BOXES: Box[] = [
+  {
+    x: LEFT,
+    y: APP_Y,
+    title: "sending program",
+    sub: "send() accepted 3,910,656 B",
+    layer: "app",
+  },
+  {
+    x: RIGHT,
+    y: APP_Y,
+    title: "receiving program",
+    sub: "read 0 B",
+    layer: "app",
+  },
+  {
+    x: LEFT,
+    y: KERNEL_Y,
+    title: "send queue",
+    sub: "3,782,144 B, not yet ACKed",
+    layer: "transport",
+  },
+  {
+    x: RIGHT,
+    y: KERNEL_Y,
+    title: "receive queue",
+    sub: "128,512 B, ACKed, unread",
+    layer: "transport",
+  },
+];
+
+const leftMid = LEFT + W / 2;
+const rightMid = RIGHT + W / 2;
+const gapLeft = LEFT + W;
+const gapRight = RIGHT;
+const gapMid = (gapLeft + gapRight) / 2;
+---
+
+<svg
+  viewBox="0 0 720 244"
+  role="img"
+  aria-label="Two hosts side by side, split by a dashed line between user space and the kernel. Above the line, the sending program's send() calls accepted 3,910,656 bytes, and the receiving program read 0 bytes. Below the line, the sender's send queue holds 3,782,144 bytes not yet acknowledged, and the receiver's receive queue holds 128,512 bytes that TCP acknowledged but no program read. Data flows from the send queue to the receive queue, and acknowledgments flow back between the two kernels. The receiving program never calls recv()."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id="socket-queues-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x={leftMid} y="16" class="head">
+    sender
+  </text>
+  <text x={rightMid} y="16" class="head">
+    receiver
+  </text>
+
+  {BOXES.map((box) => (
+    <g>
+      <rect
+        x={box.x}
+        y={box.y}
+        width={W}
+        height={H}
+        rx="4"
+        class:list={["box", box.layer]}
+      />
+      <text x={box.x + W / 2} y={box.y + 19} class="title">
+        {box.title}
+      </text>
+      <text x={box.x + W / 2} y={box.y + 37} class="sub">
+        {box.sub}
+      </text>
+    </g>
+  ))}
+
+  <line x1="0" y1={BOUNDARY_Y} x2="720" y2={BOUNDARY_Y} class="boundary" />
+  <text x={gapMid} y={BOUNDARY_Y - 8} class="boundary-label">
+    user space
+  </text>
+  <text x={gapMid} y={BOUNDARY_Y + 16} class="boundary-label">
+    kernel
+  </text>
+
+  <line
+    x1={leftMid}
+    y1={APP_Y + H + 2}
+    x2={leftMid}
+    y2={KERNEL_Y - 3}
+    marker-end="url(#socket-queues-arrow)"
+    class="link"
+  />
+  <text x={leftMid + 10} y={BOUNDARY_Y - 8} class="call">
+    send()
+  </text>
+
+  <line
+    x1={rightMid}
+    y1={KERNEL_Y - 2}
+    x2={rightMid}
+    y2={APP_Y + H + 3}
+    marker-end="url(#socket-queues-arrow)"
+    class="link idle"
+  />
+  <text x={rightMid + 10} y={BOUNDARY_Y - 8} class="call">
+    no recv() call
+  </text>
+
+  <line
+    x1={gapLeft + 4}
+    y1={KERNEL_Y + 16}
+    x2={gapRight - 4}
+    y2={KERNEL_Y + 16}
+    marker-end="url(#socket-queues-arrow)"
+    class="link"
+  />
+  <text x={gapMid} y={KERNEL_Y + 8} class="call mid">
+    data
+  </text>
+  <line
+    x1={gapRight - 4}
+    y1={KERNEL_Y + 38}
+    x2={gapLeft + 4}
+    y2={KERNEL_Y + 38}
+    marker-end="url(#socket-queues-arrow)"
+    class="link idle"
+  />
+  <text x={gapMid} y={KERNEL_Y + 54} class="call mid">
+    ACK
+  </text>
+
+  <text x={leftMid} y={KERNEL_Y + H + 26} class="note">
+    send() returned once the bytes
+  </text>
+  <text x={leftMid} y={KERNEL_Y + H + 42} class="note">
+    reached this queue
+  </text>
+  <text x={rightMid} y={KERNEL_Y + H + 26} class="note">
+    TCP acknowledged these bytes,
+  </text>
+  <text x={rightMid} y={KERNEL_Y + H + 42} class="note">
+    but no program has read them
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .head {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .box {
+    stroke: var(--primary);
+    stroke-width: 1;
+  }
+
+  .app {
+    fill: var(--contrast);
+  }
+
+  .transport {
+    fill: var(--cat-2);
+  }
+
+  .title {
+    fill: var(--primary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .sub {
+    fill: var(--primary);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .link {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .idle {
+    stroke-dasharray: 4 3;
+  }
+
+  .call {
+    fill: currentColor;
+    font-size: 11px;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .boundary {
+    stroke: var(--muted);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 4;
+  }
+
+  .boundary-label {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+</style>

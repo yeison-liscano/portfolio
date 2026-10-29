@@ -1,0 +1,358 @@
+---
+lang: "en"
+title: "Sockets: How Applications Use TCP and UDP, and Why One 10 MB Send Took 12 to 68 Reads"
+pubDate: 2026-10-29
+description:
+  "What a socket is, why the operating system puts one between every program
+  and TCP or UDP, and how a server and a client set up a conversation. A Linux
+  lab shows the two facts the interface hides: a read returns bytes, not
+  messages, and a send ends at the kernel, not at the other program."
+summary:
+  - "A socket is a file descriptor for one end of a conversation. The kernel
+    runs TCP and UDP; the program only writes and reads bytes through the
+    socket."
+  - "The two kernels finish the TCP handshake before the server calls
+    accept(). accept() takes a finished connection off a queue and returns a
+    new socket for that client."
+  - "TCP carries bytes, not messages. The same 10 MB send took between 12 and
+    68 reads in five runs, so the application must mark where each message
+    ends."
+  - "send() returns when the kernel has the bytes. In the lab, send() accepted
+    3.9 MB for a program that read nothing, and a reset then discarded them."
+tags: ["networking", "programming"]
+isDraft: false
+---
+
+import Figure from "../components/blog/Figure.astro";
+import Mermaid from "../components/blog/Mermaid.astro";
+import StreamVsDatagram from "./components/sockets/StreamVsDatagram.astro";
+import SocketQueues from "./components/sockets/SocketQueues.astro";
+
+{/* cspell:ignore sport dport ESTAB ACKed kqueue onetwothree Fabry Leffler Klensin Rudoff Fenner */}
+
+Keywords: socket, Berkeley sockets, file descriptor, TCP, UDP, listen, accept,
+message framing, send buffer, ss
+
+Almost every program that uses the network reaches TCP and UDP through a
+socket. A browser, a database driver and a remote MCP server all do. The
+interface looks like a file: the program writes bytes and reads bytes. That
+resemblance hides two facts. A read returns whatever bytes have arrived, not
+the message the other side sent. A send returns when the kernel has the bytes,
+not when the other program has read them. Code that ignores either fact can
+pass local tests and still lose data in production. This post explains what a
+socket is, why the operating system puts one in front of every program, and how
+a server and a client set up a conversation. A small Linux lab measures both
+facts, and the end of the post names the two jobs every application must do on
+top of a socket.
+
+## One 10 MB send took between 12 and 68 reads in the same lab
+
+The lab is one Linux machine (kernel 6.18) with a small Python server and
+client that talk over the loopback interface, `127.0.0.1`. The client sends
+10,000,000 bytes with a single call. The server reads in a loop and asks for up
+to 10,000,000 bytes on every read. If one send became one read, the loop would
+run once.
+
+It never ran once. These are five runs of the same transfer:
+
+| Run | Reads | Bytes in the first read | Largest read |
+| --- | ----- | ----------------------- | ------------ |
+| 1   | 12    | 65,482                  | 2,095,456    |
+| 2   | 48    | 32,741                  | 1,309,660    |
+| 3   | 57    | 32,741                  | 1,178,694    |
+| 4   | 68    | 32,741                  | 654,830      |
+| 5   | 55    | 65,482                  | 916,762      |
+
+All 10,000,000 bytes arrived every time. Only the cuts changed.
+
+A second experiment was stranger. The server accepted a connection and never
+read from it. The client kept sending, and its sends kept succeeding until
+3,910,656 bytes had been accepted. The receiving program had read nothing. So
+where did 3.9 MB go, and why didn't the 10 MB arrive as one message? Both
+answers come from what a socket is.
+
+## A socket is the kernel's handle for one end of a conversation
+
+A socket is an endpoint for communication that the operating system creates
+for a program. The program asks for one with a system call, and the kernel
+returns a small integer, a **file descriptor**. It is the same kind of number
+the program gets when it opens a file. The process's file table shows both side
+by side. Here a Python process opened `/etc/hostname` and created one TCP
+socket. The output is trimmed to those two entries:
+
+```text
+$ ls -l /proc/<pid>/fd
+3 -> /etc/hostname
+4 -> socket:[3338]
+```
+
+Descriptor 3 points to a file on disk. Descriptor 4 points to a socket, an
+object that lives only in the kernel. The program writes to it and reads from
+it, and the kernel decides what those bytes become on the network.
+
+An address tells the kernel which socket a piece of data belongs to. The IP
+address names the machine, like a building's street number. The port names the
+program inside it, like an office extension. A TCP connection is identified by
+four numbers: the address and port on each side. That is how one web server on
+port 443 holds thousands of separate conversations. The
+[OSI layers post](/portfolio/blog/osi-layers-one-request/) shows how the
+receiving kernel uses those four numbers to find the right socket.
+
+Not every socket reaches the network. Unix domain sockets use the same calls
+between programs on one machine, and they name each socket with a file path
+instead of an address and a port. The Docker daemon, for example, listens on
+`/var/run/docker.sock`.
+
+## The kernel owns the network, and the socket is the program's only door
+
+Why not let each program drive the network card directly? Three problems
+appear as soon as two programs share a machine.
+
+- **The hardware is shared.** One network card serves every program. If each
+  program drove it directly, one bug could corrupt or read another program's
+  traffic. The kernel owns the card, and programs reach it only through system
+  calls.
+- **Data arrives for the machine, not for a program.** The kernel reads the
+  destination port of each incoming packet, finds the socket bound to it and
+  queues the data there. Without that step, a browser and a chat client on the
+  same laptop could not tell their traffic apart.
+- **The protocol must keep running while the program is busy.** TCP
+  acknowledges data, retransmits lost segments and slows down when the network
+  is congested. That work cannot wait until the program calls a function. The
+  kernel does it for every connection, all the time.
+
+The interface comes from 4.2BSD, the Berkeley Unix release of 1983. Samuel
+Leffler, Robert Fabry and William Joy described it in the release's
+interprocess communication primer. A socket is a descriptor, and the same
+`read` and `write` calls that work on files work on it. The design spread to
+every major system. POSIX standardized it in 2001, and Windows Sockets follows
+it closely, so almost every language exposes nearly the same calls. The
+[TCP/IP model post](/portfolio/blog/modelo-tcp-ip/) (in Spanish) traces which
+header bytes the kernel adds below this boundary. This post stays at the
+boundary itself.
+
+## A server listens on one socket and gets a new socket for each client
+
+The two sides of a TCP conversation play different roles. The server goes
+first. It creates a socket, binds it to a known address and port, and calls
+`listen` to mark it as ready for connections. The client creates its own
+socket and calls `connect` with the server's address and port. The kernel
+picks a free source port for the client.
+
+The surprise is in what happens next. In the lab, three clients connected to a
+server on port 5000 that had called `listen` but not `accept`. All three
+`connect` calls returned. `ss`, the Linux tool that lists sockets, showed why:
+
+```text
+$ ss -tln 'sport = :5000'
+State  Recv-Q Send-Q Local Address:Port Peer Address:Port
+LISTEN 3      8          127.0.0.1:5000      0.0.0.0:*
+$ ss -tn state established 'sport = :5000'
+Recv-Q Send-Q Local Address:Port Peer Address:Port
+0      0          127.0.0.1:5000    127.0.0.1:37620
+0      0          127.0.0.1:5000    127.0.0.1:37606
+0      0          127.0.0.1:5000    127.0.0.1:37590
+```
+
+On the listening socket, `Recv-Q` counted 3 finished connections waiting for
+the program, and `Send-Q` showed 8, the limit the server passed to `listen`.
+The three connections were already established. The two kernels had exchanged
+the three handshake segments, SYN, SYN-ACK and ACK, while the server program
+did nothing. `accept` does not shake hands. It takes one finished connection
+off that queue and returns a **new socket** for it. On Linux, the backlog
+argument of `listen` has sized this queue of completed connections since
+version 2.2.
+
+<Figure caption="The kernels finish the handshake on their own. connect() returns once the three segments are exchanged, and the connection waits in the server's accept queue until the program calls accept(), which returns a new socket for that client.">
+  <Mermaid
+    label="Sequence diagram with four participants: client program, client kernel, server kernel and server program. The server program calls socket, bind and listen. The client program calls socket and connect. The client kernel sends SYN, the server kernel answers SYN-ACK, and the client kernel sends ACK. connect returns to the client program. The connection waits in the accept queue. Later the server program calls accept and gets a new socket. The client sends bytes, and the server program reads them with recv."
+    code={`
+sequenceDiagram
+  participant CP as client program
+  participant CK as client kernel
+  participant SK as server kernel
+  participant SP as server program
+  SP->>SK: socket(), bind(port 5000), listen()
+  CP->>CK: socket(), connect(port 5000)
+  CK->>SK: SYN
+  SK-->>CK: SYN-ACK
+  CK->>SK: ACK
+  CK-->>CP: connect() returns
+  Note over SK: connection waits in the accept queue
+  SP->>SK: accept()
+  SK-->>SP: new socket for this client
+  CP->>CK: send(bytes)
+  CK->>SK: TCP segments
+  SP->>SK: recv()
+  SK-->>SP: bytes
+`}
+  />
+</Figure>
+
+After three `accept` calls, the queue was empty and the server held four
+sockets on port 5000: the listening one and one per client. The connected
+sockets differ only in the client's port: 37590, 37606 and 37620. The listening
+socket never carries data. It works like a switchboard: the main number stays
+free, and each caller is handed to a line of their own.
+
+Either side ends the conversation by closing its socket. Its kernel sends a FIN
+segment, and the other program's next read returns zero bytes, the signal that
+the other side is done. A program can also close only its sending direction.
+The peer learns that no more data is coming, and the connection still carries
+the reply.
+
+## TCP carries a stream of bytes, and UDP carries separate messages
+
+The type chosen when the socket is created decides what the kernel promises. A
+**stream socket** uses TCP. It delivers every byte, in order, or reports an
+error. A **datagram socket** uses UDP. It sends each write as one datagram,
+which arrives whole or not at all, possibly out of order, with no notice when
+it is lost.
+
+The lab sent the same three writes over each kind: `one`, `two` and `three`.
+The TCP receiver waited a moment, then made one read and got `onetwothree`. The
+UDP receiver made three reads and got `one`, `two` and `three`.
+
+<Figure caption="The same three writes over two kinds of socket. TCP keeps the order of the bytes but not the boundaries between writes, so one read returned all 11 bytes. UDP keeps each write as a datagram, so three reads returned three messages.">
+  <StreamVsDatagram />
+</Figure>
+
+This answers the first question. TCP numbers bytes, not messages. The
+receiving kernel puts arriving bytes in the socket's receive queue, and a read
+returns whatever is there at that moment, up to the size requested. How much is
+there depends on timing: how fast the sender writes, how the data was cut into
+segments and when the reader wakes up. That is why the same 10 MB took 12 reads
+once and 68 another time. Loopback is the easy case, because a segment there
+can carry about 64 KB. On an Ethernet path, a TCP segment carries at most about
+1,448 bytes of data, so the cuts are smaller and even less predictable.
+
+UDP keeps boundaries but has its own costs. A datagram over IPv4 holds at most
+65,507 bytes, and one larger than the path allows is split into IP fragments;
+losing any fragment loses the whole datagram. Applications that choose UDP,
+such as DNS, voice and video calls, games and QUIC, the transport under HTTP/3,
+accept those costs or build their own reliability on top.
+
+## A read returns what has arrived, so the application marks message ends
+
+Because the stream has no boundaries, every protocol on top of TCP defines its
+own. There are four common ways:
+
+| Method               | How the reader finds the end                                         | Example                                |
+| -------------------- | -------------------------------------------------------------------- | -------------------------------------- |
+| Delimiter            | reads until a reserved byte sequence, such as `\r\n`                 | SMTP commands                          |
+| Length prefix        | reads a fixed-size length field, then exactly that many bytes        | PostgreSQL messages                    |
+| Header with a length | reads headers up to an empty line, then the body length they declare | HTTP/1.1 `Content-Length`              |
+| End of stream        | reads until the sender closes its direction                          | HTTP responses with no declared length |
+
+Each method turns the stream back into messages, and each needs the reader to
+loop. It reads, appends to a buffer and checks whether a full message is there.
+If not, it reads again. A quick test with a short message never exercises that
+loop, because a short message usually arrives in one read.
+
+A length field also needs a limit. A reader that trusts it will try to buffer
+whatever size the peer declares. A malicious client can claim a 4 GB message
+and make a server allocate memory until it fails. Robust parsers reject lengths
+above a maximum before they read the body.
+
+## A send returns when the kernel has the bytes, not when the peer reads them
+
+Back to the 3.9 MB. While the receiving program read nothing, `ss` showed where
+the bytes were:
+
+```text
+$ ss -tn '( sport = :5000 or dport = :5000 )'
+State Recv-Q Send-Q  Local Address:Port  Peer Address:Port
+ESTAB 128512 0           127.0.0.1:5000     127.0.0.1:41076
+ESTAB 0      3782144     127.0.0.1:41076    127.0.0.1:5000
+```
+
+The first line is the receiver's socket, with 128,512 bytes in its receive
+queue. The second is the sender's socket, with 3,782,144 bytes in its send
+queue, not yet acknowledged. The two add up to the 3,910,656 bytes that `send`
+accepted. Every byte was in a kernel buffer, and none had reached a program.
+
+<Figure caption="Where the 3.9 MB were. send() returned as soon as each chunk fit in the sender's send queue. TCP moved 128,512 bytes into the receiver's queue and acknowledged them, but the receiving program never read them.">
+  <SocketQueues />
+</Figure>
+
+This answers the second question. `send` copies bytes into the kernel and
+returns. It waits only when the send queue is full. In the lab, a single send
+of 1,000,000 bytes returned in 0.18 ms to a receiver that had read nothing.
+TCP's acknowledgments don't change the picture. They travel between the two
+kernels and mean "these bytes reached my receive queue", not "the program used
+them". TCP acknowledged 128,512 bytes that no program ever read.
+
+The last step of the lab shows the cost. The receiving program closed its
+socket without reading. RFC 1122 tells a TCP that closes with unread data to
+send a reset, and Linux did. The sender's next call failed with `ECONNRESET`,
+"connection reset by peer". The kernel had accepted 3.9 MB, the peer's TCP had
+acknowledged part of them, and all of them were thrown away. The sender learned
+it only on its next call, and nothing told it which bytes were lost.
+
+A program that must know a message was processed needs a reply from the other
+program. HTTP answers every request with a status line. SMTP answers the end of
+a message with `250` once the server takes responsibility for delivering it. A
+custom protocol over TCP needs the same thing: a response that the other
+program sends after it acts.
+
+## A server watches many sockets, because one silent client can stall the rest
+
+A read on a socket waits until data arrives, and a send waits when the queue is
+full. The lab measured what that does to a server that handles one client at a
+time. Client A connected and sent nothing. Client B connected and sent a
+request. B's `connect` returned in under a millisecond, because the kernel
+finished the handshake, but B got no reply in 5 seconds. The server program was
+still waiting in a read on A's socket.
+
+Servers avoid that in one of two ways. Some give each connection its own thread
+or process, so a wait blocks only that connection. Others run an event loop:
+the kernel reports which sockets have data, through `select`, `poll`, `epoll`
+on Linux or `kqueue` on BSD and macOS, and the loop reads only from those. The
+same lab server, rewritten as an event loop on `epoll`, answered B in 0.42 ms
+while A stayed silent. Python's asyncio, Node.js and nginx work this way. The
+[concurrency post](/portfolio/blog/concurrency-and-multithreading/) compares
+the two models, and the
+[WSGI vs ASGI post](/portfolio/blog/wsgi-vs-asgi-protocols/) shows how Python
+web servers build on them.
+
+## The socket moves bytes, and the protocol on top gives them meaning
+
+The lab's two puzzles have the same cause. A socket is the kernel's door to TCP
+or UDP, and the kernel only promises to move bytes. The 10 MB took 12 to 68
+reads because TCP keeps the order of the bytes, not the boundaries of the
+writes. The 3.9 MB "sent" to a program that read nothing never left kernel
+buffers, and a reset erased them.
+
+Everything else belongs to the application: where each message ends, what the
+bytes mean and how the sender learns that the other side acted. HTTP, SMTP and
+every database protocol do that work on top of the same few calls.
+
+The takeaway is two questions to ask of any code that talks over TCP. How does
+the reader know where a message ends? How does the sender know the message was
+processed? If either answer is "it worked in testing", the code depends on
+timing. When a connection misbehaves, run `ss -tn` and read the two queues.
+Bytes piling up in `Recv-Q` mean the receiving program is not reading. Bytes
+piling up in `Send-Q` mean the network or the peer is not keeping up.
+
+## References
+
+- Leffler, S. J., Fabry, R. S., & Joy, W. N. (1983). _A 4.2BSD Interprocess
+  Communication Primer_ (draft of July 27, 1983; report UCB/CSD-83-145).
+  University of California, Berkeley.
+  [EECS technical report](https://www2.eecs.berkeley.edu/Pubs/TechRpts/1983/5451.html).
+- Stevens, W. R., Fenner, B., & Rudoff, A. M. (2003). _UNIX Network
+  Programming, Volume 1: The Sockets Networking API_ (3rd ed.). Addison-Wesley.
+- Kerrisk, M. (2010). _The Linux Programming Interface_. No Starch Press.
+- Kurose, J. F., & Ross, K. W. (2021). _Computer Networking: A Top-Down
+  Approach_ (8th ed.), section 2.7, "Socket Programming". Pearson.
+- Braden, R. (Ed.). (1989). RFC 1122, _Requirements for Internet Hosts,
+  Communication Layers_, section 4.2.2.13. IETF.
+- Postel, J. (1980). RFC 768, _User Datagram Protocol_. IETF.
+- Eddy, W. (Ed.). (2022). RFC 9293, _Transmission Control Protocol_. IETF.
+- Fielding, R., Nottingham, M., & Reschke, J. (Eds.). (2022). RFC 9112,
+  _HTTP/1.1_, section 6. IETF.
+- Klensin, J. (2008). RFC 5321, _Simple Mail Transfer Protocol_. IETF.
+- PostgreSQL Global Development Group. _Frontend/Backend Protocol_, "Message
+  Formats". PostgreSQL documentation.
+- Linux man-pages project. _listen(2)_, _socket(7)_, _tcp(7)_. Iproute2
+  project. _ss(8)_.
