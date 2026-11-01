@@ -18,7 +18,7 @@ summary:
   - "Each layer fails with its own error. A refused connection proves that
     layers 1 to 3 work."
 tags: ["networking", "web"]
-isDraft: false
+isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
@@ -179,10 +179,11 @@ ends of the conversation, so no router on the way has a reason to change it.
 ## The data link layer addresses the next hop, not the destination
 
 Ethernet delivers frames only within one local network, and it uses MAC
-addresses, the hardware addresses of network cards, not IP addresses. The client knows that the next hop is `10.0.1.1`,
-but not its MAC address. It asks with **ARP** (RFC 826): a broadcast that says
-"who has `10.0.1.1`?". The router answers with its MAC address,
-`02:00:00:00:01:01`, and the client caches it. `ip neigh` lists that cache.
+addresses, the hardware addresses of network cards, not IP addresses. The client
+knows that the next hop is `10.0.1.1`, but not its MAC address. It asks with
+**ARP** (RFC 826): a broadcast that says "who has `10.0.1.1`?". The router
+answers with its MAC address, `02:00:00:00:01:01`, and the client caches it. `ip
+neigh` lists that cache.
 
 The Ethernet header is 14 bytes: the destination MAC (the router's), the source
 MAC (the client's) and a type field, `0x0800`, which means that an IPv4 packet
@@ -494,12 +495,12 @@ Start at the bottom and stop at the first check that fails. Every layer above
 it depends on it, so its errors are only echoes.
 
 The one habit worth sharing is to read the error as the name of a layer.
-`Connection refused` is the most useful example. It usually means that the
-SYN, the first segment of TCP's handshake, reached the server, and the server's
-kernel answered with a reset because nothing listens on that port. The cable, the switches, ARP and every router worked. The
-problem is on the server, at layer 4 or above. A timeout says the opposite:
-something dropped the packets without answering, usually a firewall or a
-missing route.
+`Connection refused` is the most useful example. It usually means that the SYN,
+the first segment of TCP's handshake, reached the server, and the server's
+kernel answered with a reset because nothing listens on that port. The cable,
+the switches, ARP and every router worked. The problem is on the server, at
+layer 4 or above. A timeout says the opposite: something dropped the packets
+without answering, usually a firewall or a missing route.
 
 ## References
 

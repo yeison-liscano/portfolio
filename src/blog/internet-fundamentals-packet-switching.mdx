@@ -18,7 +18,7 @@ summary:
   - "Forwarding moves each packet with a table lookup. Routing builds the
     table. ISPs connect through paid transit and free peering."
 tags: ["networking"]
-isDraft: false
+isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
@@ -334,9 +334,10 @@ seconds or minutes.
 ## The edge reaches the core through access networks, and many are shared
 
 The decision to share reaches all the way to your home. The **network edge** is
-made of hosts, the laptops, phones and servers that run applications, and the **access networks** that connect them to their first
-router. The **network core** is the mesh of routers and links that joins the
-access networks to each other.
+made of hosts, the laptops, phones and servers that run applications, and the
+**access networks** that connect them to their first router. The **network
+core** is the mesh of routers and links that joins the access networks to each
+other.
 
 Access networks differ in medium, speed and in whether you share them:
 
@@ -357,8 +358,9 @@ operator's equipment, a few milliseconds at a time.
 ## The Internet is a network of networks, joined by transit and peering
 
 Sharing also happens between companies. No single company runs the core. It is
-built from tens of thousands of independent networks, each called an **autonomous system**, and each run by an **ISP**,
-an Internet service provider, or by a large company. They connect in two ways.
+built from tens of thousands of independent networks, each called an
+**autonomous system**, and each run by an **ISP**, an Internet service provider,
+or by a large company. They connect in two ways.
 
 - **Transit.** A smaller network pays a larger one to carry its traffic to the
   rest of the Internet. Access ISPs buy transit from regional ISPs, and
