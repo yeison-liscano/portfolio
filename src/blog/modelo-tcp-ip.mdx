@@ -10,7 +10,7 @@ summary:
   - "Tu programa solo escribe la capa de aplicación. El sistema operativo y la tarjeta de red hacen las otras tres."
   - "Cuando una conexión falla, el error dice qué capa falló."
 tags: ["networking"]
-isDraft: false
+isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
@@ -90,10 +90,7 @@ más al final para detectar errores. Esto se llama **encapsulación**.
   <FronteraKernel />
 </Figure>
 
-Medí estos tamaños en un laboratorio de Linux con `tcpdump`, una herramienta que
-captura lo que pasa por la tarjeta de red. La trama capturada midió 138 bytes,
-más los 4 que la tarjeta agrega al final. Al llegar, el servidor hace lo
-contrario. Cada capa quita su sobre y le pasa el resto a la capa de arriba,
+Al llegar, el servidor hace lo contrario. Cada capa quita su sobre y le pasa el resto a la capa de arriba,
 hasta que el servidor web lee los mismos 72 bytes.
 
 ## Tu programa solo escribe la capa de aplicación
@@ -118,11 +115,6 @@ es más simple en dos puntos:
 <Figure caption="Las siete capas de OSI junto a las cuatro de TCP/IP. Transporte y red coinciden; las capas de arriba y las de abajo se agrupan.">
   <ModelosCapas />
 </Figure>
-
-Algunos textos dibujan TCP/IP con cinco capas, porque separan la capa física del
-enlace. El [post sobre la torre de
-protocolos](/portfolio/blog/torre-de-protocolos/) usa esa versión, porque allí
-importa el medio de cada enlace: radio o cable.
 
 ## Cuando una conexión falla, el error dice qué capa falló
 
