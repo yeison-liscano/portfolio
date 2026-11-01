@@ -10,7 +10,7 @@ summary:
   - "Cada capa solo habla con la misma capa del otro equipo. Los extremos comparten HTTP, TCP e IP; el enlace y la física cambian en cada tramo."
   - "Un equipo solo puede revisar lo que su capa le deja leer."
 tags: ["networking", "security"]
-isDraft: false
+isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
@@ -46,9 +46,8 @@ WiFi:
 | Enlace     | 802.11    | el estándar de WiFi                            |
 | Física     | 802.11ax  | cómo viajan los bits por radio (Wi-Fi 6)       |
 
-El modelo TCP/IP junta enlace y física en una sola capa. Aquí van separadas,
-porque en el ejemplo cada tramo usa un medio distinto. El [post sobre el modelo
-TCP/IP](/portfolio/blog/modelo-tcp-ip/) explica qué hace cada capa.
+El [post sobre el modelo TCP/IP](/portfolio/blog/modelo-tcp-ip/) explica qué
+hace cada capa.
 
 ## No todos los equipos llegan hasta la capa de arriba
 
@@ -150,8 +149,6 @@ equipo que lo aplica.
 
 ## Referencias
 
-- Ciberseguridad360, ColCERT y MinTIC. (2026). _Módulo 1, Fundamentos de
-  seguridad digital: Fundamentos de Internet, Torre de protocolos_.
 - Postel, J. (1981). RFC 791, _Internet Protocol_. IETF.
 - Simpson, W. (Ed.). (1994). RFC 1661, _The Point-to-Point Protocol (PPP)_.
   IETF.
