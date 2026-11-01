@@ -17,7 +17,7 @@ summary:
   - "Energy goes into flipping bits, about half of C·V² per flip. Repeating the
     same addition flips nothing, and halving the voltage cuts the energy by four."
 tags: ["hardware", "electronics", "python"]
-isDraft: false
+isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
@@ -44,12 +44,12 @@ cleans its own input, and why a chip spends energy only when bits change.
 
 A 1 is not a voltage. It is a promise that a voltage falls inside a range. The
 JEDEC standard JESD8C defines these ranges for 3.3 V LVTTL (low-voltage
-transistor-transistor logic), a common interface on microcontrollers and FPGAs. A receiver reads any input above 2.0 V as 1 and
-any input below 0.8 V as 0. Between 0.8 V and 2.0 V the result is undefined. A
-driver, in turn, promises to output at least 2.4 V for a 1 and at most 0.4 V for
-a 0. Datasheets call these four numbers VIH, VIL, VOH and VOL: the minimum input
-read as high, the maximum input read as low, and the guaranteed output high and
-low.
+transistor-transistor logic), a common interface on microcontrollers and FPGAs.
+A receiver reads any input above 2.0 V as 1 and any input below 0.8 V as 0.
+Between 0.8 V and 2.0 V the result is undefined. A driver, in turn, promises to
+output at least 2.4 V for a 1 and at most 0.4 V for a 0. Datasheets call these
+four numbers VIH, VIL, VOH and VOL: the minimum input read as high, the maximum
+input read as low, and the guaranteed output high and low.
 
 <Figure caption="3.3 V LVTTL logic levels. A driver never outputs a voltage between 0.4 V and 2.4 V once settled. A receiver needs only more than 2.0 V or less than 0.8 V. The 0.4 V gaps are the noise margins.">
   <LogicLevels />
