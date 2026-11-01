@@ -1,0 +1,142 @@
+---
+/**
+ * AlcanceEquipos - Four kinds of device and the highest layer each one
+ * reaches: a repeater (physical), a switch (link), a router (network) and an
+ * end system (application). Under each tower, what that device can read.
+ */
+interface Device {
+  name: string;
+  reads: [string, string];
+  top: number;
+}
+
+const LAYERS = ["Aplicación", "Transporte", "Red", "Enlace", "Física"];
+
+const DEVICES: Device[] = [
+  { name: "repetidor (hub)", reads: ["copia 0 y 1", "sin leerlos"], top: 1 },
+  { name: "switch", reads: ["lee direcciones", "MAC"], top: 2 },
+  { name: "router", reads: ["lee direcciones", "IP"], top: 3 },
+  { name: "sistema final", reads: ["lee todo:", "es el destino"], top: 5 },
+];
+
+const X0 = 96;
+const COL = 140;
+const BOX_W = 112;
+const TOP = 8;
+const PITCH = 32;
+const BOX_H = 26;
+const rowY = (i: number) => TOP + i * PITCH;
+const NAME_Y = rowY(5) + 18;
+---
+
+<svg
+  viewBox="0 0 660 236"
+  role="img"
+  aria-label="Cuatro torres de distinta altura. El repetidor o hub solo tiene la capa física: copia ceros y unos sin leerlos. El switch llega a la capa de enlace: lee direcciones MAC. El router llega a la capa de red: lee direcciones IP. El sistema final tiene las cinco capas, hasta aplicación: lee todo porque es el destino."
+  class="diagram"
+>
+  {LAYERS.map((layer, i) => (
+    <text x="0" y={rowY(i) + BOX_H / 2} class="layer">
+      {layer}
+    </text>
+  ))}
+
+  {DEVICES.map((device, d) => {
+    const x = X0 + d * COL;
+    return (
+      <g>
+        {LAYERS.map((_, i) => {
+          const level = 5 - i;
+          return level <= device.top ? (
+            <rect
+              x={x}
+              y={rowY(i)}
+              width={BOX_W}
+              height={BOX_H}
+              rx="3"
+              class:list={["box", `l${level}`]}
+            />
+          ) : (
+            <rect
+              x={x}
+              y={rowY(i)}
+              width={BOX_W}
+              height={BOX_H}
+              rx="3"
+              class="empty"
+            />
+          );
+        })}
+        <text x={x + BOX_W / 2} y={NAME_Y} class="name">
+          {device.name}
+        </text>
+        <text x={x + BOX_W / 2} y={NAME_Y + 18} class="note">
+          {device.reads[0]}
+        </text>
+        <text x={x + BOX_W / 2} y={NAME_Y + 34} class="note">
+          {device.reads[1]}
+        </text>
+      </g>
+    );
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .layer {
+    fill: var(--muted);
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .box {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .empty {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+
+  .l5 {
+    fill: color-mix(in oklab, var(--contrast) 35%, var(--primary));
+  }
+
+  .l4 {
+    fill: color-mix(in oklab, var(--cat-2) 35%, var(--primary));
+  }
+
+  .l3 {
+    fill: color-mix(in oklab, var(--cat-4) 35%, var(--primary));
+  }
+
+  .l2 {
+    fill: color-mix(in oklab, var(--cat-1) 35%, var(--primary));
+  }
+
+  .l1 {
+    fill: var(--code-background);
+  }
+
+  .name {
+    fill: currentColor;
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+</style>

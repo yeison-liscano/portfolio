@@ -1,8 +1,8 @@
 ---
 /**
  * TorresRuta - The protocol stack of every device on the path from a laptop
- * on Wi-Fi to a web server on Ethernet. Hosts run five layers. Routers run
- * three on each interface and switches two. Each interface column shows the
+ * on Wi-Fi to a web server on Ethernet, through two routers joined by PPP.
+ * Hosts run five layers. Routers run three on each interface. Each interface column shows the
  * protocols it runs, so peers line up across each link. Each device is one
  * step for <Stepper>.
  */
@@ -24,7 +24,7 @@ const DEVICES: Device[] = [
     sub: "Chrome",
     x: 70,
     sides: [["HTTP", "TCP", "IP", "802.11", "802.11ax"]],
-    note: ["encapsula y envía", "una trama 802.11"],
+    note: ["envuelve la petición", "y la envía por WiFi"],
   },
   {
     name: "router 1",
@@ -32,36 +32,26 @@ const DEVICES: Device[] = [
     x: 176,
     sides: [
       ["", "", "IP", "802.11", "802.11ax"],
-      ["", "", "IP", "PPP", "serie"],
+      ["", "", "IP", "PPP", "físico"],
     ],
-    note: ["TTL 64 → 63,", "trama nueva: PPP"],
+    note: ["saca los datos,", "los mete en PPP"],
   },
   {
     name: "router 2",
     sub: "R2",
     x: 348,
     sides: [
-      ["", "", "IP", "PPP", "serie"],
+      ["", "", "IP", "PPP", "físico"],
       ["", "", "IP", "802.3", "802.3ab"],
     ],
-    note: ["TTL 63 → 62,", "trama nueva: Ethernet"],
-  },
-  {
-    name: "switch",
-    sub: "",
-    x: 520,
-    sides: [
-      ["", "", "", "802.3", "802.3ab"],
-      ["", "", "", "802.3", "802.3ab"],
-    ],
-    note: ["lee la MAC destino,", "no cambia la trama"],
+    note: ["saca los datos,", "los mete en Ethernet"],
   },
   {
     name: "servidor",
     sub: "Apache",
-    x: 692,
+    x: 520,
     sides: [["HTTP", "TCP", "IP", "802.3", "802.3ab"]],
-    note: ["sube las cinco capas", "y lee la petición"],
+    note: ["desenvuelve todo", "y lee la petición"],
   },
 ];
 
@@ -69,7 +59,6 @@ const LINKS = [
   { from: 0, label: "WiFi" },
   { from: 1, label: "PPP" },
   { from: 2, label: "Ethernet" },
-  { from: 3, label: "Ethernet" },
 ];
 
 const TOP = 16;
@@ -83,9 +72,9 @@ const right = (d: Device) => d.x + width(d);
 ---
 
 <svg
-  viewBox="0 0 795 296"
+  viewBox="0 0 622 296"
   role="img"
-  aria-label="Cinco equipos en fila con sus torres de protocolos. El portátil ejecuta HTTP, TCP, IP, 802.11 y 802.11ax. El router 1 tiene dos interfaces: IP, 802.11 y 802.11ax hacia el portátil, e IP, PPP y una línea serie hacia el router 2. El router 2 tiene IP, PPP y serie hacia el router 1, e IP, 802.3 y 802.3ab hacia el switch. El switch tiene 802.3 y 802.3ab en sus dos puertos. El servidor ejecuta HTTP, TCP, IP, 802.3 y 802.3ab. Los enlaces son WiFi, PPP, Ethernet y Ethernet. Las capas de aplicación y transporte solo existen en los extremos; IP existe en todos los equipos menos el switch; el enlace y la física cambian en cada enlace."
+  aria-label="Cuatro equipos en fila con sus torres de protocolos. El portátil ejecuta HTTP, TCP, IP, 802.11 y 802.11ax. El router 1 tiene dos lados: IP, 802.11 y 802.11ax hacia el portátil, e IP, PPP y un enlace físico punto a punto hacia el router 2. El router 2 tiene IP, PPP y el enlace físico hacia el router 1, e IP, 802.3 y 802.3ab hacia el servidor. El servidor ejecuta HTTP, TCP, IP, 802.3 y 802.3ab. Los enlaces son WiFi, PPP y Ethernet."
   class="diagram"
 >
   {LAYERS.map((layer, i) => (
@@ -155,7 +144,7 @@ const right = (d: Device) => d.x + width(d);
 
 <style>
   .diagram {
-    min-width: 640px;
+    min-width: 560px;
     color: var(--text-color);
     font-family: var(--font-mono);
   }
