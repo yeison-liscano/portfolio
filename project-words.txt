@@ -612,11 +612,8 @@ satelitales
 tcpdump
 veth
 sendto
-<<<<<<< HEAD
 Ciberseguridad
 EECS
 Kerrisk
 epoll
 interprocess
-=======
->>>>>>> origin/main
