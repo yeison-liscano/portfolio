@@ -1,9 +1,8 @@
 ---
 /**
- * ModelosCapas - The same stack cut three ways: the seven OSI layers, the
- * five layers most courses draw, and the four layers of RFC 1122. Rows are
- * aligned on the OSI grid so the reader sees which layers merge. A last
- * column lists example protocols for each row.
+ * ModelosCapas - The seven OSI layers next to the four TCP/IP layers of
+ * RFC 1122. Rows are aligned on the OSI grid so the reader sees which layers
+ * merge. A last column lists example protocols for each row.
  */
 interface Block {
   label: string;
@@ -33,17 +32,6 @@ const COLUMNS: Column[] = [
     ],
   },
   {
-    title: "Cursos",
-    sub: "Kurose y Ross, Tanenbaum: 5",
-    blocks: [
-      { label: "Aplicación", from: 0, span: 3, layer: "l7" },
-      { label: "Transporte", from: 3, span: 1, layer: "l4" },
-      { label: "Red", from: 4, span: 1, layer: "l3" },
-      { label: "Enlace", from: 5, span: 1, layer: "l2" },
-      { label: "Física", from: 6, span: 1, layer: "l1" },
-    ],
-  },
-  {
     title: "TCP/IP",
     sub: "RFC 1122, 4 capas",
     blocks: [
@@ -69,13 +57,13 @@ const GAP = 3;
 const COL_W = 150;
 const COL_GAP = 18;
 const colX = (i: number) => i * (COL_W + COL_GAP);
-const EX_X = colX(3) + 4;
+const EX_X = colX(2) + 4;
 ---
 
 <svg
-  viewBox="0 0 690 276"
+  viewBox="0 0 520 276"
   role="img"
-  aria-label="Tres columnas alineadas. OSI tiene siete capas: aplicación, presentación, sesión, transporte, red, enlace de datos y física. Los cursos usan cinco: una sola capa de aplicación ocupa el lugar de las tres de arriba de OSI, y luego transporte, red, enlace y física. El RFC 1122 usa cuatro: aplicación, transporte, internet y una capa de enlace que ocupa el lugar de enlace y física. A la derecha, ejemplos: HTTP, DNS, SSH, TLS, JSON y UTF-8 arriba; TCP y UDP; IP e ICMP; Ethernet, Wi-Fi y PPP; cobre, radio y fibra."
+  aria-label="Dos columnas alineadas. OSI tiene siete capas: aplicación, presentación, sesión, transporte, red, enlace de datos y física. TCP/IP tiene cuatro: una capa de aplicación ocupa el lugar de las tres de arriba de OSI, luego transporte, internet y una capa de enlace que ocupa el lugar de enlace y física. A la derecha, ejemplos: HTTP, DNS, SSH, TLS, JSON y UTF-8 arriba; TCP y UDP; IP e ICMP; Ethernet, Wi-Fi y PPP; cobre, radio y fibra."
   class="diagram"
 >
   {COLUMNS.map((column, i) => (
@@ -124,7 +112,7 @@ const EX_X = colX(3) + 4;
 
 <style>
   .diagram {
-    min-width: 600px;
+    min-width: 480px;
     color: var(--text-color);
     font-family: var(--font-sans);
   }

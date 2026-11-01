@@ -18,7 +18,7 @@ interface Row {
   total: string;
 }
 
-const DATA: Part = { label: "GET /", bytes: 72, layer: "l7" };
+const DATA: Part = { label: "petición", bytes: 72, layer: "l7" };
 const TCP: Part = { label: "TCP", bytes: 32, layer: "l4" };
 const IP: Part = { label: "IP", bytes: 20, layer: "l3" };
 const ETH: Part = { label: "Eth", bytes: 14, layer: "l2" };
@@ -26,11 +26,21 @@ const FCS: Part = { label: "FCS", bytes: 4, layer: "l2" };
 
 const ROWS: Row[] = [
   { name: "Aplicación", who: "curl", parts: [DATA], total: "72" },
-  { name: "Transporte", who: "kernel", parts: [TCP, DATA], total: "104" },
-  { name: "Internet", who: "kernel", parts: [IP, TCP, DATA], total: "124" },
+  {
+    name: "Transporte",
+    who: "sistema operativo",
+    parts: [TCP, DATA],
+    total: "104",
+  },
+  {
+    name: "Internet",
+    who: "sistema operativo",
+    parts: [IP, TCP, DATA],
+    total: "124",
+  },
   {
     name: "Enlace",
-    who: "kernel y tarjeta",
+    who: "tarjeta de red",
     parts: [ETH, IP, TCP, DATA, FCS],
     total: "142",
   },
@@ -60,7 +70,7 @@ const layout = (parts: Part[]) => {
 <svg
   viewBox="0 0 720 268"
   role="img"
-  aria-label="Cuatro filas a escala. Arriba, en el espacio de usuario, curl escribe 72 bytes. Una línea discontinua marca la llamada al sistema. Debajo, en el kernel, la capa de transporte antepone 32 bytes de TCP (104 en total), la capa internet antepone 20 bytes de IP (124) y la capa de enlace antepone 14 bytes de Ethernet y agrega 4 de verificación al final (142). Los 72 bytes de datos quedan alineados en todas las filas."
+  aria-label="Cuatro filas a escala. Arriba, tu programa (curl) escribe 72 bytes. Una línea discontinua separa tu programa del sistema operativo. Debajo, en el sistema operativo, la capa de transporte antepone 32 bytes de TCP (104 en total), la capa internet antepone 20 bytes de IP (124) y la capa de enlace antepone 14 bytes de Ethernet y agrega 4 de verificación al final (142). Los 72 bytes de datos quedan alineados en todas las filas."
   class="diagram"
 >
   {ROWS.map((row, i) => {
@@ -96,10 +106,10 @@ const layout = (parts: Part[]) => {
 
   <line x1="0" y1={BOUNDARY_Y} x2="720" y2={BOUNDARY_Y} class="boundary" />
   <text x="0" y={BOUNDARY_Y - 8} class="boundary-label">
-    espacio de usuario
+    tu programa
   </text>
   <text x="0" y={BOUNDARY_Y + 16} class="boundary-label">
-    kernel: socket(), connect(), sendto()
+    sistema operativo
   </text>
 </svg>
 
