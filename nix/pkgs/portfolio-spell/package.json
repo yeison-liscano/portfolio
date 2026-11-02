@@ -2,8 +2,8 @@
   "name": "portfolio-spell",
   "version": "0.0.1",
   "dependencies": {
-    "@cspell/dict-es-es": "^3.0.8",
-    "@cspell/dict-fr-fr": "^2.3.2",
-    "portfolio": "file:../../.."
-  }
+    "@cspell/dict-es-es": "^3.0.9",
+    "@cspell/dict-fr-fr": "^2.3.2"
+  },
+  "private": true
 }

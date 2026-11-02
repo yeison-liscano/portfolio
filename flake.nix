@@ -2,8 +2,8 @@
   description = "Yeison Liscano portfolio";
 
   inputs = {
-    flake-parts.url = "github:hercules-ci/flake-parts/f4330d22f1c5d2ba72d3d22df5597d123fdb60a9?shallow=1";
-    nixpkgs.url = "github:nixos/nixpkgs/64d369e1590b976e18a69b335390c2f6e4b512d2?shallow=1";
+    flake-parts.url = "github:hercules-ci/flake-parts/ea2630b7470978622c7689a1ff75d2b389175399?shallow=1";
+    nixpkgs.url = "github:nixos/nixpkgs/be854059b22f5f33bd31ab61c835a55a58fd8839?shallow=1";
   };
 
   outputs =

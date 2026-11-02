@@ -18,6 +18,7 @@ pnpm-debug.log*
 .env.production
 
 .npm/
+.pnpm-store/
 .direnv/
 
 # macOS-specific files
@@ -27,6 +28,8 @@ pnpm-debug.log*
 .idea/
 
 coverage/
+e2e/screenshots/
+e2e/videos/
 # Unpublished local drafts. cspell:ignore jetbrains introduccion pentesting
 src/blog/steps-by-step.md
 public/el_problema_de_los_puentes.png

@@ -120,7 +120,7 @@ When converting a `.md` post or writing `.mdx`:
   markdown inside may not render.
 - Keep `.astro` markup (SVG, widgets) out of the MDX file; MDX treats attributes
   as JSX.
-- Prettier formats `.mdx` too; run `npm run format::write` after editing.
+- Prettier formats `.mdx` too; run `pnpm run format::write` after editing.
 - Angle-bracket autolinks (`<https://example.com>`) are invalid; write
   `[https://example.com](https://example.com)`.
 - LaTeX (`$$ \text{...} $$`) breaks on its braces, and the site has no math
@@ -140,10 +140,10 @@ When converting a `.md` post or writing `.mdx`:
 - eslint's MDX parser needs `remark-frontmatter` in a `.remarkrc` to skip YAML
   frontmatter. Without it, a `<` or `{` in a frontmatter value (for example
   `left <= right` or a JSON example) fails to parse.
-- `npm run eslint` checks `.astro` and `.mdx`. Script blocks are TypeScript:
+- `pnpm run eslint` checks `.astro` and `.mdx`. Script blocks are TypeScript:
   type `querySelector` results (`querySelector<HTMLInputElement>`), handle
   `null`, and do not leave `any`.
-- `npm run check` runs `astro check` with strict TypeScript over the component
+- `pnpm run check` runs `astro check` with strict TypeScript over the component
   props.
 - No `console.log` left behind; use `console.error` with a `[component]` prefix
   for real failures.

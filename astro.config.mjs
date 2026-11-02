@@ -2,7 +2,7 @@
 import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
-import { rehypeHeadingIds } from "@astrojs/markdown-remark";
+import { rehypeHeadingIds, unified } from "@astrojs/markdown-remark";
 import rehypeExternalLinks from "rehype-external-links";
 import { rehypeHeadingAnchors } from "./src/utils/rehypeHeadingAnchors";
 import { rehypeTableScroll } from "./src/utils/rehypeTableScroll";
@@ -23,27 +23,29 @@ export default defineConfig({
     "/blog/rcp/": "/portfolio/blog/json-rpc/",
   },
   markdown: {
-    rehypePlugins: [
-      // Ids first, so the anchors can link to them. Astro runs it again
-      // after these plugins; existing ids are kept.
-      rehypeHeadingIds,
-      rehypeHeadingAnchors,
-      [
-        rehypeExternalLinks,
-        {
-          // Decorative: screen readers already announce the link.
-          content: { type: "text", value: "↗" },
-          contentProperties: {
-            className: ["external-mark"],
-            ariaHidden: "true",
+    processor: unified({
+      rehypePlugins: [
+        // Ids first, so the anchors can link to them. Astro runs it again
+        // after these plugins; existing ids are kept.
+        rehypeHeadingIds,
+        rehypeHeadingAnchors,
+        [
+          rehypeExternalLinks,
+          {
+            // Decorative: screen readers already announce the link.
+            content: { type: "text", value: "↗" },
+            contentProperties: {
+              className: ["external-mark"],
+              ariaHidden: "true",
+            },
+            rel: ["noopener", "noreferrer"],
+            target: "_blank",
+            class: "external-link",
           },
-          rel: ["noopener", "noreferrer"],
-          target: "_blank",
-          class: "external-link",
-        },
+        ],
+        rehypeTableScroll,
       ],
-      rehypeTableScroll,
-    ],
+    }),
     syntaxHighlight: "shiki",
     shikiConfig: {
       themes: {
