@@ -1,8 +1,7 @@
 ---
 /**
- * ModelosCapas - The seven OSI layers next to the four TCP/IP layers of
- * RFC 1122. Rows are aligned on the OSI grid so the reader sees which layers
- * merge. A last column lists example protocols for each row.
+ * ModelosCapas - Approximate comparison of responsibilities across models.
+ * Aligned rows are a teaching aid, not an exact protocol equivalence.
  */
 interface Block {
   label: string;
@@ -20,7 +19,7 @@ interface Column {
 const COLUMNS: Column[] = [
   {
     title: "OSI",
-    sub: "ISO 7498, 7 capas",
+    sub: "ITU-T X.200, 7 capas",
     blocks: [
       { label: "Aplicación", from: 0, span: 1, layer: "l7" },
       { label: "Presentación", from: 1, span: 1, layer: "l7" },
@@ -28,6 +27,17 @@ const COLUMNS: Column[] = [
       { label: "Transporte", from: 3, span: 1, layer: "l4" },
       { label: "Red", from: 4, span: 1, layer: "l3" },
       { label: "Enlace de datos", from: 5, span: 1, layer: "l2" },
+      { label: "Física", from: 6, span: 1, layer: "l1" },
+    ],
+  },
+  {
+    title: "Modelo de 5 capas",
+    sub: "separa enlace y física",
+    blocks: [
+      { label: "Aplicación", from: 0, span: 3, layer: "l7" },
+      { label: "Transporte", from: 3, span: 1, layer: "l4" },
+      { label: "Red", from: 4, span: 1, layer: "l3" },
+      { label: "Enlace", from: 5, span: 1, layer: "l2" },
       { label: "Física", from: 6, span: 1, layer: "l1" },
     ],
   },
@@ -44,7 +54,7 @@ const COLUMNS: Column[] = [
 ];
 
 const EXAMPLES: { from: number; span: number; text: string[] }[] = [
-  { from: 0, span: 3, text: ["HTTP, DNS, SSH,", "TLS, JSON, UTF-8"] },
+  { from: 0, span: 3, text: ["HTTP, DNS, SSH", "formatos y cifrado"] },
   { from: 3, span: 1, text: ["TCP, UDP"] },
   { from: 4, span: 1, text: ["IP, ICMP"] },
   { from: 5, span: 1, text: ["Ethernet, Wi-Fi, PPP"] },
@@ -57,13 +67,13 @@ const GAP = 3;
 const COL_W = 150;
 const COL_GAP = 18;
 const colX = (i: number) => i * (COL_W + COL_GAP);
-const EX_X = colX(2) + 4;
+const EX_X = colX(3) + 4;
 ---
 
 <svg
-  viewBox="0 0 520 276"
+  viewBox="0 0 690 276"
   role="img"
-  aria-label="Dos columnas alineadas. OSI tiene siete capas: aplicación, presentación, sesión, transporte, red, enlace de datos y física. TCP/IP tiene cuatro: una capa de aplicación ocupa el lugar de las tres de arriba de OSI, luego transporte, internet y una capa de enlace que ocupa el lugar de enlace y física. A la derecha, ejemplos: HTTP, DNS, SSH, TLS, JSON y UTF-8 arriba; TCP y UDP; IP e ICMP; Ethernet, Wi-Fi y PPP; cobre, radio y fibra."
+  aria-label="Comparación aproximada de responsabilidades, no equivalencias exactas. OSI: aplicación, presentación, sesión, transporte, red, enlace de datos y física. Modelo de cinco capas: aplicación, transporte, red, enlace y física. TCP/IP: aplicación, transporte, internet y enlace. Los ejemplos incluyen HTTP, TCP, UDP, IP y Ethernet."
   class="diagram"
 >
   {COLUMNS.map((column, i) => (
@@ -112,7 +122,7 @@ const EX_X = colX(2) + 4;
 
 <style>
   .diagram {
-    min-width: 480px;
+    min-width: 600px;
     color: var(--text-color);
     font-family: var(--font-sans);
   }

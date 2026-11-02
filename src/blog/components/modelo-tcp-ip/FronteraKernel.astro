@@ -1,9 +1,8 @@
 ---
 /**
- * FronteraKernel - The 72 bytes curl writes, wrapped layer by layer until the
- * network card sends 142. Drawn to scale. The data stays at the same x in
- * every row, so each header visibly lands in front of it. A dashed line marks
- * the system call: only the first row runs inside the program.
+ * FronteraKernel - Illustrative encapsulation with explicit assumptions:
+ * one TCP segment with timestamps, IPv4 without options, untagged Ethernet.
+ * The execution boundary describes a typical OS TCP stack, not a model rule.
  */
 interface Part {
   label: string;
@@ -18,29 +17,19 @@ interface Row {
   total: string;
 }
 
-const DATA: Part = { label: "petición", bytes: 72, layer: "l7" };
+const DATA: Part = { label: "GET /", bytes: 72, layer: "l7" };
 const TCP: Part = { label: "TCP", bytes: 32, layer: "l4" };
 const IP: Part = { label: "IP", bytes: 20, layer: "l3" };
 const ETH: Part = { label: "Eth", bytes: 14, layer: "l2" };
 const FCS: Part = { label: "FCS", bytes: 4, layer: "l2" };
 
 const ROWS: Row[] = [
-  { name: "Aplicación", who: "curl", parts: [DATA], total: "72" },
-  {
-    name: "Transporte",
-    who: "sistema operativo",
-    parts: [TCP, DATA],
-    total: "104",
-  },
-  {
-    name: "Internet",
-    who: "sistema operativo",
-    parts: [IP, TCP, DATA],
-    total: "124",
-  },
+  { name: "Aplicación", who: "programa HTTP", parts: [DATA], total: "72" },
+  { name: "Transporte", who: "kernel", parts: [TCP, DATA], total: "104" },
+  { name: "Internet", who: "kernel", parts: [IP, TCP, DATA], total: "124" },
   {
     name: "Enlace",
-    who: "tarjeta de red",
+    who: "kernel y tarjeta",
     parts: [ETH, IP, TCP, DATA, FCS],
     total: "142",
   },
@@ -68,9 +57,9 @@ const layout = (parts: Part[]) => {
 ---
 
 <svg
-  viewBox="0 0 720 268"
+  viewBox="0 0 720 310"
   role="img"
-  aria-label="Cuatro filas a escala. Arriba, tu programa (curl) escribe 72 bytes. Una línea discontinua separa tu programa del sistema operativo. Debajo, en el sistema operativo, la capa de transporte antepone 32 bytes de TCP (104 en total), la capa internet antepone 20 bytes de IP (124) y la capa de enlace antepone 14 bytes de Ethernet y agrega 4 de verificación al final (142). Los 72 bytes de datos quedan alineados en todas las filas."
+  aria-label="Ejemplo a escala con un segmento TCP con marcas de tiempo, IPv4 sin opciones y Ethernet sin VLAN. HTTP: 72 bytes. Con TCP: 104. Con IPv4: 124. Con cabecera Ethernet y FCS: 142. La FCS ocupa los últimos 4 bytes. La línea discontinua muestra el límite habitual entre programa y kernel al usar sockets TCP; no es una regla del modelo."
   class="diagram"
 >
   {ROWS.map((row, i) => {
@@ -106,10 +95,16 @@ const layout = (parts: Part[]) => {
 
   <line x1="0" y1={BOUNDARY_Y} x2="720" y2={BOUNDARY_Y} class="boundary" />
   <text x="0" y={BOUNDARY_Y - 8} class="boundary-label">
-    tu programa
+    espacio de usuario
   </text>
   <text x="0" y={BOUNDARY_Y + 16} class="boundary-label">
-    sistema operativo
+    llamadas al sistema → kernel
+  </text>
+  <text x="0" y="282" class="boundary-label">
+    Ejemplo: TCP con marcas de tiempo · IPv4 sin opciones · Ethernet sin VLAN
+  </text>
+  <text x="0" y="298" class="boundary-label">
+    Últimos 4 bytes: FCS. Total sin FCS: 138 B.
   </text>
 </svg>
 
