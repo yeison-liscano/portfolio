@@ -1,0 +1,19 @@
+---
+/**
+ * Acronym - An abbreviation whose expansion shows on hover or focus.
+ * Wrap its first use in a post; later uses can stay plain text.
+ *
+ *   <Acronym title="Representational State Transfer">REST</Acronym>
+ */
+import Tooltip from "./Tooltip.astro";
+
+interface Props {
+  /** The expansion, in the language of the post. */
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+{/* prettier-ignore */}
+<Tooltip as="abbr" note={title}><slot /></Tooltip>

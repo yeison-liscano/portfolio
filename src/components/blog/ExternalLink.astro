@@ -1,0 +1,36 @@
+---
+/**
+ * ExternalLink - A link to another site. It opens in a new tab and, on hover
+ * or focus, previews the site and what the reader will find there, so they
+ * can decide before leaving the post.
+ *
+ *   <ExternalLink
+ *     href="https://www.rfc-editor.org/rfc/rfc9293"
+ *     preview="The current TCP specification, which obsoletes RFC 793."
+ *   >RFC 9293</ExternalLink>
+ *
+ * Markdown links get the same new-tab treatment from rehype-external-links
+ * in astro.config.mjs, but no preview.
+ */
+import Tooltip from "./Tooltip.astro";
+
+interface Props {
+  /** Absolute http or https URL. */
+  href: string;
+  /** One sentence on what the page holds, in the language of the post. */
+  preview: string;
+}
+
+const { href, preview } = Astro.props;
+
+const url = URL.canParse(href) ? new URL(href) : undefined;
+if (!url || !["http:", "https:"].includes(url.protocol)) {
+  throw new Error(
+    `ExternalLink: "${href}" is not an absolute http(s) URL. Use InternalLink for pages on this site.`,
+  );
+}
+const site = url.hostname.replace(/^www\./, "");
+---
+
+{/* prettier-ignore */}
+<Tooltip as="a" href={href} target="_blank" rel="noopener noreferrer" class="external-link" heading={site} note={preview}><slot /><span class="external-mark" aria-hidden="true">↗</span></Tooltip>

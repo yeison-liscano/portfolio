@@ -1,0 +1,197 @@
+---
+/**
+ * CompoundExplorer - Drag the rate and the horizon and watch 1,000 compound.
+ *
+ * TEMPLATE for any "change an input, see the consequence" widget. Copy to
+ * src/blog/components/<post-slug>/<Name>.astro and rename the element
+ * (compound-explorer -> <post>-<thing>) so two posts never collide.
+ *
+ * Pattern:
+ * - The server renders the default state with the SAME function the client
+ *   uses, so the widget is complete at rest (no JS, RSS readers, thumbnails).
+ * - A custom element wires up every instance on the page. Astro bundles the
+ *   <script> once per page, so never query the document for "the" widget.
+ * - Inputs have ids and labels; the output region is aria-live.
+ */
+interface Props {
+  principal?: number;
+  rate?: number;
+  years?: number;
+}
+
+const { principal = 1000, rate = 5, years = 30 } = Astro.props;
+
+const futureValue = (p: number, r: number, n: number) => p * (1 + r / 100) ** n;
+const money = (value: number) =>
+  value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+
+// The curve is drawn with the same function in the browser.
+const W = 560;
+const H = 160;
+const points = (r: number, n: number) => {
+  const end = futureValue(principal, r, n);
+  return Array.from({ length: n + 1 }, (_, year) => {
+    const px = (year / n) * W;
+    const py = H - (futureValue(principal, r, year) / end) * (H - 8);
+    return `${px.toFixed(1)},${py.toFixed(1)}`;
+  }).join(" ");
+};
+const uid = `compound-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<compound-explorer data-principal={principal}>
+  <div class="controls">
+    <label for={`${uid}-rate`}>
+      Annual rate <output data-out="rate">{rate}%</output>
+    </label>
+    <input
+      id={`${uid}-rate`}
+      data-in="rate"
+      type="range"
+      min="0"
+      max="15"
+      step="0.5"
+      value={rate}
+    />
+    <label for={`${uid}-years`}>
+      Years <output data-out="years">{years}</output>
+    </label>
+    <input
+      id={`${uid}-years`}
+      data-in="years"
+      type="range"
+      min="1"
+      max="50"
+      step="1"
+      value={years}
+    />
+  </div>
+  <p class="result" aria-live="polite">
+    {money(principal)} becomes
+    <strong data-out="value">
+      {money(futureValue(principal, rate, years))}
+    </strong>
+  </p>
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Growth curve">
+    <line x1="0" y1={H} x2={W} y2={H} class="axis"></line>
+    <polyline
+      data-out="curve"
+      points={points(rate, years)}
+      class="curve"
+    ></polyline>
+  </svg>
+</compound-explorer>
+
+<script>
+  const W = 560;
+  const H = 160;
+  const futureValue = (p: number, r: number, n: number) =>
+    p * (1 + r / 100) ** n;
+  const money = (value: number) =>
+    value.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    });
+
+  class CompoundExplorer extends HTMLElement {
+    connectedCallback() {
+      this.addEventListener("input", () => this.update());
+    }
+
+    private read(name: string): number {
+      const input = this.querySelector<HTMLInputElement>(`[data-in="${name}"]`);
+      return Number(input?.value ?? 0);
+    }
+
+    private write(name: string, text: string) {
+      const out = this.querySelector(`[data-out="${name}"]`);
+      if (out) out.textContent = text;
+    }
+
+    update() {
+      const principal = Number(this.dataset.principal ?? 1000);
+      const rate = this.read("rate");
+      const years = this.read("years");
+      const end = futureValue(principal, rate, years);
+      this.write("rate", `${rate}%`);
+      this.write("years", String(years));
+      this.write("value", money(end));
+      const points = Array.from({ length: years + 1 }, (_, year) => {
+        const px = (year / years) * W;
+        const py = H - (futureValue(principal, rate, year) / end) * (H - 8);
+        return `${px.toFixed(1)},${py.toFixed(1)}`;
+      }).join(" ");
+      this.querySelector('[data-out="curve"]')?.setAttribute("points", points);
+    }
+  }
+
+  customElements.define("compound-explorer", CompoundExplorer);
+</script>
+
+<style>
+  compound-explorer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(8rem, auto) 1fr;
+    align-items: center;
+    gap: 8px 16px;
+    font-size: 0.9rem;
+  }
+
+  output {
+    color: var(--contrast);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--contrast);
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .result {
+    margin: 0;
+  }
+
+  .result strong {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+  }
+
+  .axis {
+    stroke: var(--line);
+  }
+
+  .curve {
+    fill: none;
+    stroke: var(--contrast);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 480px) {
+    .controls {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
