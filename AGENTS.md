@@ -13,7 +13,7 @@ pull request is merged.
   /nix/var/nix/profiles/default/bin/nix develop
 ```
 
-The shell provides Node 22, git and `python3` (for the skill scripts in
+The shell provides Node 26, pnpm, git and `python3` (for the skill scripts in
 `.claude/skills/`).
 
 ## Repository layout
@@ -103,23 +103,23 @@ The shell provides Node 22, git and `python3` (for the skill scripts in
 - Run the following commands before pushing:
 
 ```bash
-  CYPRESS_INSTALL_BINARY=0 npm ci   # skip the Cypress binary if its download is blocked
-  npx astro sync                    # generate types first, or eslint reports false no-unsafe-* errors
-  npx astro check
-  npx eslint .
-  npx prettier --check .            # run it after the last edit
-  npx astro build
+  # Skip the Cypress binary if its download is blocked.
+  CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+  # Generate types first to avoid false no-unsafe-* ESLint errors.
+  pnpm exec astro sync
+  pnpm exec astro check
+  pnpm exec eslint .
+  pnpm exec prettier --check . # run it after the last edit
+  pnpm exec astro build
 
-  # Spelling: .cspell.json loads its dictionaries from nix/pkgs/portfolio-spell
-  npm install --no-save --prefix nix/pkgs/portfolio-spell \
-    @cspell/dict-es-es@^3.0.8 @cspell/dict-fr-fr@^2.3.2
-  npx cspell --no-progress <changed files>
+  # Spelling dictionaries are installed with the workspace above.
+  pnpm exec cspell --no-progress <changed files>
 ```
 
 #### Checking figures
 
-- Build, run `npx astro preview` and look at every figure in light and dark
-  themes before publishing.
+- Build, run `pnpm exec astro preview` and look at every figure in light and
+  dark themes before publishing.
 - If no browser is installed, `puppeteer-core` with `@sparticuz/chromium` (both
   from npm) can screenshot each `figure.post-figure` element.
 
@@ -141,8 +141,8 @@ Verify pull request verification checks pass. The checks are:
 - `portfolio-lint` (Nix): gitleaks, nixfmt and statix, shellcheck and shfmt,
   markdownlint on `src/blog`, and cspell on the files changed in the last
   commit.
-- `eslint-prettier`: `npm ci`, `astro check`, `eslint`, `prettier --check .` and
-  the Cypress lint.
+- `eslint-prettier`: `pnpm install --frozen-lockfile`, `astro check`, `eslint`,
+  `prettier --check .` and the Cypress lint.
 - `cypress-run`: build and end-to-end tests.
 
 Known traps:

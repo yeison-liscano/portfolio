@@ -6,15 +6,15 @@
   ...
 }:
 let
-  version = "13.13.3";
+  version = "16.2.1";
   srcs = {
     aarch64-linux = {
       platform = "linux-arm64";
-      sha256 = "sha256-VgX8xaYCwyjAZh1HZOooFygUUyPnk2nAO9WvfieQyA0=";
+      sha256 = "sha256-m6kgLcQE8drGGv+2ZgkytnEPyVfBbEJShGOz4cDGZPw=";
     };
     x86_64-linux = {
       platform = "linux-x64";
-      sha256 = "sha256-3Imr4KA4n47Ja9W4Wwl9UfSler3O2W5eJ6nxrHItuxE=";
+      sha256 = "sha256-mS6tiWbkbp5IiQ6zYbMzhZGmefMsnVC2maGaakgxys4=";
     };
   };
   currentPlatform = builtins.currentSystem;
@@ -30,8 +30,8 @@ let
       }))
     else
       inputs.nixpkgs.fetchzip {
-        url = "https://cdn.cypress.io/desktop/13.13.3/darwin-arm64/cypress.zip";
-        sha256 = "sha256-a0Pe+GsH07Ru55PFndp/oHVLPbs/VamYJd2pEJwbVjQ=";
+        url = "https://cdn.cypress.io/desktop/${version}/darwin-arm64/cypress.zip";
+        sha256 = "sha256-htKCmrwddD5uJj/x5wuF4injQOJiqH3qD64gL92+gq0=";
         stripRoot = false;
       };
 in
@@ -46,7 +46,8 @@ makeTemplate {
     bin = [
       inputs.nixpkgs.bash
       inputs.nixpkgs.git
-      inputs.nixpkgs.nodejs_22
+      inputs.nixpkgs.nodejs_26
+      inputs.nixpkgs.pnpm
     ]
     ++ inputs.nixpkgs.lib.optionals isLinux [
       inputs.nixpkgs.cypress

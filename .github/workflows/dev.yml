@@ -6,10 +6,10 @@ jobs:
   portfolio-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: cachix/install-nix-action@v27
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
@@ -18,27 +18,36 @@ jobs:
   eslint-prettier:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
-      - uses: actions/setup-node@aca7b64a59c0063db8564e0ffdadd3887f1cbae5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
-      - run: npm ci
-      - run: npm run check
-      - run: npm run eslint
-      - run: npm run format:check
-      - run: npm run cy:eslint
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        env:
+          CYPRESS_INSTALL_BINARY: 0
+      - run: pnpm exec astro sync
+      - run: pnpm run check
+      - run: pnpm run eslint
+      - run: pnpm run format:check
+      - run: pnpm run cy:eslint
 
   cypress-run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
-      - uses: actions/setup-node@aca7b64a59c0063db8564e0ffdadd3887f1cbae5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
-      - uses: cypress-io/github-action@40cfd368ca72ba2bcbe95f70ddcc66136ca3183d
+          node-version: 26
+          cache: pnpm
+      - uses: cypress-io/github-action@18016a55674bd02cabf197de5762a1710cb5577c # v7.4.9
         with:
-          build: npm run build
-          start: npm start
+          package-manager-cache: false
+          build: pnpm run build
+          start: pnpm start
+          wait-on: http://localhost:4321/portfolio/
 
 name: dev
 on:

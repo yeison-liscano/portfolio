@@ -29,16 +29,16 @@ Read the references when you get to that part of the work:
 
 ## Artifact vs. post
 
-| Concern       | Artifact                          | Blog post (this repo)                                                                               |
-| ------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Container     | Whole HTML page                   | MDX body inside `layouts/Post.astro` (hero, TOC, aside already exist)                               |
-| Identity      | New palette and fonts per page    | Inherit the site. Geist Sans, Geist Mono, Space Grotesk; tokens in `src/styles/base.css`            |
-| Theme         | `data-theme` + media query tokens | Same idea, already wired: use the site tokens and never write theme blocks yourself                 |
-| Libraries     | CDN allowlist, UMD globals        | Zero dependencies first. Ask before adding an npm package. Runtime CDN loads only lazily, pinned.   |
-| Mermaid       | Rendered natively                 | `components/blog/Mermaid.astro`                                                                     |
-| Scripts       | Inline, run once                  | Astro bundles a component `<script>` once per page, so use custom elements                          |
-| Complete view | First frame before interaction    | Also RSS, no-JS readers, and search engines: server-render the resting state                        |
-| Checking      | One preview, then publish         | `npm run check`, `npm run eslint`, `npm run format:check`, `npm run build`, one look in the browser |
+| Concern       | Artifact                          | Blog post (this repo)                                                                                   |
+| ------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Container     | Whole HTML page                   | MDX body inside `layouts/Post.astro` (hero, TOC, aside already exist)                                   |
+| Identity      | New palette and fonts per page    | Inherit the site. Geist Sans, Geist Mono, Space Grotesk; tokens in `src/styles/base.css`                |
+| Theme         | `data-theme` + media query tokens | Same idea, already wired: use the site tokens and never write theme blocks yourself                     |
+| Libraries     | CDN allowlist, UMD globals        | Zero dependencies first. Ask before adding an npm package. Runtime CDN loads only lazily, pinned.       |
+| Mermaid       | Rendered natively                 | `components/blog/Mermaid.astro`                                                                         |
+| Scripts       | Inline, run once                  | Astro bundles a component `<script>` once per page, so use custom elements                              |
+| Complete view | First frame before interaction    | Also RSS, no-JS readers, and search engines: server-render the resting state                            |
+| Checking      | One preview, then publish         | `pnpm run check`, `pnpm run eslint`, `pnpm run format:check`, `pnpm run build`, one look in the browser |
 
 ## Workflow
 
@@ -235,14 +235,14 @@ submissions in script with `preventDefault()`.
 Run from the repo root:
 
 ```sh
-npm run check && npm run eslint && npm run format:check && npm run build
+pnpm run check && pnpm run eslint && pnpm run format:check && pnpm run build
 ```
 
-Fix every error. `npm run format::write` fixes formatting. Markdown line length
+Fix every error. `pnpm run format::write` fixes formatting. Markdown line length
 is 80 (markdownlint MD013) and new words may need `project-words.txt` for the
 spell check.
 
-Then look once: `npm run preview` (or `npm run dev`), open the post under
+Then look once: `pnpm run preview` (or `pnpm run dev`), open the post under
 `/portfolio/blog/<slug>/`, and check it in both themes with the header toggle
 and at phone width. Look for clipped labels, text that disappears in one theme,
 a figure that scrolls the page sideways, and controls that do nothing. Make one

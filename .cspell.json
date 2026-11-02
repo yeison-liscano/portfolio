@@ -11,7 +11,7 @@
       "path": "project-words.txt"
     }
   ],
-  "ignorePaths": ["node_modules", "dist"],
+  "ignorePaths": ["node_modules", "dist", "pnpm-lock.yaml"],
   "language": "en,fr,es",
   "version": "0.2"
 }

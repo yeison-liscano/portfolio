@@ -2,8 +2,8 @@
 lang: "fr"
 title: Réflexions 2024
 pubDate: 2025-01-09
-description: "Un résumé des livres que j'ai lus et des choses que j'ai apprises
-en 2024."
+description:
+  "Un résumé des livres que j'ai lus et des choses que j'ai apprises en 2024."
 tags: ["personal"]
 ---
 

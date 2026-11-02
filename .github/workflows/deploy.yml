@@ -14,10 +14,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@163217dfcd28294438ea1c1c149cfaf66eec283e
-      - uses: withastro/action@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: withastro/action@a8b97df764791eb61fbf3338ef713b0e61ae05c5 # v6.1.4
         with:
-          node-version: 22
+          node-version: 26
+          package-manager: pnpm@12.16.1
+        env:
+          CYPRESS_INSTALL_BINARY: 0
 
   deploy:
     needs: build
@@ -28,4 +31,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@854d7aa1b99e4509c4d1b53d69b7ba4eaf39215a
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

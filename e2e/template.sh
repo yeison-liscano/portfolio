@@ -32,14 +32,14 @@ function run_cypress {
     && _create_tmp_dir "__argCypress__/." "${cypress_bin}" \
     && if test -n "__argIsLinux__"; then
       CYPRESS_RUN_BINARY="${cypress_bin}/bin/Cypress"
-      cypress_run=(xvfb-run npx cypress run --browser "${browser}" --headless "${args[@]}")
+      cypress_run=(xvfb-run pnpm exec cypress run --browser "${browser}" --headless "${args[@]}")
     else
       CYPRESS_RUN_BINARY="${cypress_bin}/Cypress.app/Contents/MacOS/Cypress"
-      cypress_run=(npx cypress run --browser electron "${args[@]}")
+      cypress_run=(pnpm exec cypress run --browser electron "${args[@]}")
     fi \
     && case "${action}" in
       run) "${cypress_run[@]}" ;;
-      open) npx cypress open ;;
+      open) pnpm exec cypress open ;;
       *) error 'First argument must be one of: run, open' ;;
     esac
 }
