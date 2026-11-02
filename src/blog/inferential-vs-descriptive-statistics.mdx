@@ -8,7 +8,10 @@ description:
 tags: ["statistics", "data-science"]
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import SampleToPopulation from "./components/inferential-vs-descriptive-statistics/SampleToPopulation.astro";
 
 Take seven measurements: 23, 45, 12, 67, 34, 89 and 21. You can say exactly what
@@ -29,7 +32,7 @@ anything beyond the dataset itself. The most common summaries are:
   data.
 - **Dispersion:** the variance, standard deviation, and interquartile range
   (IQR) describe how stretched or squeezed the data are.
-- **Shape and relationship:** skewness, kurtosis, and the linear correlation
+- **Shape and relationship:** <Term title="A measure of asymmetry: how much longer one tail of the distribution is than the other.">skewness</Term>, <Term title="A measure of how heavy the tails of a distribution are compared with a normal distribution.">kurtosis</Term>, and the linear correlation
   between two variables.
 
 For our seven measurements, the mean is 41.57 and the standard deviation is
@@ -43,7 +46,7 @@ Descriptive statistics describes the exact data on hand. Inferential statistics
 population, such as every person in a country, is often impossible, slow, or
 expensive. So researchers measure a sample and use a sampling design and a
 statistical model to estimate the population parameters. A large sample alone
-does not remove selection bias.
+does not remove <Term title="Error that appears when the way a sample is chosen makes it differ systematically from the population.">selection bias</Term>.
 
 This works because **inferential statistics relies on the laws of probability**
 to reach conclusions and to state how confident we are in them. It uses
@@ -68,10 +71,10 @@ The key techniques are:
 
 Here is the step from description to inference. Assume the seven observations
 are an independent random sample from a normal population. A Student's t
-interval uses the sample standard deviation (`ddof=1`), six degrees of freedom,
+interval uses the sample standard deviation (`ddof=1`), six <Term title="The number of values free to vary; for this interval it is n − 1.">degrees of freedom</Term>,
 and `mean ± 2.447 * sample_std / sqrt(7)`. With only seven observations, the
-normality assumption matters. See
-[NIST's confidence limits for the mean](https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm).
+normality assumption matters.
+See <Acronym title="National Institute of Standards and Technology">NIST</Acronym>'s <ExternalLink href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm" preview="NIST's e-Handbook of Statistical Methods, on confidence limits for the mean based on the t distribution.">confidence limits for the mean</ExternalLink>.
 
 <Figure caption="The seven values have mean 41.57. Under the stated sampling assumptions, the 95% t confidence interval for the population mean μ is 15.9 to 67.2. The interval reflects both the small sample and its variability.">
   <SampleToPopulation />

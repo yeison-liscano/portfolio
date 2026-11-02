@@ -620,3 +620,8 @@ satelitales
 tcpdump
 veth
 sendto
+economia
+basica
+heapsort
+subproblemas
+macroeconómicas

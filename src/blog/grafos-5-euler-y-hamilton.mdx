@@ -13,6 +13,7 @@ isDraft: true
 
 import Figure from "../components/blog/Figure.astro";
 import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
 import Konigsberg from "./components/grafos/Konigsberg.astro";
 import CircuitoEuler from "./components/grafos/CircuitoEuler.astro";
 import Dodecaedro from "./components/grafos/Dodecaedro.astro";
@@ -265,7 +266,7 @@ Para encontrar un circuito de Hamilton, o demostrar que no existe, los mejores
 algoritmos conocidos tardan un tiempo exponencial en el número de vértices en el
 peor caso. El problema es **NP-completo**: un algoritmo de tiempo polinomial
 para él daría algoritmos de tiempo polinomial para miles de problemas que hoy se
-consideran intratables, y resolvería la pregunta abierta P versus NP.
+consideran intratables, y resolvería la pregunta abierta <Term title="La pregunta de si todo problema cuya solución se verifica rápido también se puede resolver rápido.">P versus NP</Term>.
 
 Para grafos pequeños, una búsqueda con retroceso (_backtracking_) funciona bien:
 extender el camino con un vecino no visitado y, si se llega a un callejón sin

@@ -8,6 +8,10 @@ description:
 tags: ["programming", "python"]
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
 ## Duck Typing, ABCs, and Protocols
 
 > If it looks like a duck, swims like a duck, and quacks like a duck, then it
@@ -15,7 +19,7 @@ tags: ["programming", "python"]
 
 The idea behind duck typing is that you don't need to check the type of an
 object before using it. Instead you care about what methods and properties the
-object has (API). If it has the methods and properties you need, you can use it.
+object has (<Acronym title="Application Programming Interface">API</Acronym>). If it has the methods and properties you need, you can use it.
 
 Abstract Base Classes (ABCs) and Protocols enable us to keep the flexibility of
 duck typing, but also have some kind of type checking.
@@ -135,7 +139,7 @@ Using cached token
 my-secret-token
 ```
 
-The next example uses a mock HTTP client to illustrate token caching. A real
+The next example uses a mock <Acronym title="Hypertext Transfer Protocol">HTTP</Acronym> client to illustrate token caching. A real
 client also needs token expiry handling, failed-response handling, and
 synchronization if concurrent callers may refresh the same token. The examples
 with top-level `await` run in an async-capable notebook or the page runner; in a
@@ -379,11 +383,10 @@ def fibonacci(n):
 print(fibonacci(10))
 ```
 
-The manual cache above requires hashable arguments and keyword values; it is
+The manual cache above requires <Term title="An object whose hash value never changes during its lifetime, so it can be a dict key or a set member.">hashable</Term> arguments and keyword values; it is
 only a teaching example. Stringifying arguments is not a reliable cache key,
-because different objects can have the same string representation. For pure
-functions, prefer
-[`functools.cache` or `lru_cache`](https://docs.python.org/3/library/functools.html).
+because different objects can have the same string representation. For <Term title="Functions whose result depends only on their arguments and that have no side effects.">pure functions</Term>,
+prefer <ExternalLink href="https://docs.python.org/3/library/functools.html" preview="Python documentation for functools, including the cache and lru_cache memoizing decorators.">`functools.cache` or `lru_cache`</ExternalLink>.
 
 #### cache
 

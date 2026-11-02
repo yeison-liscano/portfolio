@@ -7,6 +7,10 @@ description:
 tags: ["python", "tools"]
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
 Virtual environments are used to create an isolated environment for Python
 projects. This means that each project can have its own dependencies, regardless
 of what dependencies every other project has. First of all let's review how to
@@ -18,8 +22,8 @@ environment first (`python3 -m venv .venv`, then `source .venv/bin/activate`);
 > Contains a specific Python interpreter and software libraries and binaries
 > which are needed to support a project (library or application). These are by
 > default isolated from software in other virtual environments and Python
-> interpreters and libraries installed in the operating system.
-> [Python docs](https://docs.python.org/3/library/venv.html)
+> interpreters and libraries installed in the operating
+> system. <ExternalLink href="https://docs.python.org/3/library/venv.html" preview="Python documentation for venv, the standard-library module that creates lightweight virtual environments.">Python docs</ExternalLink>
 
 ## Freezing packages (PIP)
 
@@ -27,7 +31,7 @@ To freeze the packages installed in the virtual environment, you can use the
 `freeze` command. This will create a `requirements.txt` file with all the
 installed distributions and their versions (some packaging tools are omitted by
 default). This is an environment snapshot, not a dependency resolver or a
-cross-platform lockfile.
+cross-platform <Term title="A file that records the exact version, and often the hash, of every dependency, so an install can be reproduced.">lockfile</Term>.
 
 ```bash
 python -m pip freeze > requirements.txt
@@ -59,7 +63,7 @@ Python, this is the recommended way to create virtual environments.
 
 ### venv (built-in module in python 3.3+)
 
-Extracted from [python venv docs](https://docs.python.org/3/library/venv.html) A
+Extracted from <ExternalLink href="https://docs.python.org/3/library/venv.html" preview="Python documentation for venv, the standard-library module that creates lightweight virtual environments.">python venv docs</ExternalLink> A
 virtual environment is (amongst other things):
 
 Used to contain a specific Python interpreter and software libraries and
@@ -91,7 +95,7 @@ deactivate
 
 ### pipenv
 
-Extracted from [pipenv docs](https://pipenv.pypa.io/en/latest/) The problems
+Extracted from <ExternalLink href="https://pipenv.pypa.io/en/latest/" preview="Pipenv documentation: a tool that manages a project's virtual environment and dependencies with Pipfile and Pipfile.lock.">pipenv docs</ExternalLink> The problems
 that Pipenv seeks to solve are multi-faceted:
 
 - You no longer need to use pip and virtualenv separately: they work together.
@@ -139,7 +143,7 @@ exit
 > virtualenv can help you. It creates an environment that has its own
 > installation directories, that doesn't share libraries with other virtualenv
 > environments (and optionally doesn't access the globally installed libraries
-> either). [virtualenv docs](https://virtualenv.pypa.io/en/latest/)
+> either). <ExternalLink href="https://virtualenv.pypa.io/en/latest/" preview="virtualenv documentation: a tool that creates isolated Python environments, older and more configurable than venv.">virtualenv docs</ExternalLink>
 
 ```bash
 # basic usage
@@ -171,10 +175,10 @@ versions of Python, you can use `pyenv` or `pyenv-virtualenv`.
 ### pyenv
 
 `pyenv` installs and selects Python interpreters; it does not create virtual
-environments by itself. Install it using the
-[official instructions](https://github.com/pyenv/pyenv#installation), including
+environments by itself. Install it using
+the <ExternalLink href="https://github.com/pyenv/pyenv#installation" preview="The pyenv repository, at the installation instructions for this tool that installs and switches between Python versions.">official instructions</ExternalLink>, including
 shell initialization and build dependencies. It is not installed with pip.
-Upstream pyenv targets Unix-like systems; Windows users can use WSL or the
+Upstream pyenv targets Unix-like systems; Windows users can use <Acronym title="Windows Subsystem for Linux">WSL</Acronym> or the
 separate pyenv-win project.
 
 ```bash
@@ -191,8 +195,8 @@ project's `.python-version`.
 
 ### pyenv-virtualenv
 
-The optional
-[pyenv-virtualenv plugin](https://github.com/pyenv/pyenv-virtualenv) adds
+The
+optional <ExternalLink href="https://github.com/pyenv/pyenv-virtualenv" preview="pyenv-virtualenv, a pyenv plugin that manages virtualenv and Conda environments for the installed Python versions.">pyenv-virtualenv plugin</ExternalLink> adds
 `pyenv virtualenv`, `pyenv virtualenvs`, and activation commands. Install and
 initialize that plugin before using these commands.
 
@@ -207,8 +211,8 @@ pyenv local {env_name}
 Anaconda Distribution bundles Python and scientific-computing packages. Conda is
 an open-source environment and package manager, but Anaconda Distribution and
 its hosted repositories have separate terms; free use depends on eligibility.
-Check the
-[Anaconda terms](https://www.anaconda.com/legal/terms/terms-of-service). Install
+Check
+the <ExternalLink href="https://www.anaconda.com/legal/terms/terms-of-service" preview="Anaconda's terms of service, which set who may use its distribution and hosted repositories for free.">Anaconda terms</ExternalLink>. Install
 the current distribution for your operating system from the official site before
 running the following Conda examples.
 
@@ -246,7 +250,7 @@ conda env export --from-history --file environment.yml
 
 ### Mamba
 
-Mamba is a fast, drop-in replacement for the conda package manager. It is a C++
+Mamba is a fast, <Term title="A replacement that accepts the same commands and files, so nothing else has to change.">drop-in replacement</Term> for the conda package manager. It is a C++
 implementation of the conda package manager, that uses multi-threading and a
 sophisticated dependency solver to achieve maximum performance.
 
@@ -267,12 +271,10 @@ mamba env create -f environment.yml # create an environment from a yml file
 
 Docker is a containerization platform that allows you to create and run
 containers. Docker containers are isolated environments that run on a single
-host. To install docker on ubuntu, follow
-[this](https://docs.docker.com/engine/install/ubuntu/) tutorial.
+host. To install docker on ubuntu,
+follow <ExternalLink href="https://docs.docker.com/engine/install/ubuntu/" preview="Docker documentation on installing Docker Engine on Ubuntu from Docker's apt repository.">this</ExternalLink> tutorial.
 
-<!-- ```bash
-docker run -it --rm -v $(pwd):/app -w /app python:3.14-slim bash
-``` -->
+{/* docker run -it --rm -v $(pwd):/app -w /app python:3.14-slim bash */}
 
 #### Containerizing a Python script
 
@@ -313,11 +315,11 @@ docker compose down
 
 #### Containerizing an ASGI app
 
-This assumes `app.py` exports an ASGI application named `app` (for example,
+This assumes `app.py` exports an <Acronym title="Asynchronous Server Gateway Interface">ASGI</Acronym> application named `app` (for example,
 FastAPI) and `requirements.txt` includes Uvicorn and the framework. A Flask app
-uses WSGI and needs a WSGI server or an ASGI adapter. The Dockerfile syntax is
-documented in the
-[Dockerfile reference](https://docs.docker.com/reference/dockerfile/).
+uses <Acronym title="Web Server Gateway Interface">WSGI</Acronym> and needs a WSGI server or an ASGI adapter. The Dockerfile syntax is
+documented in
+the <ExternalLink href="https://docs.docker.com/reference/dockerfile/" preview="Docker's reference for every Dockerfile instruction, such as FROM, RUN, COPY and CMD.">Dockerfile reference</ExternalLink>.
 
 ```docker
 # Dockerfile
@@ -359,5 +361,5 @@ These are alternative workflows; you do not need to stack all of them.
 
 #### Divide and conquer
 
-more info in the
-[Snakemake documentation](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#integrated-package-management)
+more info in
+the <ExternalLink href="https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#integrated-package-management" preview="Snakemake documentation on integrated package management: per-rule Conda environments for reproducible workflows.">Snakemake documentation</ExternalLink>

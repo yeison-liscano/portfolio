@@ -7,7 +7,9 @@ description:
 tags: ["tools"]
 ---
 
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import PullStrategies from "./components/git-commands/PullStrategies.astro";
 
 Git is one of those tools you use every day, but most people only scratch the
@@ -44,7 +46,7 @@ git diff --staged
 ### git stash
 
 When you need to quickly switch context without committing half-done work,
-`stash` saves your working directory and index state.
+`stash` saves your working directory and <Term title="Git's staging area: the snapshot that the next commit will record.">index</Term> state.
 
 ```bash
 git stash
@@ -93,7 +95,7 @@ git stash push -a -m "everything"
 
 #### Stashing interactively
 
-Use `-p` (patch) to interactively choose which hunks to stash, similar to
+Use `-p` (patch) to interactively choose which <Term title="Blocks of consecutive changed lines in a diff.">hunks</Term> to stash, similar to
 `git add -p`.
 
 ```bash
@@ -200,8 +202,8 @@ git blame -L 10,30 src/auth/login.ts
 ### git log -S "search_term"
 
 Finds commits that change the number of occurrences of a string. Use `-G`
-instead to match added or removed lines with a regular expression. See the
-[`git log` documentation](https://git-scm.com/docs/git-log).
+instead to match added or removed lines with a regular expression. See
+the <ExternalLink href="https://git-scm.com/docs/git-log" preview="Git reference for git log, including the -S and -G options that search commits for changes to a string.">`git log` documentation</ExternalLink>.
 
 ```bash
 git log -S "validateToken" --oneline
@@ -231,9 +233,9 @@ git push -u origin feature/new-auth
 
 `git pull` fetches and then integrates changes using the selected strategy.
 With `--rebase`, it replays local commits on top of the upstream history. A
-merge-based pull only needs a merge commit when histories diverge; a fast-forward
-needs none. Defaults depend on version and configuration. See
-[`git pull`](https://git-scm.com/docs/git-pull).
+merge-based pull only needs a merge commit when histories diverge; a <Term title="Moving the branch pointer ahead to the fetched commit, possible when the local branch has no commits of its own.">fast-forward</Term>
+needs none. Defaults depend on version and configuration.
+See <ExternalLink href="https://git-scm.com/docs/git-pull" preview="Git reference for git pull, including how --rebase, --ff-only and pull.rebase choose how changes are integrated.">`git pull`</ExternalLink>.
 
 <Figure caption="Your local commits X and Y diverged from origin/main at B. A pull using --no-rebase joins the diverged lines with merge commit M. A rebase pull replays them after D as new commits X′ and Y′, so history stays one straight line.">
   <PullStrategies />

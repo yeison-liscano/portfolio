@@ -6,15 +6,18 @@ tags: ["programming", "web"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
 import Mermaid from "../components/blog/Mermaid.astro";
+import Term from "../components/blog/Term.astro";
 
-This article is based on the
-[JSON‑RPC 2.0 Specification](https://www.jsonrpc.org/specification) by the
-JSON‑RPC Working Group, Copyright (C) 2007–2010 by the JSON‑RPC Working Group,
+This article is based on
+the <ExternalLink href="https://www.jsonrpc.org/specification" preview="The JSON-RPC 2.0 specification: request, response and error objects, notifications and batches.">JSON‑RPC 2.0 Specification</ExternalLink> by
+the <Acronym title="JavaScript Object Notation Remote Procedure Call">JSON‑RPC</Acronym> Working Group, Copyright (C) 2007–2010 by the JSON‑RPC Working Group,
 used under the permissions granted in the specification.
 
-> JSON-RPC is a stateless, lightweight remote procedure call (RPC) protocol.
+> JSON-RPC is a <Term title="The server keeps no session between calls, so each request carries everything it needs.">stateless</Term>, lightweight remote procedure call (RPC) protocol.
 
 ## Request Object
 
@@ -76,8 +79,8 @@ Object with the following members:
 - `data`: A primitive or structured value containing additional information
   about the error (optional).
 
-See the
-[JSON-RPC error object specification](https://www.jsonrpc.org/specification#error_object).
+See
+the <ExternalLink href="https://www.jsonrpc.org/specification#error_object" preview="The JSON-RPC 2.0 specification, at the error object: its members and the reserved error codes.">JSON-RPC error object specification</ExternalLink>.
 
 ### Batch
 

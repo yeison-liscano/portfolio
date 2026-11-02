@@ -7,7 +7,10 @@ description:
 tags: ["programming", "python"]
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import ScopeLookup from "./components/python-basics/ScopeLookup.astro";
 
 The simplicity of Python makes the language a great option for almost everyone
@@ -52,8 +55,8 @@ if __name__ == "__main__":
 A package organizes modules and subpackages under a dotted namespace.
 A **regular package** contains `__init__.py`, which may be empty or contain
 initialization code. **Namespace packages** can omit that file and span multiple
-directories; they have been supported since Python 3.3. See the
-[Python import reference](https://docs.python.org/3/reference/import.html#packages).
+directories; they have been supported since Python 3.3. See
+the <ExternalLink href="https://docs.python.org/3/reference/import.html#packages" preview="Python language reference for the import system, at packages: regular packages and namespace packages.">Python import reference</ExternalLink>.
 
 ```python
 # __init__.py
@@ -86,7 +89,7 @@ the scope of the outer or enclosing function.
 
 The `built-in` scope is the outermost scope in Python, and it is the scope that
 contains all of the built-in names in Python. The built-in scope is searched
-last, after the local, enclosing, and global scopes (LEGB).
+last, after the local, enclosing, and global scopes (<Acronym title="Local, Enclosing, Global, Built-in: the order in which Python looks up names">LEGB</Acronym>).
 
 <Figure caption="To resolve x inside inner(), Python checks the local scope, then the enclosing outer(), and finds x = 10 in the global scope. The search stops at the first match, so built-in is never checked.">
   <ScopeLookup />
@@ -203,7 +206,7 @@ typing `import builtins; dir(builtins)` in the Python interpreter.
 
 ## Splat Operator `*` and Double Splat Operator `**`
 
-Splat operator is a kind of unpacking operator (destructuring in JS). It can be
+Splat operator is a kind of unpacking operator (<Term title="Syntax that unpacks values from arrays, or properties from objects, into separate variables.">destructuring</Term> in <Acronym title="JavaScript">JS</Acronym>). It can be
 used to allow an iterable to be unpacked into positional arguments in a function
 call, or into a list, tuple, or set display. `**` unpacks a mapping into keyword
 arguments or a dictionary display. These are often called the splat (`*`) and

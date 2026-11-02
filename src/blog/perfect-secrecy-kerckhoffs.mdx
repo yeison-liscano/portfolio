@@ -17,11 +17,14 @@ tags: ["security", "cryptography", "math"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import KeyGrid from "./components/perfect-secrecy/KeyGrid.astro";
 import SecrecyTimeline from "./components/perfect-secrecy/SecrecyTimeline.astro";
 
-{/* cspell:ignore PXUDR */}
+{/* cspell:ignore PXUDR Komitet Gosudarstvennoy Bezopasnosti */}
 
 Keywords: perfect secrecy, one-time pad, Shannon, Kerckhoffs' principle, key
 reuse, Venona
@@ -30,8 +33,8 @@ How do you break a cipher that is mathematically unbreakable? In February 1946,
 Meredith Gardner, an analyst on the US Army's Venona project, read his first
 Soviet message protected by a one-time pad. Three years later, Claude Shannon
 published the proof that a one-time pad, used correctly, cannot be broken, even
-with unlimited computing power. The question is not only historical: AES in
-counter mode and ChaCha20 fail the same way when a key and nonce are reused.
+with unlimited computing power. The question is not only historical: <Acronym title="Advanced Encryption Standard">AES</Acronym>
+in <Term title="A mode that turns a block cipher into a stream cipher by encrypting successive counter values.">counter mode</Term> and ChaCha20 fail the same way when a key and <Term title="A number used once: a value that must never repeat with the same key.">nonce</Term> are reused.
 This post proves what perfect secrecy requires, states every hypothesis behind
 the proofs, and shows which one Venona broke.
 
@@ -46,7 +49,7 @@ digits. Then a clerk added key digits, taken from a page of a one-time pad, to
 those groups. Each page was meant to be used for one message only.
 
 In 1942, under pressure from the German advance on Moscow, the organization that
-produced the KGB's pads printed about 35,000 pages of duplicate key. The copies
+produced the <Acronym title="Komitet Gosudarstvennoy Bezopasnosti: the Soviet Committee for State Security">KGB</Acronym>'s pads printed about 35,000 pages of duplicate key. The copies
 were sent to users far apart from each other, which made the reuse harder to
 spot.
 
@@ -106,14 +109,14 @@ every ciphertext `c ∈ C`,
 `Pr[Enc_K(m0) = c] = Pr[Enc_K(m1) = c]`. The probability is over the key and
 over any randomness inside `Enc`. Every message produces every ciphertext with
 the same probability, so `c` carries no trace of which message it came from. The
-two forms are linked by Bayes' theorem.
+two forms are linked by <Term title="The rule that turns Pr[c | m] into Pr[m | c]: Pr[m | c] = Pr[c | m] · Pr[m] / Pr[c].">Bayes' theorem</Term>.
 
 ## The one-time pad is perfectly secret, and the proof takes one line
 
 In the one-time pad, messages, keys and ciphertexts are all strings of `n` bits.
 `Gen` picks `k` uniformly at random from `{0,1}^n`. Encryption is
-`Enc_k(m) = m ⊕ k` and decryption is `Dec_k(c) = c ⊕ k`, where `⊕` is bitwise
-XOR. Gilbert Vernam built this cipher for teleprinters in 1917, and Joseph
+`Enc_k(m) = m ⊕ k` and decryption is `Dec_k(c) = c ⊕ k`, where `⊕` is
+bitwise <Acronym title="Exclusive OR: 1 when the two bits differ, 0 when they are equal">XOR</Acronym>. Gilbert Vernam built this cipher for <Term title="Electromechanical typewriters that sent and received text over telegraph lines.">teleprinters</Term> in 1917, and Joseph
 Mauborgne added the requirement that the key tape be random and never reused.
 Steven Bellovin later found that Frank Miller had described the same idea for
 telegraph codes in 1882.
@@ -314,8 +317,8 @@ of its own:
   of its message unless messages are padded to a common length.
 - **Tampering (not covered at all).** Flipping bit `i` of `c` flips bit `i` of
   `m`. Perfect secrecy is about what the attacker learns, not about what they
-  can change. Integrity needs a separate mechanism, such as a message
-  authentication code.
+  can change. Integrity needs a separate mechanism, such as
+  a <Term title="A short tag computed from the message and a secret key; it reveals any change to the message.">message authentication code</Term>.
 
 ## Kerckhoffs' principle is built into the definition
 
@@ -342,7 +345,7 @@ with bad properties. It is copied into every device that runs it, so it leaks.
 It cannot be changed quickly once it leaks. And it cannot be reviewed in public
 before it is deployed. Two well-documented cases:
 
-- **GSM's A5/1.** The cipher that protected GSM calls was kept secret. Its
+- **GSM's A5/1.** The cipher that protected <Acronym title="Global System for Mobile Communications">GSM</Acronym> calls was kept secret. Its
   general design leaked in 1994, and Marc Briceno reverse-engineered it in full
   from a GSM phone in 1999. Alex Biryukov, Adi Shamir and David Wagner presented
   a real-time attack in 2000.
@@ -408,12 +411,11 @@ the attacker already has your source code.
   classified Bell Labs memorandum _A Mathematical Theory of Cryptography_
   (MM 45-110-02, 1 September 1945).
 - Kerckhoffs, A. (1883). La cryptographie militaire. _Journal des sciences
-  militaires_, IX, 5–38 (January) and 161–191 (February).
-  [Transcription and scans by Fabien Petitcolas](https://www.petitcolas.net/kerckhoffs/).
+  militaires_, IX, 5–38 (January) and 161–191
+  (February). <ExternalLink href="https://www.petitcolas.net/kerckhoffs/" preview="Fabien Petitcolas' page on Kerckhoffs' La cryptographie militaire, with a transcription and scans of the 1883 articles.">Transcription and scans by Fabien Petitcolas</ExternalLink>.
 - Katz, J., & Lindell, Y. _Introduction to Modern Cryptography_, chapter 2
   (perfectly secret encryption). CRC Press.
-- National Security Agency. _VENONA: An Overview_.
-  [PDF](https://media.defense.gov/2021/Jun/29/2002752012/-1/-1/0/VENONA_AN_OVERVIEW.PDF).
+- National Security Agency. _VENONA: An Overview_. <ExternalLink href="https://media.defense.gov/2021/Jun/29/2002752012/-1/-1/0/VENONA_AN_OVERVIEW.PDF" preview="NSA overview of the Venona project: how US analysts read Soviet messages sent with reused one-time pads.">PDF</ExternalLink>.
 - Vernam, G. S. U.S. Patent 1,310,719, _Secret Signaling System_, issued 22
   July 1919.
 - Bellovin, S. M. (2011). Frank Miller: Inventor of the One-Time Pad.
@@ -423,7 +425,7 @@ the attacker already has your source code.
 - Biryukov, A., Shamir, A., & Wagner, D. Real Time Cryptanalysis of A5/1 on a
   PC. _Fast Software Encryption (FSE 2000)_, LNCS, Springer, 2001.
 - Nohl, K., Evans, D., Starbug, & Plötz, H. (2008). Reverse-Engineering a
-  Cryptographic RFID Tag. _USENIX Security Symposium_.
+  Cryptographic <Acronym title="Radio-Frequency Identification">RFID</Acronym> Tag. _USENIX Security Symposium_.
 - Garcia, F. D., de Koning Gans, G., Muijrers, R., van Rossum, P., Verdult, R.,
   Wichers Schreur, R., & Jacobs, B. (2008). Dismantling MIFARE Classic.
   _ESORICS 2008_.

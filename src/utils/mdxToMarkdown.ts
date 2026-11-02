@@ -54,17 +54,26 @@ const inlineToMarkdown = (
   return text;
 };
 
+// MDX comments, such as {/* prettier-ignore */} or {/* cspell:ignore … */},
+// are notes for tools. markdown-it would print them as text. A comment on its
+// own line goes with its line, so the paragraph below it stays a paragraph.
+const COMMENT_LINE = /^[ \t]*\{\/\*[\s\S]*?\*\/\}[ \t]*(?:\n|$)/gm;
+const COMMENT = /\{\/\*[\s\S]*?\*\/\}/g;
+
 const replaceInline = (body: string, postUrl: string): string =>
   body
     .split(FENCE)
     .map((part, index) =>
       index % 2 === 1
         ? part
-        : part.replace(
-            INLINE,
-            (_, name: string, attributes: string, text: string) =>
-              inlineToMarkdown(name, attributes, text, postUrl),
-          ),
+        : part
+            .replace(COMMENT_LINE, "")
+            .replace(COMMENT, "")
+            .replace(
+              INLINE,
+              (_, name: string, attributes: string, text: string) =>
+                inlineToMarkdown(name, attributes, text, postUrl),
+            ),
     )
     .join("");
 

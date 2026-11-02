@@ -20,7 +20,11 @@ tags: ["hardware", "electronics", "python"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
 import LogicLevels from "./components/transistors/LogicLevels.astro";
 import InverterStates from "./components/transistors/InverterStates.astro";
 import InverterCurve from "./components/transistors/InverterCurve.astro";
@@ -31,8 +35,8 @@ dynamic power
 
 When a program computes `1 + 1`, no number exists anywhere in the chip. There
 are only wires at about 0 volts or at about the supply voltage, and transistors
-that connect them. A
-[gigabit Ethernet cable](/portfolio/blog/osi-layers-one-request/) uses five
+that connect them.
+A <InternalLink slug="osi-layers-one-request">gigabit Ethernet cable</InternalLink> uses five
 voltage levels per symbol, so why does the logic inside a processor use only
 two? The answer decides how
 reliable, how fast and how hot a chip is. This post follows one addition down to
@@ -42,9 +46,9 @@ cleans its own input, and why a chip spends energy only when bits change.
 
 ## A bit is a range of voltages, and the gaps between ranges absorb noise
 
-A 1 is not a voltage. It is a promise that a voltage falls inside a range. The
-JEDEC standard JESD8C defines these ranges for 3.3 V LVTTL (low-voltage
-transistor-transistor logic), a common interface on microcontrollers and FPGAs.
+A 1 is not a voltage. It is a promise that a voltage falls inside a range.
+The <Acronym title="Joint Electron Device Engineering Council">JEDEC</Acronym> standard JESD8C defines these ranges for 3.3 V LVTTL (low-voltage
+transistor-transistor logic), a common interface on microcontrollers and <Acronym title="Field-Programmable Gate Arrays">FPGAs</Acronym>.
 A receiver reads any input above 2.0 V as 1 and any input below 0.8 V as 0.
 Between 0.8 V and 2.0 V the result is undefined. A driver, in turn, promises to
 output at least 2.4 V for a 1 and at most 0.4 V for a 0. Datasheets call these
@@ -57,7 +61,7 @@ input read as low, and the guaranteed output high and low.
 
 The difference between the promise and the threshold is the **noise margin**.
 On the high side it is 2.4 V − 2.0 V = 0.4 V. On the low side it is 0.8 V − 0.4
-V = 0.4 V. Up to 0.4 V of noise, from crosstalk, ground bounce or a long wire,
+V = 0.4 V. Up to 0.4 V of noise, from <Term title="Interference that a signal on one wire induces on a neighboring wire.">crosstalk</Term>, <Term title="A brief shift of a chip's ground voltage when many outputs switch at once.">ground bounce</Term> or a long wire,
 can push the signal without changing the bit.
 
 Modern processor cores run near 1 V or below, so their ranges are narrower. The
@@ -174,7 +178,7 @@ inverter draws almost no current.
 The switch picture explains the logic but hides the most important property. A
 MOSFET is not an ideal switch. Near the threshold it conducts partly, and two of
 them pulling against each other form an amplifier. The next figure computes the
-inverter's output for every input voltage, from the textbook square-law model of
+inverter's output for every input voltage, from the textbook <Term title="The approximation in which a MOSFET's current grows with the square of the gate voltage above the threshold.">square-law model</Term> of
 a transistor.
 
 <Figure caption="The transfer curve of a CMOS inverter, computed from the square-law model with VDD = 3.3 V and a threshold of 0.7 V. Between VIL and VIH the slope is steeper than −1, so the inverter amplifies. Outside that zone it squeezes a 1.0 V wide input band into a few hundredths of a volt near a rail.">
@@ -189,7 +193,7 @@ inverters and a noisy bit comes out clean. That is the answer to the opening
 question. A gate with gain and flat ends has two stable outputs, and each gate
 restores them for the next one.
 
-More levels are possible, but they are expensive. QLC flash memory stores 4 bits
+More levels are possible, but they are expensive. <Acronym title="Quad-Level Cell">QLC</Acronym> flash memory stores 4 bits
 per cell as 16 charge levels, and it relies on strong error correction to read
 them back. Storage can afford that cost. Logic, where a value crosses hundreds
 of gates per operation, cannot.
@@ -197,7 +201,7 @@ of gates per operation, cannot.
 ## Four transistors make a NAND, and NAND gates make an adder
 
 Two pMOS in parallel above the output, and two nMOS in series below it, make a
-**NAND** gate. The output goes to 0 only when both nMOS conduct, which means
+**<Acronym title="NOT AND: the output is 0 only when every input is 1">NAND</Acronym>** gate. The output goes to 0 only when both nMOS conduct, which means
 both inputs are 1. In every other case at least one pMOS conducts and the output
 is 1.
 
@@ -276,7 +280,7 @@ Each bit position uses a full adder of 9 NAND gates, 36 transistors. I also
 checked the circuit against all 256 pairs of 4-bit inputs. Real cell libraries
 do better: the CMOS mirror adder in Weste and Harris's textbook uses 28
 transistors per bit. The structure is the same, switches arranged so that the
-output always connects to exactly one rail.
+output always connects to exactly one <Term title="One of the two supply lines: the supply voltage or ground.">rail</Term>.
 
 ## A chip spends energy when bits flip, not while they hold
 
@@ -295,24 +299,23 @@ the fraction of nodes that flip per clock cycle and f is the clock frequency.
 The square on V is why supply voltages fell. Take an output capacitance of about
 1 femtofarad, a plausible order of magnitude for one gate output on a modern
 chip. At 0.8 V, a flip costs about 0.32 femtojoules. At 5 V, the supply of
-classic TTL logic, it costs about 12.5 femtojoules, 39 times as much.
+classic <Acronym title="Transistor-Transistor Logic">TTL</Acronym> logic, it costs about 12.5 femtojoules, 39 times as much.
 
 In 1974, Robert Dennard and his colleagues showed that shrinking a MOSFET and
 its voltage together keeps the power per unit of area constant. That rule held
 for about three decades. Around 2005, it broke down: the threshold voltage could
-not keep falling without leakage current growing too fast, so the supply voltage
+not keep falling without <Term title="Current that flows through a transistor even when it is switched off.">leakage current</Term> growing too fast, so the supply voltage
 stopped falling too. Power density rose, clock frequencies stopped climbing, and
 processor makers turned to multiple cores instead. An idle core still stays
 cool. When no bits flip, only leakage remains.
 
 ## A 1 is a promise about a voltage, and every gate keeps it
 
-A voltage becomes a 1 when it falls inside the range that the receiver reads as
-
-1. Computers use two levels because two levels leave the widest margin, and
-   because a CMOS gate, two switches that are also an amplifier, restores two
-   levels at every stage. Ten levels would leave margins smaller than ordinary
-   noise, and no simple gate restores them.
+A voltage becomes a 1 when it falls inside the range that the receiver reads
+as 1. Computers use two levels because two levels leave the widest margin, and
+because a CMOS gate, two switches that are also an amplifier, restores two
+levels at every stage. Ten levels would leave margins smaller than ordinary
+noise, and no simple gate restores them.
 
 The promise also holds between chips, and that is where it breaks in practice.
 Before wiring the output of one chip to the input of another, subtract the
@@ -344,7 +347,7 @@ The 74HC00 needs at least 3.15 V to guarantee a 1, and LVTTL only promises 2.4
 V. The circuit may still work on the bench, inside the undefined zone, and fail
 with a warmer chip or a longer wire. The 74HCT version exists for this reason:
 its inputs use the same 2.0 V and 0.8 V thresholds as LVTTL. When a margin is
-negative, use a part with matching thresholds or a level shifter.
+negative, use a part with matching thresholds or a <Term title="A circuit that translates a signal from one logic voltage to another.">level shifter</Term>.
 
 ## References
 
@@ -353,8 +356,7 @@ negative, use a part with matching thresholds or a level shifter.
 - NXP Semiconductors. _74HC00; 74HCT00 Quad 2-input NAND gate_, product data
   sheet, table 6 (static characteristics).
 - Computer History Museum. _1960: Metal Oxide Semiconductor (MOS) Transistor
-  Demonstrated_.
-  [The Silicon Engine](https://www.computerhistory.org/siliconengine/metal-oxide-semiconductor-mos-transistor-demonstrated/).
+  Demonstrated_. <ExternalLink href="https://www.computerhistory.org/siliconengine/metal-oxide-semiconductor-mos-transistor-demonstrated/" preview="Computer History Museum timeline entry on the metal-oxide-semiconductor transistor that Atalla and Kahng demonstrated at Bell Labs.">The Silicon Engine</ExternalLink>.
 - Wanlass, F. M., & Sah, C. T. (1963). Nanowatt Logic Using Field-Effect
   Metal-Oxide Semiconductor Triodes. _ISSCC Digest of Technical Papers_, 32–33.
 - Wanlass, F. M. U.S. Patent 3,356,858, _Low Stand-By Power Complementary Field

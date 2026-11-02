@@ -13,8 +13,10 @@ tags: ["networking", "security"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
 import Figure from "../components/blog/Figure.astro";
 import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
 import AlcanceEquipos from "./components/torre-protocolos/AlcanceEquipos.astro";
 import TorresRuta from "./components/torre-protocolos/TorresRuta.astro";
 
@@ -59,10 +61,10 @@ va por encima de esa capa no lo lee.
 
 - **Repetidor (hub).** Llega a la capa física. Lo que entra por un puerto lo
   copia en los demás, como ceros y unos. No lee nada.
-- **Switch.** Llega a la capa de enlace. Lee la dirección MAC de destino y envía
+- **Switch.** Llega a la capa de enlace. Lee la dirección <Acronym title="Media Access Control (control de acceso al medio)">MAC</Acronym> de destino y envía
   los datos solo por el puerto donde está ese equipo. Conecta equipos dentro de
   una misma red.
-- **Router.** Llega a la capa de red. Lee la dirección IP de destino y decide a
+- **Router.** Llega a la capa de red. Lee la dirección <Acronym title="Internet Protocol (protocolo de internet)">IP</Acronym> de destino y decide a
   qué red enviar los datos. Conecta redes distintas.
 - **Sistema final.** Tu portátil o un servidor. Tiene todas las capas, porque
   ahí corren los programas que envían y reciben los datos.
@@ -71,7 +73,7 @@ va por encima de esa capa no lo lee.
 
 El ejemplo tiene cuatro equipos. Un portátil con Chrome se conecta por WiFi al
 router 1. El router 1 se conecta al router 2 por un enlace punto a punto, un
-cable directo entre los dos, que usa el protocolo PPP. El router 2 se conecta
+cable directo entre los dos, que usa el protocolo <Acronym title="Point-to-Point Protocol (protocolo punto a punto)">PPP</Acronym>. El router 2 se conecta
 por Ethernet a un servidor que ejecuta Apache, un servidor web.
 
 <Figure caption="La torre de protocolos de cada equipo. Los routers tienen dos lados, uno por cada enlace, y solo llegan hasta la capa de red.">
@@ -91,7 +93,7 @@ por Ethernet a un servidor que ejecuta Apache, un servidor web.
 
 Las torres de la figura son estas:
 
-- **Portátil:** HTTP, TCP, IP, 802.11 y 802.11ax.
+- **Portátil:** <Acronym title="Hypertext Transfer Protocol (protocolo de transferencia de hipertexto)">HTTP</Acronym>, <Acronym title="Transmission Control Protocol (protocolo de control de transmisión)">TCP</Acronym>, IP, 802.11 y 802.11ax.
 - **Router 1:** del lado del portátil, IP, 802.11 y 802.11ax. Del lado del
   router 2, IP, PPP y la capa física de ese cable.
 - **Router 2:** del lado del router 1, IP, PPP y la misma capa física. Del lado
@@ -128,7 +130,7 @@ contenido llega igual.
 
 Dos equipos se entienden sin usar la misma red porque comparten las capas de
 arriba. Las capas de enlace y física pueden cambiar en cada tramo, porque solo
-las usan los dos equipos de ese tramo. Cada router saca los datos de una trama y
+las usan los dos equipos de ese tramo. Cada router saca los datos de una <Term title="La unidad de datos de la capa de enlace: un encabezado, los datos y una cola de verificación.">trama</Term> y
 los mete en otra, sin tocar lo que va adentro.
 
 La idea para llevarse sirve para la seguridad: un equipo solo puede revisar lo
@@ -136,17 +138,17 @@ que su capa le deja leer.
 
 - Un switch ve direcciones MAC, pero no direcciones IP. Por sí solo, no puede
   bloquear una dirección IP.
-- Un router o un firewall de red ve direcciones IP y puertos, pero no qué página
+- Un router o un <Term title="Equipo o programa que deja pasar o bloquea el tráfico según reglas.">firewall</Term> de red ve direcciones IP y puertos, pero no qué página
   pides.
-- Solo un equipo que llega a la capa de aplicación, como un proxy, puede decidir
-  según la página. Si la conexión usa HTTPS, además necesita descifrarla.
+- Solo un equipo que llega a la capa de aplicación, como un <Term title="Intermediario que recibe las peticiones del cliente y las reenvía al servidor en su nombre.">proxy</Term>, puede decidir
+  según la página. Si la conexión usa <Acronym title="HTTP Secure: HTTP sobre una conexión cifrada con TLS">HTTPS</Acronym>, además necesita descifrarla.
 
 Antes de confiar en un control de seguridad, pregunta hasta qué capa llega el
 equipo que lo aplica.
 
 ## Referencias
 
-- Postel, J. (1981). RFC 791, _Internet Protocol_. IETF.
+- Postel, J. (1981). <Acronym title="Request for Comments: la serie numerada de documentos de la IETF">RFC</Acronym> 791, _Internet Protocol_. <Acronym title="Internet Engineering Task Force">IETF</Acronym>.
 - Simpson, W. (Ed.). (1994). RFC 1661, _The Point-to-Point Protocol (PPP)_.
   IETF.
 - IEEE 802.11-2020, _Wireless LAN Medium Access Control (MAC) and Physical Layer

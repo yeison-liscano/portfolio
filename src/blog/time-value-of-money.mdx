@@ -9,7 +9,9 @@ tags: ["finance"]
 isDraft: false
 ---
 
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import SimpleVsCompound from "./components/time-value-of-money/SimpleVsCompound.astro";
 
 Save $500 a month for 30 years at 8%, and you end up with about $745,180, even
@@ -29,8 +31,8 @@ This article walks through the formulas behind those two opening numbers and
 the decisions they support: choosing between a lump sum and installments,
 evaluating an investment, planning for retirement, and comparing mortgages. All
 rates and cash flows below are hypothetical, constant unless stated otherwise,
-and exclude fees and taxes. See
-[OpenStax Principles of Finance, time value of money](https://openstax.org/books/principles-finance/pages/7-1-now-versus-later-concepts).
+and exclude fees and taxes.
+See <ExternalLink href="https://openstax.org/books/principles-finance/pages/7-1-now-versus-later-concepts" preview="OpenStax Principles of Finance, section 7.1, on why money now and money later have different values.">OpenStax Principles of Finance, time value of money</ExternalLink>.
 
 ## Compound interest earns interest on interest
 
@@ -104,7 +106,7 @@ interest reaches $2,800 and compound interest reaches $5,743.
 
 Savings accounts and most investments compound, but loans apply interest in
 different ways. Loan interest may accrue on the outstanding balance without
-unpaid interest being capitalized. Check the actual contract rather than
+unpaid interest being <Term title="Added to the principal, so that it starts earning interest itself.">capitalized</Term>. Check the actual contract rather than
 assuming every product uses the same formula.
 
 ## Every cash flow is a lump sum, an annuity, or an irregular series
@@ -166,7 +168,7 @@ hypothetical nominal annual rate of 8%, compounded monthly. How much will you
 have accumulated after 30 years?
 
 Use the exact monthly rate `r = 0.08 / 12` (approximately 0.6667%). If 8% were
-an effective annual rate instead, the monthly rate would be `(1.08)^(1/12) - 1`.
+an <Term title="The rate that, compounded once a year, gives the same growth as the nominal rate compounded more often.">effective annual rate</Term> instead, the monthly rate would be `(1.08)^(1/12) - 1`.
 These are different assumptions.
 
 Number of periods: 30 years × 12 months = 360
@@ -210,7 +212,7 @@ Where:
 - `n` is the total number of periods
 
 A positive NPV means the modeled cash flows exceed the required return under the
-chosen assumptions. For mutually exclusive, comparable projects without capital
+chosen assumptions. For <Term title="Projects where choosing one rules out the others.">mutually exclusive</Term>, comparable projects without capital
 constraints, higher NPV is preferred. Risk, unequal project lifetimes and
 funding constraints can require additional analysis.
 
@@ -316,8 +318,8 @@ PV = 50,000 × (1 - (1.06)^(-30)) / 0.06 ≈ $688,241.56
 Under this simplified model, the initial amount is $688,241.56: less than half
 of the $1,500,000 you will withdraw, because the balance keeps earning while you
 draw it down. It assumes fixed nominal withdrawals at year-end and a constant 6%
-return, with no taxes, fees or inflation increases. Variable returns introduce
-sequence-of-returns risk, so this is not a safe-withdrawal guarantee. Working
+return, with no taxes, fees or inflation increases. Variable returns
+introduce <Term title="The risk that poor returns early in retirement, while withdrawals continue, drain savings faster than the average return suggests.">sequence-of-returns risk</Term>, so this is not a safe-withdrawal guarantee. Working
 backward with the annuity formula, you can determine how much to save monthly to
 reach this goal.
 
@@ -391,7 +393,6 @@ same rate. Only then are you comparing like with like.
 
 - Brealey, R. A., Myers, S. C., & Allen, F. (2020). "Principles of Corporate
   Finance" (13th ed.). McGraw-Hill Education.
-- Investopedia.
-  ["Time Value of Money (TVM)."](https://www.investopedia.com/terms/t/timevalueofmoney.asp)
-- Khan Academy.
-  ["Finance and Capital Markets."](https://www.khanacademy.org/economics-finance-domain/core-finance)
+- Investopedia. <ExternalLink href="https://www.investopedia.com/terms/t/timevalueofmoney.asp" preview="Investopedia article on the time value of money: the concept, its formula and worked examples.">"Time Value of Money (TVM)."</ExternalLink>
+- Khan
+  Academy. <ExternalLink href="https://www.khanacademy.org/economics-finance-domain/core-finance" preview="Khan Academy's free course on finance and capital markets, including interest, present value and inflation.">"Finance and Capital Markets."</ExternalLink>

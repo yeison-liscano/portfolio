@@ -10,8 +10,13 @@ tags: ["finance"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import OfertaDemanda from "./components/economia-basica/OfertaDemanda.astro";
+
+{/* cspell:ignore NBER */}
 
 Palabras claves: economía, oferta, demanda, competencia perfecta, monopolio,
 dinero, tiempo, valor
@@ -62,8 +67,8 @@ precios y la facilidad para participar influyen en la eficiencia del mercado.
 El crédito es un acuerdo para recibir recursos hoy y pagarlos después. Puede
 financiar una transacción, pero no es sinónimo de dinero. Al conceder un
 préstamo, un banco comercial normalmente crea un depósito y un activo crediticio;
-su capacidad está limitada por regulación, riesgo, rentabilidad y demanda. Véase
-[Money creation in the modern economy, del Banco de Inglaterra](https://www.bankofengland.co.uk/quarterly-bulletin/2014/q1/money-creation-in-the-modern-economy).
+su capacidad está limitada por regulación, riesgo, rentabilidad y demanda.
+Véase <ExternalLink href="https://www.bankofengland.co.uk/quarterly-bulletin/2014/q1/money-creation-in-the-modern-economy" preview="Artículo del Banco de Inglaterra (2014) que explica cómo los bancos comerciales crean dinero al conceder préstamos.">Money creation in the modern economy, del Banco de Inglaterra</ExternalLink>.
 
 Los participantes en operaciones de crédito son los prestadores (o acreedores) y
 los prestatarios (o deudores). El prestador proporciona recursos con la
@@ -125,8 +130,8 @@ clasificación habitual distingue cuatro etapas o puntos de giro:
 La recuperación es parte de la expansión. Una depresión es una contracción
 especialmente profunda y prolongada, no una etapa obligatoria de cada ciclo.
 La duración y las causas varían: pueden intervenir crédito, demanda, política
-monetaria y fiscal, tecnología o choques externos. Véanse las
-[definiciones del ciclo de la NBER](https://www.nber.org/research/business-cycle-dating/business-cycle-dating-procedure-frequently-asked-questions).
+monetaria y fiscal, tecnología o choques externos. Véanse
+las <ExternalLink href="https://www.nber.org/research/business-cycle-dating/business-cycle-dating-procedure-frequently-asked-questions" preview="Preguntas frecuentes de la NBER sobre cómo fecha los picos y valles del ciclo económico de EE. UU.">definiciones del ciclo</ExternalLink> de la <Acronym title="National Bureau of Economic Research (Oficina Nacional de Investigación Económica de EE. UU.)">NBER</Acronym>.
 
 ## Crecimiento Económico
 
@@ -220,8 +225,8 @@ social y el crecimiento económico inclusivo. Por el contrario, una distribució
 más equitativa tiende a promover mayor acceso a educación, salud y oportunidades
 de negocio para una proporción mayor de la población.
 
-La distribución del ingreso se mide frecuentemente usando el
-[Coeficiente de Gini](https://en.wikipedia.org/wiki/Gini_coefficient), que varía
+La distribución del ingreso se mide frecuentemente usando
+el <ExternalLink href="https://en.wikipedia.org/wiki/Gini_coefficient" preview="Artículo de Wikipedia, en inglés, sobre el coeficiente de Gini, la medida más usada de la desigualdad del ingreso.">Coeficiente de Gini</ExternalLink>, que varía
 de 0 (igualdad perfecta) a 1 (desigualdad máxima). Los gobiernos pueden influir
 en la distribución del ingreso a través de impuestos progresivos, programas de
 transferencias sociales, inversión en educación pública y regulación del mercado
@@ -359,7 +364,7 @@ importante diferenciar para una buena salud financiera.
 
 Los gastos representan recursos consumidos o costos incurridos durante un
 período. No todos son voluntarios ni coinciden con un pago inmediato; en
-contabilidad, una depreciación es un gasto sin salida de efectivo en ese momento. Los
+contabilidad, una <Term title="Gasto contable que reparte el costo de un activo durable a lo largo de su vida útil.">depreciación</Term> es un gasto sin salida de efectivo en ese momento. Los
 gastos pueden ser necesarios (alimento, vivienda) o discrecionales
 (entretenimiento, lujos).
 
@@ -382,7 +387,7 @@ lado, es usar el dinero ahorrado para comprar activos que generen retornos
 futuros.
 
 En una economía cerrada, el ahorro y la inversión agregados coinciden como
-identidad contable ex post. En una economía abierta también interviene el
+identidad contable <Term title="Medido después de los hechos, con los datos ya realizados.">ex post</Term>. En una economía abierta también interviene el
 financiamiento exterior. Esto no significa que todo préstamo bancario necesite
 un depósito ahorrado previamente: crear crédito y financiar inversión puede
 generar ingresos y ahorro después. A nivel personal, el ahorro es la
@@ -406,7 +411,7 @@ y de las tasas de interés, generalmente bajo control del banco central. Una
 política monetaria expansiva aumenta la cantidad de dinero (tasas bajas) para
 estimular la economía durante recesiones. Una política monetaria contractiva
 reduce la cantidad de dinero (tasas altas) para frenar la inflación durante
-períodos de sobrecalentamiento económico.
+períodos de <Term title="Situación en que la demanda crece más rápido que la capacidad de producir, lo que presiona los precios al alza.">sobrecalentamiento económico</Term>.
 
 **Política Fiscal**: Es el uso de gastos e impuestos del gobierno para regular
 la economía. Una política fiscal expansiva aumenta el gasto público o reduce
@@ -442,10 +447,10 @@ elegimos entre alternativas escasas.
 ## Referencias
 
 - Comisión para el Mercado Financiero de Chile. "¿Qué es la tasa de interés?".
-  Recuperado de [https://www.cmfchile.cl/educa/621/w3-article-27164.html](https://www.cmfchile.cl/educa/621/w3-article-27164.html)
+  Recuperado de <ExternalLink href="https://www.cmfchile.cl/educa/621/w3-article-27164.html" preview="Explicación de la Comisión para el Mercado Financiero de Chile sobre qué es la tasa de interés y cómo se usa.">https://www.cmfchile.cl/educa/621/w3-article-27164.html</ExternalLink>
 
 - Investopedia. (2024). "Economics: Definition, Topics, and Schools of Thought".
-  Recuperado de [https://www.investopedia.com/terms/e/economics.asp](https://www.investopedia.com/terms/e/economics.asp)
+  Recuperado de <ExternalLink href="https://www.investopedia.com/terms/e/economics.asp" preview="Artículo de Investopedia, en inglés, sobre qué es la economía, sus ramas y sus escuelas de pensamiento.">https://www.investopedia.com/terms/e/economics.asp</ExternalLink>
 
-- Principios Fundamentales de la Economía: Costo y Oportunidad. Recuperado de
-  [https://platzi.com/cursos/economia-del-comportamiento/los-cuatro-principios-de-la-economia/](https://platzi.com/cursos/economia-del-comportamiento/los-cuatro-principios-de-la-economia/)
+- Principios Fundamentales de la Economía: Costo y Oportunidad. Recuperado
+  de <ExternalLink href="https://platzi.com/cursos/economia-del-comportamiento/los-cuatro-principios-de-la-economia/" preview="Clase del curso de Economía del Comportamiento de Platzi sobre los cuatro principios de la economía.">https://platzi.com/cursos/economia-del-comportamiento/los-cuatro-principios-de-la-economia/</ExternalLink>

@@ -11,6 +11,7 @@ isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import TiposDeGrafos from "./components/grafos/TiposDeGrafos.astro";
 import Precedencia from "./components/grafos/Precedencia.astro";
 import SerieGrafos from "./components/grafos/SerieGrafos.astro";
@@ -190,12 +191,12 @@ necesita un grafo mixto.
 En ecología, un **grafo de superposición de nichos** une a dos especies que
 compiten por los mismos recursos. En biología molecular, un **grafo de
 interacción entre proteínas** une a dos proteínas que interactúan en la célula.
-Los conteos varían según se distingan genes, isoformas o modificaciones de una
+Los conteos varían según se distingan genes, <Term title="Variantes de una misma proteína que se producen a partir del mismo gen.">isoformas</Term> o modificaciones de una
 proteína, y según el método de detección. Estos grafos pueden estudiarse por
 **módulos**: grupos de proteínas que participan en una función común.
 
 En una **red semántica** los vértices son palabras y las aristas unen palabras
-de significado parecido. Una palabra polisémica como _mouse_ puede conectar
+de significado parecido. Una palabra <Term title="Que tiene varios significados.">polisémica</Term> como _mouse_ puede conectar
 vecindarios semánticos diferentes: el de los
 animales y el del hardware, que es justo la información que necesita un programa
 de comprensión del lenguaje para decidir de qué ratón se habla.

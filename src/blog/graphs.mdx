@@ -8,6 +8,9 @@ tags: ["programming", "algorithms"]
 isDraft: true
 ---
 
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
 ## The Königsberg Bridge Problem
 
 The Königsberg bridge problem is a famous problem in graph theory that was
@@ -263,7 +266,7 @@ BFS is ideal for:
 - Finding shortest paths in unweighted graphs
 - Social network analysis (degrees of separation)
 - Level-order traversal of trees
-- Checking bipartiteness of a graph
+- Checking <Term title="A graph is bipartite when its vertices split into two groups and every edge joins one group to the other.">bipartiteness</Term> of a graph
 
 ### Depth-First Search (DFS)
 
@@ -365,8 +368,8 @@ DFS is ideal for:
 
 The shortest path problem asks: What is the minimum-cost path between two
 vertices? For unweighted graphs, BFS solves this optimally. For weighted graphs
-(with non-negative weights), Dijkstra's algorithm is the standard solution. For
-graphs with negative weights, Bellman-Ford is one option; DAGs also admit a
+(with non-negative weights), <Term title="Finds shortest paths from a source by always settling the closest unvisited vertex; weights must be non-negative.">Dijkstra's algorithm</Term> is the standard solution. For
+graphs with negative weights, <Term title="Finds shortest paths by relaxing every edge V − 1 times; it accepts negative weights and detects negative cycles.">Bellman-Ford</Term> is one option; DAGs also admit a
 linear-time method using topological order. A reachable negative cycle may make
 some shortest-path distances undefined.
 
@@ -375,7 +378,7 @@ some shortest-path distances undefined.
 Detecting whether a graph contains cycles is fundamental in many applications.
 For undirected graphs, DFS can detect cycles by checking if we reach an
 already-visited vertex (other than the parent). For directed graphs, we track
-vertices in the current recursion path to detect back edges that indicate
+vertices in the current recursion path to detect <Term title="An edge from a vertex to one of its ancestors in the depth-first search tree.">back edges</Term> that indicate
 cycles.
 
 ### Topological Sort
@@ -425,8 +428,8 @@ to solving problems that might otherwise seem impossibly complex.
 
 - Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009).
   _Introduction to Algorithms_ (3rd ed.). MIT Press.
-- TED-Ed. "How the Königsberg bridge problem changed mathematics."
-  <https://ed.ted.com/lessons/how-the-konigsberg-bridge-problem-changed-mathematics-dan-van-der-vieren>
-- NetworkX Python library documentation. <https://networkx.org/>
+- TED-Ed. "How the Königsberg bridge problem changed
+  mathematics." <ExternalLink href="https://ed.ted.com/lessons/how-the-konigsberg-bridge-problem-changed-mathematics-dan-van-der-vieren" preview="TED-Ed lesson by Dan Van der Vieren on how Euler's answer to the Königsberg bridge problem started graph theory.">https://ed.ted.com/lessons/how-the-konigsberg-bridge-problem-changed-mathematics-dan-van-der-vieren</ExternalLink>
+- NetworkX Python library documentation. <ExternalLink href="https://networkx.org/" preview="NetworkX, a Python package for creating, manipulating and studying the structure of complex networks.">https://networkx.org/</ExternalLink>
 - Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.).
   McGraw-Hill.

@@ -21,9 +21,12 @@ tags: ["networking", "web"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
 import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
 import Mermaid from "../components/blog/Mermaid.astro";
 import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
 import RequestPath from "./components/osi-request/RequestPath.astro";
 import FrameBytes from "./components/osi-request/FrameBytes.astro";
 
@@ -31,9 +34,9 @@ import FrameBytes from "./components/osi-request/FrameBytes.astro";
 
 Keywords: OSI model, encapsulation, TLS, TCP, IP, Ethernet, ARP, routing, TTL
 
-The OSI model is usually taught as a list of seven names. The list does not
+The <Acronym title="Open Systems Interconnection">OSI</Acronym> model is usually taught as a list of seven names. The list does not
 help when a call between two services fails with "connection refused" or "no
-route to host". This post follows one HTTPS request from one app to another,
+route to host". This post follows one <Acronym title="HTTP Secure: HTTP over an encrypted TLS connection">HTTPS</Acronym> request from one app to another,
 through every layer and across a switch and a router. The app writes 50 bytes.
 The network card sends 142, and the cable carries 162 byte times. On the way, a
 router rewrites some of those bytes and leaves the rest alone. You will see
@@ -43,17 +46,17 @@ network error as the name of the layer that failed.
 ## One request crosses a switch and a router to reach another app
 
 Two services live in two subnets of the same network. A checkout app at
-`10.0.1.20` calls an orders API at `10.0.2.30` over HTTPS. Each subnet has its
+`10.0.1.20` calls an orders <Acronym title="Application Programming Interface">API</Acronym> at `10.0.2.30` over HTTPS. Each subnet has its
 own switch, and a router joins them. The request asks for order 42.
 
-The OSI reference model, published as ISO 7498 in 1984, splits that delivery
+The OSI reference model, published as <Acronym title="International Organization for Standardization">ISO</Acronym> 7498 in 1984, splits that delivery
 into seven layers. Each layer talks to its peer on the other machine through a
 header that only the peer reads. To send, each layer hands its data to the layer
 below, which wraps it in its own header. This is **encapsulation**. On the
 receiving side, each layer reads and removes its header and passes the rest up.
 
-The Internet does not run the OSI protocols. It runs the TCP/IP stack, which
-RFC 1122 describes in four layers: application, transport, internet and link.
+The Internet does not run the OSI protocols. It runs the <Acronym title="Transmission Control Protocol/Internet Protocol">TCP/IP</Acronym> stack,
+which <Acronym title="Request for Comments: the IETF's numbered document series">RFC</Acronym> 1122 describes in four layers: application, transport, internet and link.
 The OSI names survived as the common vocabulary, so this post uses them and
 points out where the two models disagree.
 
@@ -74,12 +77,12 @@ points out where the two models disagree.
 
 Two things in that path deserve an explanation before the byte count. The frame
 that leaves the checkout app is addressed to the router, not to the server. And
-when the frame reaches the server, its MAC addresses and TTL have changed, but
-its IP addresses have not. Why? The answer is in layers 3 and 2.
+when the frame reaches the server, its <Acronym title="Media Access Control">MAC</Acronym> addresses and <Acronym title="Time To Live">TTL</Acronym> have changed, but
+its <Acronym title="Internet Protocol">IP</Acronym> addresses have not. Why? The answer is in layers 3 and 2.
 
 ## The application layer writes 50 bytes, after DNS finds the address
 
-The checkout app's HTTP client writes this request:
+The checkout app's <Acronym title="Hypertext Transfer Protocol">HTTP</Acronym> client writes this request:
 
 ```text
 GET /orders/42 HTTP/1.1
@@ -91,8 +94,8 @@ Each line ends with a carriage return and a line feed, and an empty line ends
 the headers. That is 50 bytes. HTTP/1.1 requires the `Host` header, so one
 server can host several names.
 
-The app knows a name, not an address. Before anything else, it asks DNS, which
-is also an application-layer protocol, usually carried over UDP port 53. The
+The app knows a name, not an address. Before anything else, it asks <Acronym title="Domain Name System">DNS</Acronym>, which
+is also an application-layer protocol, usually carried over <Acronym title="User Datagram Protocol">UDP</Acronym> port 53. The
 resolver answers that `orders.internal` is `10.0.2.30`. The answer carries a
 time to live, and the client caches it for that long. That DNS TTL is unrelated
 to the TTL in the IP header that appears below.
@@ -104,12 +107,12 @@ character encoding, compression and encryption. The session layer (5) opens,
 maintains and resumes a dialog between two applications.
 
 The TCP/IP stack has no separate protocols for either layer. The application
-does the encoding itself: this request is ASCII, and the response will be JSON
-in UTF-8. Encryption and the session belong to **TLS 1.3** (RFC 8446). Its
+does the encoding itself: this request is <Acronym title="American Standard Code for Information Interchange">ASCII</Acronym>, and the response will be <Acronym title="JavaScript Object Notation">JSON</Acronym>
+in <Acronym title="Unicode Transformation Format, 8-bit">UTF-8</Acronym>. Encryption and the session belong to **<Acronym title="Transport Layer Security">TLS</Acronym> 1.3** (RFC 8446). Its
 handshake authenticates the server's certificate and agrees on keys, which is a
 session job. Each record it sends is encrypted and authenticated, which is a
 presentation job. Where TLS fits in the OSI model is debated. In practice it
-sits between TCP and HTTP.
+sits between <Acronym title="Transmission Control Protocol">TCP</Acronym> and HTTP.
 
 TLS wraps the 50 bytes in one record. The record has a 5-byte header: content
 type 23 (application data), a legacy version field and a length. The encrypted
@@ -124,14 +127,14 @@ between two ports. The kernel picks a free source port for the client, here
 51334 from Linux's default range of 32768 to 60999. The destination port is 443.
 The sequence and acknowledgment numbers let the receiver reorder segments and
 ask for missing ones. The window field tells the sender how much data the
-receiver can accept. A checksum covers the segment and both IP addresses.
+receiver can accept. A <Term title="A small value computed from the data, so the receiver can detect accidental corruption.">checksum</Term> covers the segment and both IP addresses.
 
 The basic TCP header is 20 bytes. Linux also adds a 12-byte timestamp option to
 every segment, which helps to measure round-trip time and to reject old
 duplicate segments. Total so far: 72 + 32 = 104 bytes.
 
-This segment is not the first one. TCP opens a connection with a three-way
-handshake, and TLS 1.3 needs one more round trip to agree on keys. The request
+This segment is not the first one. TCP opens a connection with
+a <Term title="TCP's opening exchange of SYN, SYN-ACK and ACK segments.">three-way handshake</Term>, and TLS 1.3 needs one more round trip to agree on keys. The request
 leaves only after two round trips, and the response arrives after the third.
 
 <Figure caption="A new HTTPS connection. TCP's handshake takes one round trip and TLS 1.3's another, so the request leaves after two round trips and the response arrives after three. Reusing the connection skips both handshakes.">
@@ -181,13 +184,13 @@ ends of the conversation, so no router on the way has a reason to change it.
 Ethernet delivers frames only within one local network, and it uses MAC
 addresses, the hardware addresses of network cards, not IP addresses. The client
 knows that the next hop is `10.0.1.1`, but not its MAC address. It asks with
-**ARP** (RFC 826): a broadcast that says "who has `10.0.1.1`?". The router
+**<Acronym title="Address Resolution Protocol">ARP</Acronym>** (RFC 826): a <Term title="A frame sent to every device on the local network, addressed to ff:ff:ff:ff:ff:ff.">broadcast</Term> that says "who has `10.0.1.1`?". The router
 answers with its MAC address, `02:00:00:00:01:01`, and the client caches it. `ip
 neigh` lists that cache.
 
 The Ethernet header is 14 bytes: the destination MAC (the router's), the source
 MAC (the client's) and a type field, `0x0800`, which means that an IPv4 packet
-follows. A 4-byte **frame check sequence** (FCS) goes at the end. It is a CRC-32
+follows. A 4-byte **frame check sequence** (FCS) goes at the end. It is a <Acronym title="Cyclic Redundancy Check, 32 bits">CRC-32</Acronym>
 of the frame, and any receiver that finds a mismatch drops the frame. Total:
 124 + 18 = 142 bytes.
 
@@ -208,7 +211,7 @@ of the cable at once. Each pair carries 125 million symbols per second, and each
 symbol is one of five voltage levels. At 1 Gb/s, the 162 byte times take 1,296
 nanoseconds. The cable uses five levels to fit more bits into each symbol, and
 pays with smaller gaps between levels. The logic inside the chips uses only two.
-The [transistors post](/portfolio/blog/transistors-bits-to-voltage/) explains
+The <InternalLink slug="transistors-bits-to-voltage">transistors post</InternalLink> explains
 why.
 
 ## Built byte by byte, the request is 142 bytes in a 162-byte slot
@@ -337,7 +340,7 @@ The router does more. It runs these checks and changes, in this order:
 3. Look up `10.0.2.30` in its forwarding table. The most specific matching
    prefix wins, here the directly connected `10.0.2.0/24`.
 4. Lower the TTL from 64 to 63. If it would reach 0, drop the packet and send
-   a "time exceeded" message back to the sender over ICMP, the protocol IP
+   a "time exceeded" message back to the sender over <Acronym title="Internet Control Message Protocol">ICMP</Acronym>, the protocol IP
    uses to report errors.
 5. Recompute the IP checksum, because the TTL is part of the header.
 6. Find the server's MAC address with ARP, write a new Ethernet header with its
@@ -442,13 +445,13 @@ the high byte of its 16-bit word, so lowering it by one changes the sum by
 `0x0100`. RFC 1624 lets routers apply that difference instead of summing the
 whole header again.
 
-The rule has exceptions that you will meet in production. A NAT gateway, such as
+The rule has exceptions that you will meet in production. A <Acronym title="Network Address Translation">NAT</Acronym> gateway, such as
 a home router, also rewrites the source IP address and port, and the TCP
 checksum with them. A load balancer that terminates TLS ends the TCP and TLS
 connections and opens new ones to the server. In both cases, the device works
 above layer 3 on purpose. How the router filled its forwarding table is a
-separate job, routing, covered in the
-[Internet fundamentals post](/portfolio/blog/internet-fundamentals-packet-switching/).
+separate job, routing, covered in
+the <InternalLink slug="internet-fundamentals-packet-switching">Internet fundamentals post</InternalLink>.
 
 ## The server climbs the stack, and each layer checks one header
 
@@ -459,7 +462,7 @@ server. Then the server's layers run in reverse:
   FCS and the destination MAC, and removes the Ethernet header.
 - **Network.** The kernel checks that `10.0.2.30` is one of its addresses and
   that the header checksum is valid, then removes the IP header.
-- **Transport.** TCP finds the socket by four numbers: source IP, source port,
+- **Transport.** TCP finds the <Term title="The kernel object that an application uses to send and receive data on one connection or port.">socket</Term> by four numbers: source IP, source port,
   destination IP and destination port. It checks the sequence number, queues
   the data in order and acknowledges it.
 - **Session and presentation.** TLS decrypts the record and checks the tag.
@@ -507,7 +510,7 @@ without answering, usually a firewall or a missing route.
 - ISO/IEC 7498-1:1994. _Information technology, Open Systems Interconnection,
   Basic Reference Model: The Basic Model_. First edition as ISO 7498, 1984.
 - Braden, R. (Ed.). (1989). RFC 1122, _Requirements for Internet Hosts,
-  Communication Layers_. IETF.
+  Communication Layers_. <Acronym title="Internet Engineering Task Force">IETF</Acronym>.
 - Postel, J. (1981). RFC 791, _Internet Protocol_. IETF.
 - Eddy, W. (Ed.). (2022). RFC 9293, _Transmission Control Protocol_. IETF.
 - Borman, D., Braden, B., Jacobson, V., & Scheffenegger, R. (Ed.). (2014).

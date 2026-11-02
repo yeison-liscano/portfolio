@@ -8,29 +8,32 @@ description:
 tags: ["programming", "python"]
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import Timeline from "../components/blog/Timeline.astro";
 
 Concurrency is the ability of a system or program to make progress on multiple
 tasks over overlapping periods. Parallelism means executing work at the same
-instant, for example on multiple CPU cores. Concurrency can allow better resource use and
+instant, for example on multiple <Acronym title="Central Processing Unit">CPU</Acronym> cores. Concurrency can allow better resource use and
 improve the overall performance of a system or program. In a concurrent system,
 tasks or processes may appear to be executing simultaneously, even if they are
 actually being interleaved or executed in parallel by multiple threads,
-processes, or coroutines. The main goal of concurrency is to improve the
+processes, or <Term title="Functions that can pause at an await point and resume later, so one thread can interleave many tasks.">coroutines</Term>. The main goal of concurrency is to improve the
 responsiveness, throughput, and scalability of a system or program.
 
 ## What is Concurrency?
 
 Concurrency means that one task can begin before another finishes. Tasks can
-take turns on one thread, overlap I/O waits, or run in parallel when the runtime
+take turns on one thread, overlap <Acronym title="Input/Output">I/O</Acronym> waits, or run in parallel when the runtime
 and hardware allow it.
 
 ## What is Multithreading?
 
 Multithreading is a specific form of concurrency where a single process can have
 multiple threads executing concurrently. A thread is not a subprocess. Unlike processes,
-which don't share memory by default and communicate through explicit IPC
+which don't share memory by default and communicate through explicit <Acronym title="Inter-Process Communication">IPC</Acronym>
 mechanisms (pipes, shared memory, sockets), threads share the same memory space
 and can interact with each other more efficiently.
 
@@ -44,7 +47,7 @@ and can interact with each other more efficiently.
    workers can also distribute suitable work across multiple cores.
 
 3. **Resource Utilization**: Overlapping waits can keep a CPU busy. Multiple
-   cores and simultaneous multithreading are different hardware features;
+   cores and <Term title="A CPU feature, such as Intel Hyper-Threading, that runs two or more hardware threads on one core.">simultaneous multithreading</Term> are different hardware features;
    concurrency alone guarantees neither full utilization nor lower energy use.
 
 4. **User Experience**: For applications that require real-time interaction,
@@ -55,10 +58,10 @@ and can interact with each other more efficiently.
 
 ### 1. In a Single-Threaded Environment
 
-Node.js normally runs JavaScript callbacks on one event-loop thread, while the
-OS and a worker pool handle many I/O operations. Nonblocking I/O is well suited
+Node.js normally runs JavaScript callbacks on one <Term title="A loop that waits for events, such as finished I/O, and runs the callback registered for each one.">event-loop</Term> thread, while
+the <Acronym title="Operating System">OS</Acronym> and a worker pool handle many I/O operations. Nonblocking I/O is well suited
 to this model. Long-running JavaScript and synchronous I/O can block the loop.
-See [Node.js's event-loop guide](https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop).
+See <ExternalLink href="https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop" preview="Node.js guide on what blocks the event loop and the worker pool, and how to keep them free.">Node.js's event-loop guide</ExternalLink>.
 
 ### 2. In a Multithreaded Environment
 
@@ -183,7 +186,7 @@ asynchronous I/O allow those waits to **overlap** with other work.
 Node.js handles concurrency natively through its **event loop** and non-blocking
 async I/O. The event loop allows Node.js to perform I/O operations without
 blocking the main thread, delegating them to the system kernel or a thread pool
-(libuv) when possible.
+(<Term title="The C library that gives Node.js its event loop and asynchronous I/O.">libuv</Term>) when possible.
 
 For example:
 
@@ -197,8 +200,8 @@ For example:
 ### 2. **In Python**
 
 Python supports multithreading and multiprocessing to achieve concurrency.
-However, in a GIL-enabled CPython interpreter, only one thread can
-execute Python bytecode at a time. This means multithreading is effective for
+However, in a <Acronym title="Global Interpreter Lock">GIL</Acronym>-enabled CPython interpreter, only one thread can
+execute Python <Term title="The low-level instructions that the Python interpreter runs, compiled from the source code.">bytecode</Term> at a time. This means multithreading is effective for
 I/O-bound tasks but offers limited performance gains for CPU-bound tasks.
 
 For example:
@@ -211,12 +214,12 @@ For example:
   operations concurrently.
 
 Starting with Python 3.13, an experimental **free-threaded mode** (no-GIL) was
-introduced via the `--disable-gil` build flag (PEP 703). In Python 3.14, this
+introduced via the `--disable-gil` build flag (<Acronym title="Python Enhancement Proposal">PEP</Acronym> 703). In Python 3.14, this
 free-threaded build became officially supported while remaining optional (PEP
 779). It permits parallel Python execution, but speedups depend on the workload
 and synchronization costs. Some extension modules can re-enable the GIL. Native
 extensions that release the GIL can also run in parallel in a GIL-enabled build.
-See [Python's free-threading guide](https://docs.python.org/3/howto/free-threading-python.html).
+See <ExternalLink href="https://docs.python.org/3/howto/free-threading-python.html" preview="Python documentation on the free-threaded build: how to install it, check for it and what to expect from it.">Python's free-threading guide</ExternalLink>.
 
 ## Practical Examples of Concurrency
 
@@ -270,12 +273,13 @@ Benchmark the workload, since competing thread pools can reduce performance.
 
 ### Resources to Get Started
 
+{/* prettier-ignore */}
 1. **JavaScript/Node.js**
-   - [Express.js Documentation](https://expressjs.com/en/advanced/best-practice-performance.html)
-   - [Understanding Async/Await in Node.js](https://javascript.info/async-await)
+   - <ExternalLink href="https://expressjs.com/en/advanced/best-practice-performance.html" preview="Express guide to production best practices for performance and reliability.">Express.js Documentation</ExternalLink>
+   - <ExternalLink href="https://javascript.info/async-await" preview="The Modern JavaScript Tutorial chapter on async functions and await.">Understanding Async/Await in Node.js</ExternalLink>
 2. **Python**
-   - [Python Threading Tutorial](https://realpython.com/intro-to-python-threading/)
-   - [Asyncio](https://medium.com/@write2bishwarup/asyncio-the-underrated-weapon-for-ml-11a37f315355)
+   - <ExternalLink href="https://realpython.com/intro-to-python-threading/" preview="Real Python tutorial on threading in Python: threads, locks, race conditions and thread pools.">Python Threading Tutorial</ExternalLink>
+   - <ExternalLink href="https://medium.com/@write2bishwarup/asyncio-the-underrated-weapon-for-ml-11a37f315355" preview="Medium article arguing that asyncio is an underrated tool for machine learning workloads.">Asyncio</ExternalLink>
 3. **Concurrency and Multithreading**
-   - [Concurrency and Async Await](https://fastapi.tiangolo.com/async/?h=conc#concurrency-and-async-await)
-   - [The Hitchhiker's Guide to Python: Concurrency](https://docs.python-guide.org/scenarios/speed/)
+   - <ExternalLink href="https://fastapi.tiangolo.com/async/?h=conc#concurrency-and-async-await" preview="FastAPI documentation on concurrency and async/await, explained with a burger restaurant analogy.">Concurrency and Async Await</ExternalLink>
+   - <ExternalLink href="https://docs.python-guide.org/scenarios/speed/" preview="The Hitchhiker's Guide to Python, on speed: concurrency with threads, processes and C extensions.">The Hitchhiker's Guide to Python: Concurrency</ExternalLink>

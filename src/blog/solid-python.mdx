@@ -8,10 +8,13 @@ tags: ["programming", "python"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import DependencyInversion from "./components/solid-python/DependencyInversion.astro";
 
-The SOLID principles are five design guidelines that help developers write code
+The <Acronym title="Single responsibility, Open/closed, Liskov substitution, Interface segregation, Dependency inversion">SOLID</Acronym> principles are five design guidelines that help developers write code
 that is more understandable, flexible, and maintainable. Popularized by Robert C.
 Martin, these principles bring together ideas from several authors and are
 applicable across programming languages, including Python. This article explores
@@ -36,8 +39,8 @@ concerns into distinct classes, each can evolve independently.
 Here's a before-and-after example. The password comparison is a deliberately
 simplified stand-in for authentication, not a password-storage design. Real
 applications should use a password-hashing library's verification function and
-store salted password hashes, as described in the
-[OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+store <Term title="Hashes computed with a random value, the salt, added to each password, so equal passwords give different hashes.">salted</Term> password hashes, as described in
+the <Acronym title="Open Worldwide Application Security Project">OWASP</Acronym> <ExternalLink href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html" preview="OWASP cheat sheet on storing passwords: which hashing algorithms to use, with salts and work factors.">Password Storage Cheat Sheet</ExternalLink>.
 
 ```python
 # BEFORE: Violates SRP
@@ -94,7 +97,7 @@ This reduces the risk of breaking existing functionality and makes codebases
 more stable.
 
 In Python, the Open/Closed Principle is elegantly expressed through abstract
-base classes (ABC) and polymorphism. By defining an interface (abstract class),
+base classes (ABC) and <Term title="Using objects of different classes through the same interface.">polymorphism</Term>. By defining an interface (abstract class),
 you allow different implementations to be "plugged in" without modifying the
 core logic that uses them.
 
@@ -179,7 +182,7 @@ processor.process(50.00)
 
 The refactored version is closed for modification—the PaymentProcessor class
 doesn't change when you add new payment methods—and open for extension through
-the PaymentMethod abstraction. This follows the Strategy pattern, a classic way
+the PaymentMethod abstraction. This follows the <Term title="A design pattern that puts each variant of an algorithm in its own class behind a common interface.">Strategy pattern</Term>, a classic way
 to implement OCP.
 
 **Why it matters:** Open/Closed Principle reduces regression risks and allows
@@ -409,7 +412,7 @@ prevents classes from being burdened with methods they don't use.
 
 This principle reverses the typical dependency direction in traditional layered
 architectures. Instead of high-level business logic depending on low-level
-utility classes, both depend on shared abstractions. This reduces coupling and
+utility classes, both depend on shared abstractions. This reduces <Term title="How much one part of the code depends on the details of another.">coupling</Term> and
 makes swapping implementations easier, especially for testing.
 
 Dependency injection is the primary technique for implementing DIP in Python.
@@ -540,6 +543,6 @@ Protocols, duck typing) make implementing SOLID principles straightforward.
 ## References
 
 - Python Software Foundation. "abc — Abstract Base Classes." Python
-  Documentation. [https://docs.python.org/3/library/abc.html](https://docs.python.org/3/library/abc.html)
-- Curso de Patrones de Diseño y SOLID en Python. Platzi.
-  [https://platzi.com/cursos/solid-python/](https://platzi.com/cursos/solid-python/)
+  Documentation. <ExternalLink href="https://docs.python.org/3/library/abc.html" preview="Python documentation for abc, the module that defines abstract base classes and the abstractmethod decorator.">https://docs.python.org/3/library/abc.html</ExternalLink>
+- Curso de Patrones de Diseño y SOLID en Python.
+  Platzi. <ExternalLink href="https://platzi.com/cursos/solid-python/" preview="Platzi course, in Spanish, on design patterns and the SOLID principles in Python.">https://platzi.com/cursos/solid-python/</ExternalLink>

@@ -7,7 +7,11 @@ description:
 tags: ["tools"]
 ---
 
-The examples target Bash on GNU/Linux unless stated otherwise. macOS uses BSD
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
+The examples target Bash on <Acronym title="GNU's Not Unix">GNU</Acronym>/Linux unless stated otherwise. macOS uses <Acronym title="Berkeley Software Distribution">BSD</Acronym>
 versions of several utilities, and flags can differ. Replace angle-bracketed
 placeholders before running commands; quote paths containing spaces.
 
@@ -222,7 +226,7 @@ Allows us to match patterns in filenames.
 ### redirection
 
 A redirection is a way to redirect the output of a command to a file or another
-command. file descriptor (0-1-2).
+command. <Term title="A small number that a process uses to refer to an open file or stream.">file descriptor</Term> (0-1-2).
 
 - _standard input (stdin)_ : 0
 - _standard output (stdout)_ : 1
@@ -251,7 +255,7 @@ command.
 ### control operators
 
 Control operators determine sequencing and conditions. `;`, `&&`, and `||` do
-not by themselves create subshells; `&` starts an asynchronous job in Bash.
+not by themselves create <Term title="A child copy of the shell that runs commands in a separate process.">subshells</Term>; `&` starts an asynchronous job in Bash.
 
 - `ls; echo "foo"`: list files and print "foo".
 - `ls; mkdir dir; cal`: list files, create directory, and print calendar.
@@ -265,7 +269,7 @@ not by themselves create subshells; `&` starts an asynchronous job in Bash.
 A permission is a way to control access to a file or directory.
 
 `ls -l` begins with a type character: `-` for a regular file, `d` for a
-directory, `l` for a symbolic link, and `b` for a block device. A block device
+directory, `l` for a <Term title="A file that points to another path, like a shortcut.">symbolic link</Term>, and `b` for a block device. A block device
 is a device that is accessed in fixed-size blocks.
 
 ### Kind of permissions
@@ -363,7 +367,7 @@ environment passed to subsequent commands.
 
 ### how to modify environment variables?
 
-export PATH=$PATH:/home/user/bin : add /home/user/bin to PATH environment
+`export PATH=$PATH:/home/user/bin`: add /home/user/bin to PATH environment
 variable
 
 - look for the file `.bashrc` (bash) in the home directory of the user.
@@ -479,8 +483,8 @@ find . -type f -name '*.txt' -exec grep -n 'foo' {} +
 
 The first command finds text files recursively. The second searches their
 contents and safely handles filenames containing spaces. Permission predicates
-are bit tests, not numeric comparisons; see the
-[GNU find mode-bit reference](https://www.gnu.org/software/findutils/manual/html_node/find_html/Mode-Bits.html).
+are bit tests, not numeric comparisons; see
+the <ExternalLink href="https://www.gnu.org/software/findutils/manual/find.html#Mode-Bits" preview="GNU find manual, at the section on file mode bits: how -perm and -chmod read permission bits.">GNU find mode-bit reference</ExternalLink>.
 
 ### grep
 
@@ -511,7 +515,7 @@ A grep is a way to search for a pattern in a file.
 These commands inspect interfaces or communicate with network services.
 
 - `ifconfig`: print network interfaces.
-- `ping <host-or-ip>`: send ICMP echo requests; a missing reply can reflect
+- `ping <host-or-ip>`: send <Acronym title="Internet Control Message Protocol">ICMP</Acronym> echo requests; a missing reply can reflect
   filtering
 - `curl <url>`: print url contents.
 - `curl <url> > index.html`: write url contents (stdout) to index.html.
@@ -539,7 +543,7 @@ A process is a running instance of a program.
 
 - `ps`: show processes associated with the current terminal by default.
 - `ps -ef`: show a broader process listing on common Unix systems.
-- `kill <pid>`: send SIGTERM, requesting termination; it is not guaranteed to
+- `kill <pid>`: send <Term title="The termination signal: it asks a process to exit, and the process may catch or ignore it.">SIGTERM</Term>, requesting termination; it is not guaranteed to
   stop the process.
 - `top`: inspect processes interactively; keys vary by platform. Read its help
   or `man top`.
@@ -557,8 +561,8 @@ Bash job control manages commands started in the current interactive shell:
 - `kill %1`: send SIGTERM to job 1.
 - `kill %%`: signal the current job, not all background jobs.
 
-A background command that tries to read from the terminal normally stops with
-SIGTTIN. Use input from a file or run it in the foreground instead.
+A background command that tries to read from the terminal normally stops
+with <Term title="The signal sent to a background job that reads from the terminal; by default it stops the job.">SIGTTIN</Term>. Use input from a file or run it in the foreground instead.
 
 ## vim
 
@@ -594,9 +598,11 @@ SIGTTIN. Use input from a file or run it in the foreground instead.
 
 ## customize the terminal
 
-- [bash](https://ohmybash.nntoan.com)
-- [zsh](https://ohmyz.sh)
+{/* prettier-ignore */}
+- <ExternalLink href="https://ohmybash.github.io/" preview="Oh My Bash, an open source framework of themes, plugins and aliases for Bash.">bash</ExternalLink>
+- <ExternalLink href="https://ohmyz.sh" preview="Oh My Zsh, an open source framework of themes and plugins for configuring Zsh.">zsh</ExternalLink>
 
 ## References
 
-- [Platzi: Curso de Introducción a la Terminal y Línea de Comandos](https://platzi.com/cursos/terminal/)
+{/* prettier-ignore */}
+- <ExternalLink href="https://platzi.com/cursos/terminal/" preview="Platzi course, in Spanish, that introduces the terminal and the command line.">Platzi: Curso de Introducción a la Terminal y Línea de Comandos</ExternalLink>

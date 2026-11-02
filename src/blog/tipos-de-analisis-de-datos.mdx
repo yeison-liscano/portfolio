@@ -10,8 +10,11 @@ tags: ["statistics", "data-science"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
 import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
 import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
 import FlujoAnalitico from "./components/tipos-de-analisis/FlujoAnalitico.astro";
 import PruebaAB from "./components/tipos-de-analisis/PruebaAB.astro";
 import AsignacionCupones from "./components/tipos-de-analisis/AsignacionCupones.astro";
@@ -78,8 +81,8 @@ demuestra. Que los clientes con quejas se vayan más puede deberse a la queja, a
 un producto defectuoso que causó ambas cosas o a cualquier otra variable que no
 medimos. El descriptivo produce **hipótesis**, y las fases siguientes las ponen
 a prueba. Si te interesa la frontera entre describir una muestra y sacar
-conclusiones sobre una población, la explico en
-[estadística descriptiva e inferencial](/portfolio/blog/inferential-vs-descriptive-statistics/).
+conclusiones sobre una población, la explico
+en <InternalLink slug="inferential-vs-descriptive-statistics">estadística descriptiva e inferencial</InternalLink>.
 
 ## 2. Análisis predictivo: ¿qué va a suceder?
 
@@ -101,7 +104,7 @@ datos pesan más que la elección del algoritmo.
   semana.
 
 El flujo típico es dividir los datos en entrenamiento, validación y prueba,
-entrenar el modelo, medirlo con métricas como RMSE, precisión, _recall_ o AUC, y
+entrenar el modelo, medirlo con métricas como <Acronym title="Root Mean Square Error (raíz del error cuadrático medio)">RMSE</Acronym>, precisión, _<Term title="Proporción de los casos positivos reales que el modelo detecta.">recall</Term>_ o <Acronym title="Area Under the ROC Curve (área bajo la curva ROC)">AUC</Acronym>, y
 desplegarlo para puntuar datos nuevos. Dos detalles importan mucho cuando la
 predicción alimenta decisiones. Primero, la división debe respetar el tiempo:
 entrenar con trimestres antiguos y evaluar con el más reciente, y no usar
@@ -132,8 +135,8 @@ periodo, como campañas, cambios de precio o fallas del sitio.
    da el cupón solo a uno de los grupos y mide la diferencia. El azar es lo que
    permite hablar de causa, porque reparte por igual entre los dos grupos todo
    lo que no medimos.
-3. Decide el tamaño de la muestra **antes** de empezar, con un cálculo de
-   potencia, y no mira los resultados a mitad de camino para detenerse cuando le
+3. Decide el tamaño de la muestra **antes** de empezar, con
+   un <Term title="Cálculo del tamaño de muestra necesario para detectar un efecto de cierto tamaño con una probabilidad dada.">cálculo de potencia</Term>, y no mira los resultados a mitad de camino para detenerse cuando le
    convienen.
 4. Analiza la diferencia con estadística inferencial: intervalos de confianza,
    valores p y tamaño del efecto.
@@ -159,8 +162,8 @@ bajo, alto = efecto - 1.96 * error, efecto + 1.96 * error  # 0.020 y 0.100
 ```
 
 Cuando no se puede experimentar, por costo, por ética o porque el hecho ya
-ocurrió, se usan métodos de inferencia causal sobre datos observacionales, como
-diferencias en diferencias, regresión discontinua o emparejamiento. Sus
+ocurrió, se usan métodos de inferencia causal sobre datos observacionales,
+como <Term title="Compara cuánto cambia un grupo tratado frente a uno no tratado, antes y después de la intervención.">diferencias en diferencias</Term>, regresión discontinua o emparejamiento. Sus
 conclusiones dependen de supuestos más fuertes que los de un experimento.
 
 Hay un matiz que la fase siguiente necesita: el efecto de 6 puntos es un
@@ -211,7 +214,7 @@ Es un problema de **programación lineal**. Como todos los cupones cuestan lo
 mismo, su solución es sencilla: llenar primero los segmentos con mayor neto por
 cupón y no dar cupones donde el neto es negativo. Es la regla de la mochila
 fraccionaria, que toma primero lo que más vale por unidad de peso. Con más tipos de acción, costos distintos o restricciones enteras
-se usan programación entera, simulación o aprendizaje por refuerzo.
+se usan programación entera, simulación o <Term title="Aprendizaje en el que un agente prueba acciones y ajusta su estrategia según las recompensas que recibe.">aprendizaje por refuerzo</Term>.
 
 <Figure caption="Mueve el presupuesto y cambia de estrategia. Con $2500, la estrategia óptima retiene a 51 clientes y deja $5600 de beneficio neto; repartir por riesgo retiene a 36 y deja $2600, porque gasta $1500 en clientes inactivos a los que el cupón casi no cambia.">
   <AsignacionCupones />

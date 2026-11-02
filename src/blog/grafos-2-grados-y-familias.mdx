@@ -11,6 +11,8 @@ isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
 import FamiliasExplorer from "./components/grafos/FamiliasExplorer.astro";
 import Operaciones from "./components/grafos/Operaciones.astro";
 import SerieGrafos from "./components/grafos/SerieGrafos.astro";
@@ -18,7 +20,7 @@ import SerieGrafos from "./components/grafos/SerieGrafos.astro";
 Palabras clave: adyacencia, vecindad, grado, apretón de manos, grafo completo,
 ciclo, rueda, hipercubo, grafo bipartito, subgrafo
 
-En la [primera parte](/portfolio/blog/grafos-1-modelos/) vimos qué es un grafo y
+En la <InternalLink slug="grafos-1-modelos">primera parte</InternalLink> vimos qué es un grafo y
 cómo se usa para modelar sistemas reales. Para razonar sobre esos modelos
 necesitamos un vocabulario preciso: qué vértices son vecinos, cuántas aristas
 llegan a cada uno, qué estructuras aparecen una y otra vez y cómo se obtiene un
@@ -176,7 +178,7 @@ vértices tiene grado `n − 1`, así que `m = n(n − 1)/2`.
 | Kₘ,ₙ (ver abajo) | `m + n`  | `mn`         | `n` en un lado, `m` en el otro    |
 
 Estas familias también son topologías de red. En una red de área local en
-**estrella** todos los equipos se conectan a un concentrador central, y su grafo
+**estrella** todos los equipos se conectan a un <Term title="Dispositivo central, como un switch, al que se conectan todos los equipos de una red en estrella.">concentrador</Term> central, y su grafo
 es K₁,ₙ. En una red en **anillo** cada equipo se conecta con dos vecinos, y su
 grafo es Cₙ. Una red que combina ese anillo con un centro unido a todos sus vértices tiene
 grafo Wₙ; «híbrida» también puede referirse a otras combinaciones. Los
@@ -259,8 +261,8 @@ print("Q3, lado 0:", [format(v, "03b") for v in lados if lados[v] == 0])
 El **grafo bipartito completo** Kₘ,ₙ tiene sus vértices divididos en dos
 conjuntos de `m` y `n` vértices, con una arista entre dos vértices si y solo si
 están en conjuntos distintos. Tiene `m + n` vértices y `mn` aristas. K₃,₃ va a
-tener un papel protagónico en la
-[parte VII](/portfolio/blog/grafos-7-planaridad-y-coloracion/): es el grafo del
+tener un papel protagónico en
+la <InternalLink slug="grafos-7-planaridad-y-coloracion">parte VII</InternalLink>: es el grafo del
 problema de las tres casas y los tres servicios, y no se puede dibujar en el
 plano sin cruces.
 
@@ -288,7 +290,7 @@ los tocan, y quedarnos con un grafo más pequeño.
   conectado con cada vecino de `u` o de `v`. El resultado tiene un vértice menos
   y, en general, no es un subgrafo de `G`. En esta ilustración se elimina la
   arista contraída y se fusionan las aristas paralelas para mantener un grafo
-  simple; algoritmos como Karger conservan esas multiplicidades.
+  simple; algoritmos como <Term title="Algoritmo aleatorio que busca un corte mínimo contrayendo aristas al azar hasta que quedan dos vértices.">Karger</Term> conservan esas multiplicidades.
 - La **unión** de dos grafos simples `G1 = (V1, E1)` y `G2 = (V2, E2)` es el
   grafo simple `G1 ∪ G2 = (V1 ∪ V2, E1 ∪ E2)`.
 
@@ -299,7 +301,7 @@ los tocan, y quedarnos con un grafo más pequeño.
 Las operaciones no son un juego de notación: los algoritmos de grafos las usan
 todo el tiempo. Eliminar vértices y aristas sirve para estudiar qué pasa si
 falla una máquina o un enlace; la contracción de aristas está en el centro del
-algoritmo de Karger para cortes mínimos y de la caracterización de los grafos
+algoritmo de Karger para <Term title="El menor conjunto de aristas cuya eliminación desconecta el grafo.">cortes mínimos</Term> y de la caracterización de los grafos
 planares que veremos al final de la serie.
 
 ## Conclusión

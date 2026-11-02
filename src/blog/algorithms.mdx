@@ -9,8 +9,11 @@ tags: ["programming", "algorithms"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
 import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
 import BinarySearch from "./components/algorithms/BinarySearch.astro";
 import MergeSort from "./components/algorithms/MergeSort.astro";
 
@@ -174,7 +177,7 @@ n) elegance in action.
 
 Merge sort is a **stable**, **divide-and-conquer** sorting algorithm that
 consistently delivers O(n log n) performance, regardless of input. It's widely
-used in practice and forms the basis of timsort (used in Python).
+used in practice and forms the basis of <Term title="Python's hybrid sorting algorithm, which finds runs that are already sorted and merges them.">timsort</Term> (used in Python).
 
 ### How Merge Sort Works
 
@@ -249,7 +252,7 @@ Merge sort's consistent O(n log n) performance and stability (equal elements
 maintain relative order) make it ideal for:
 
 - Sorting linked lists (no random access needed)
-- External sorting (sorting data larger than RAM)
+- External sorting (sorting data larger than <Acronym title="Random-Access Memory">RAM</Acronym>)
 - Any scenario where worst-case guarantee matters
 
 ---
@@ -257,7 +260,7 @@ maintain relative order) make it ideal for:
 ## Quicksort
 
 Quicksort is the practical workhorse of sorting algorithms. While its worst-case
-is O(n²), its average O(n log n) performance and in-place sorting make it the
+is O(n²), its average O(n log n) performance and <Term title="Sorting that rearranges the elements inside the original array, with little extra memory.">in-place sorting</Term> make it the
 default choice in many languages.
 
 ### How Quicksort Works
@@ -342,10 +345,10 @@ print(quicksort(data))  # Output: [11, 12, 22, 25, 34, 64, 90]
 ### Why Quicksort Matters
 
 Quicksort's in-place partitioning and cache behavior make it useful in production
-systems. Introsort combines quicksort with a worst-case fallback. Python's
+systems. <Term title="A hybrid sort that starts with quicksort and switches to heapsort when the recursion gets too deep.">Introsort</Term> combines quicksort with a worst-case fallback. Python's
 Timsort belongs to the merge-sort family, not the quicksort family; CPython's
-implementation uses a Powersort merge policy. See the
-[CPython sorting design notes](https://github.com/python/cpython/blob/main/Objects/listsort.txt).
+implementation uses a <Term title="A rule for choosing which sorted runs to merge next, which keeps the total merge cost close to optimal.">Powersort</Term> merge policy. See
+the <ExternalLink href="https://github.com/python/cpython/blob/main/Objects/listsort.txt" preview="Tim Peters' design notes for CPython's list sort: Timsort, its runs, galloping mode and merge policy.">CPython sorting design notes</ExternalLink>.
 
 ---
 
@@ -358,10 +361,10 @@ weights), connected components, and level-order traversals.
 
 Given the depth of BFS and graph algorithms in general, we've covered this
 thoroughly in our
-**[dedicated graphs and graph algorithms article](/portfolio/blog/graphs/)**, including
+**dedicated graphs and graph algorithms article**, including
 implementation, applications, and comparison with Depth-First Search.
 
-BFS is a foundation for more advanced techniques like Dijkstra's algorithm
+BFS is a foundation for more advanced techniques like <Term title="Finds shortest paths from a source by always settling the closest unvisited vertex; weights must be non-negative.">Dijkstra's algorithm</Term>
 (shortest path), level-order tree traversal, and multi-source shortest path
 problems.
 
@@ -385,16 +388,14 @@ problems.
   Press. The definitive algorithms textbook covering all these algorithms in
   depth.
 
-- **Khan Academy: Algorithms Course** —
-  [https://www.khanacademy.org/computing/computer-science/algorithms](https://www.khanacademy.org/computing/computer-science/algorithms). Free,
+- **Khan Academy: Algorithms Course** — <ExternalLink href="https://www.khanacademy.org/computing/computer-science/algorithms" preview="Khan Academy's free algorithms course, with interactive explanations of searching, sorting and recursion.">https://www.khanacademy.org/computing/computer-science/algorithms</ExternalLink>. Free,
   interactive explanations of classic algorithms with visualizations.
 
-- **Python Documentation: Time Complexity** —
-  [https://wiki.python.org/moin/TimeComplexity](https://wiki.python.org/moin/TimeComplexity). Official Python performance
+- **Python Documentation: Time Complexity** — <ExternalLink href="https://wiki.python.org/moin/TimeComplexity" preview="Python Wiki page listing the time complexity of operations on CPython's built-in data structures.">https://wiki.python.org/moin/TimeComplexity</ExternalLink>. Official Python performance
   characteristics for built-in data structures and operations.
 
-- **Visualgo: Algorithm Visualizer** — [https://visualgo.net/](https://visualgo.net/). Interactive
+- **Visualgo: Algorithm Visualizer** — <ExternalLink href="https://visualgo.net/" preview="VisuAlgo, animated visualizations of data structures and algorithms.">https://visualgo.net/</ExternalLink>. Interactive
   visualizations of sorting, searching, and graph algorithms in action.
 
-- **Big-O Cheat Sheet** — [https://www.bigocheatsheet.com/](https://www.bigocheatsheet.com/). Quick reference for
+- **Big-O Cheat Sheet** — <ExternalLink href="https://www.bigocheatsheet.com/" preview="Big-O Cheat Sheet: the time and space complexity of common data structures and sorting algorithms.">https://www.bigocheatsheet.com/</ExternalLink>. Quick reference for
   time and space complexity of common algorithms.

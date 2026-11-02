@@ -8,13 +8,16 @@ tags: ["programming", "python"]
 isDraft: false
 ---
 
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
 Functional programming (FP) is a style that models programs as transformations
 of data. Instead of mutating state step by step, we build small functions and
 combine them to express intent.
 
 Python is multi-paradigm, so we can use FP ideas without writing purely
 functional code all the time. In practice, this gives us readable pipelines,
-testable logic, and fewer side effects.
+testable logic, and fewer <Term title="Changes a function makes beyond returning a value, such as writing a global, a file or the screen.">side effects</Term>.
 
 ## Why Use FP Concepts
 
@@ -106,7 +109,8 @@ print(evens)    # [2, 4, 6, 8, 10]
 print(total)    # 30
 ```
 
-List comprehensions are often more readable than `map` and `filter`, but both
+{/* prettier-ignore */}
+<Term title="A compact expression that builds a list from an iterable, with an optional filter.">List comprehensions</Term> are often more readable than `map` and `filter`, but both
 approaches are valid.
 
 ### partial for Function Specialization
@@ -128,8 +132,8 @@ print(cube(3))    # 27
 
 This is partial application: fixing some arguments to obtain a new callable.
 Currying instead transforms a function of several arguments into a sequence of
-functions taking one argument each. See
-[`functools.partial`](https://docs.python.org/3/library/functools.html#functools.partial).
+functions taking one argument each.
+See <ExternalLink href="https://docs.python.org/3/library/functools.html#functools.partial" preview="Python documentation for functools.partial, which returns a new callable with some arguments already fixed.">`functools.partial`</ExternalLink>.
 
 ## Practical Pipeline Example
 
@@ -162,15 +166,15 @@ Each step is small, focused, and easy to test in isolation.
 
 ## Recursion and Python
 
-Recursion is common in FP, but Python does not optimize tail recursion. For
+Recursion is common in FP, but Python does not optimize <Term title="Recursion where the recursive call is the last action of the function; some languages run it without growing the call stack.">tail recursion</Term>. For
 large inputs, iterative solutions are often safer.
 
-Use recursion when it improves clarity, but keep Python's recursion limit in
+Use recursion when it improves clarity, but keep Python's <Term title="The maximum depth of nested calls Python allows before raising RecursionError; 1000 by default.">recursion limit</Term> in
 mind.
 
 ## Common Pitfalls
 
-- Overusing lambdas and making code harder to read.
+- Overusing <Term title="Anonymous single-expression functions written with the lambda keyword.">lambdas</Term> and making code harder to read.
 - Forcing `reduce` when `sum` or a loop is clearer.
 - Mixing pure and impure logic in the same function.
 - Ignoring readability in the name of style purity.
@@ -188,5 +192,6 @@ Used well, FP makes code easier to test, reason about, and evolve.
 
 ## References
 
-- [HaskellWiki: Functional programming](https://wiki.haskell.org/index.php?title=Functional_programming)
-- [Haskell Language](https://www.haskell.org/)
+{/* prettier-ignore */}
+- <ExternalLink href="https://wiki.haskell.org/index.php?title=Functional_programming" preview="HaskellWiki's introduction to functional programming and its core ideas, such as purity and higher-order functions.">HaskellWiki: Functional programming</ExternalLink>
+- <ExternalLink href="https://www.haskell.org/" preview="Home page of Haskell, a purely functional programming language.">Haskell Language</ExternalLink>

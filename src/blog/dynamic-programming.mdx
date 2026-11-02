@@ -9,6 +9,7 @@ isDraft: false
 ---
 
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import FibTree from "./components/dynamic-programming/FibTree.astro";
 
 Dynamic programming is a powerful technique used to solve complex problems by
@@ -22,7 +23,7 @@ It is built on two ideas:
 
 These properties can make reuse effective, but polynomial running time also
 requires a polynomial number of states and work per state. Some dynamic programs
-remain exponential or pseudopolynomial. Counting problems such as Fibonacci use
+remain exponential or <Term title="Polynomial in the numeric value of the input, but exponential in the number of bits needed to write it.">pseudopolynomial</Term>. Counting problems such as Fibonacci use
 the same approach without an optimization objective.
 
 The Fibonacci examples assume a nonnegative integer `n`. Their O(n) time and
@@ -163,7 +164,7 @@ print(min_coins([1, 3, 4], 6))  # 2 (3 + 3)
 - Defining the wrong state.
 - Forgetting base cases.
 - Missing transitions.
-- Using mutable default arguments in recursive functions.
+- Using <Term title="A default such as a list or a dict is created once, when the function is defined, and shared by every call.">mutable default arguments</Term> in recursive functions.
 - Not checking memory usage when the state space is large.
 
 ## How to Decide If DP Applies
