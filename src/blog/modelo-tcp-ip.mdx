@@ -1,184 +1,398 @@
 ---
 lang: "es"
-title: "Modelo TCP/IP: cuatro capas, y tu programa solo escribe una"
+title: "Modelo TCP/IP: qué hace cada capa cuando pides una página web"
 pubDate: 2026-10-28
-updatedDate: 2026-10-31
-description: "El modelo TCP/IP explicado con una carta y una petición web: qué pregunta responde cada una de sus cuatro capas, cómo se envuelven unas a otras y cómo leer un error de conexión para saber qué capa falló."
+updatedDate: 2026-11-02
+description:
+  "Sigue una petición HTTP para entender las cuatro capas de TCP/IP, distinguir
+  puertos, direcciones IP y MAC, y diagnosticar fallas sin confundir transporte
+  confiable con comunicación segura."
 summary:
-  - "TCP/IP divide el envío de un mensaje en cuatro capas: aplicación, transporte, internet y enlace. Cada una responde una sola pregunta."
-  - "Cada capa envuelve el mensaje de la capa de arriba con su propia cabecera. Una petición web de 72 bytes sale del computador con 142."
-  - "Tu programa solo escribe la capa de aplicación. El sistema operativo y la tarjeta de red hacen las otras tres."
-  - "Cuando una conexión falla, el error dice qué capa falló."
-tags: ["networking"]
+  - "TCP/IP organiza la comunicación en cuatro capas: aplicación, transporte,
+    internet y enlace. Las capas describen funciones, no dónde corre el código."
+  - "HTTP define el mensaje; TCP transporta sus bytes; IP permite cruzar redes;
+    el enlace lleva cada paquete hasta el siguiente salto."
+  - "Una petición de 72 bytes puede viajar en una trama Ethernet de 142 bytes.
+    Ese tamaño depende de las cabeceras y las condiciones del ejemplo."
+  - "Los errores de un socket orientan el diagnóstico, pero no identifican por
+    sí solos la causa. La entrega confiable de TCP tampoco equivale a cifrado."
+tags: ["networking", "security"]
 isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
 import FronteraKernel from "./components/modelo-tcp-ip/FronteraKernel.astro";
 import ModelosCapas from "./components/modelo-tcp-ip/ModelosCapas.astro";
+import RelojDeArena from "./components/modelo-tcp-ip/RelojDeArena.astro";
 
-{/* cspell:ignore gaierror */}
+{/* cspell:ignore INET IPPROTO getsockopt noproxy CRLF recvfrom bloqueante neighbour */}
 
-Palabras clave: modelo TCP/IP, capas, encapsulación, aplicación, transporte,
-internet, enlace
+Palabras clave: modelo TCP/IP, capas de red, encapsulación, TCP, UDP, IP,
+Ethernet, socket, diagnóstico de red
 
-Cuando abres una página web, tu computador le envía un mensaje corto a un
-servidor. Ese mensaje cruza varias redes y llega intacto. El modelo TCP/IP
-explica cómo lo logra: reparte el trabajo en cuatro capas, y cada capa resuelve
-un solo problema. Entenderlo tiene un uso práctico. Cuando una conexión falla,
-el mensaje de error dice qué capa falló, y eso te dice dónde buscar. Este post
-explica las cuatro capas con un solo ejemplo, una petición web, y termina con
-una tabla para leer los errores de conexión más comunes.
+Tu programa pide una página web y la petición falla. ¿El servidor rechazó la
+conexión, falta una ruta o la aplicación respondió con un error? Memorizar los
+nombres de las capas no basta para distinguirlo. El **modelo TCP/IP** organiza
+la comunicación en cuatro responsabilidades que ayudan a formular esas
+preguntas. Vamos a seguir una petición HTTP desde sus bytes hasta una trama
+Ethernet, explicar qué hace cada capa y usar esa separación para investigar
+fallas. No necesitas conocer de antemano sockets ni cabeceras de red.
 
-## Enviar un mensaje por Internet se parece a enviar una carta
+## Una petición HTTP necesita más que el texto que escribe el programa
 
-Para que una carta llegue hacen falta cuatro cosas:
-
-1. El texto de la carta.
-2. El nombre de la persona que la recibe.
-3. La dirección de la casa.
-4. El camión o la moto que la lleva en cada tramo del camino.
-
-Tú solo escribes el texto y el nombre. El correo se encarga del resto, y tú no
-necesitas saber qué camiones usó. TCP/IP reparte el trabajo de la misma forma.
-¿Quién hace cada parte cuando el mensaje es una petición web? La respuesta está
-más abajo.
-
-## Cada capa responde una sola pregunta
-
-El modelo TCP/IP tiene cuatro capas. Cada una responde una pregunta distinta:
-
-| Capa       | Pregunta                         | En la carta         | En una petición web                    |
-| ---------- | -------------------------------- | ------------------- | -------------------------------------- |
-| Aplicación | ¿Qué quiero decir?               | el texto            | `GET /`, en HTTP                       |
-| Transporte | ¿Qué programa lo recibe?         | el nombre           | el puerto 80, con TCP                  |
-| Internet   | ¿Qué computador lo recibe?       | la dirección        | `10.0.2.30`, con IP                    |
-| Enlace     | ¿Cómo llega al siguiente equipo? | el camión del tramo | la MAC del router, con Ethernet o WiFi |
-
-En palabras simples:
-
-- **Aplicación.** Es el idioma entre dos programas. Un navegador y un servidor
-  web hablan HTTP.
-- **Transporte.** Un computador ejecuta muchos programas a la vez, y el puerto
-  dice a cuál va el mensaje. TCP, además, revisa que todo llegue completo y en
-  orden, y vuelve a enviar lo que se pierde.
-- **Internet.** La dirección IP identifica un computador en cualquier red. Los
-  routers la leen para decidir por dónde sigue el mensaje.
-- **Enlace.** Lleva el mensaje solo hasta el siguiente equipo, por ejemplo del
-  portátil al router de la casa. Usa otra dirección, la MAC, que solo sirve
-  dentro de una misma red local.
-
-## Cada capa envuelve el mensaje de la capa de arriba
-
-Tomemos una petición real. El comando `curl http://10.0.2.30/` le pide la página
-principal a un servidor. Este es el texto que envía:
+Imagina un cliente en `10.0.1.20` que pide una página al servidor `10.0.2.30`:
 
 ```text
-GET / HTTP/1.1
-Host: 10.0.2.30
-User-Agent: curl/8.5.0
-Accept: */*
+cliente → router 1 → router 2 → servidor
 ```
 
-Con los saltos de línea y la línea vacía del final, son 72 bytes. Antes de
-salir, cada capa le pone delante su propia cabecera, como un sobre dentro de
-otro sobre. TCP agrega 32 bytes con los puertos. IP agrega 20 con las
-direcciones de origen y destino. Ethernet agrega 14 con las direcciones MAC, y 4
-más al final para detectar errores. Esto se llama **encapsulación**.
+Usaremos HTTP/1.1 sobre TCP e IPv4, con Ethernet en el primer enlace. Es un
+**ejemplo didáctico**: las direcciones y los tamaños que siguen son supuestos
+explícitos, no una captura nueva de tráfico. Aquí basta con saber que un router
+conecta redes y reenvía paquetes entre ellas.
 
-<Figure caption="La petición de 72 bytes, envuelta capa por capa hasta los 142 que salen por el cable. Solo la primera fila la escribe tu programa.">
-  <FronteraKernel />
-</Figure>
+Esta petición pide el recurso `/`. El campo `Host` indica el servidor solicitado,
+y la línea vacía termina las cabeceras. En HTTP/1.1, cada salto de línea se
+representa con los dos bytes `\r\n`, llamados CRLF. Puedes comprobar los **72
+bytes** de este mensaje exacto con Python, sin conectarte a ninguna red:
 
-Al llegar, el servidor hace lo contrario. Cada capa quita su sobre y le pasa el resto a la capa de arriba,
-hasta que el servidor web lee los mismos 72 bytes.
+```python
+request = (
+    b"GET / HTTP/1.1\r\n"
+    b"Host: 10.0.2.30\r\n"
+    b"User-Agent: curl/8.5.0\r\n"
+    b"Accept: */*\r\n"
+    b"\r\n"
+)
+print(len(request))  # 72
+```
 
-## Tu programa solo escribe la capa de aplicación
+El formato sigue el [RFC 9112, §§2–3](https://www.rfc-editor.org/rfc/rfc9112.html#section-2).
+El tamaño cambiaría con otras cabeceras o una URL distinta. Pero esos 72 bytes
+todavía no dicen por qué red viajar, a qué puerto entregarse ni cómo detectar
+una pérdida. Ahí entran las otras capas.
 
-Esto responde la pregunta de la carta. curl solo escribió los 72 bytes de la
-petición. No escribió puertos, direcciones IP ni direcciones MAC. El sistema
-operativo agregó las cabeceras de TCP e IP, y la tarjeta de red armó la trama
-Ethernet.
+## Las cuatro capas separan el mensaje de su transporte y de la red
 
-Por eso un programador puede usar la red sin conocer sus detalles. Solo dice a
-dónde va el mensaje, con una dirección y un puerto, y qué dice. Si mañana el
-computador cambia de WiFi a cable, el programa no cambia.
+TCP/IP es una **familia de protocolos**, es decir, reglas para que los equipos
+se comuniquen. Su nombre reúne TCP (_Transmission Control Protocol_) e IP
+(_Internet Protocol_), pero también incluye protocolos como UDP e ICMP. El modelo organiza sus funciones en capas. El
+[RFC 1122, §1.1.3](https://www.rfc-editor.org/rfc/rfc1122.html#section-1.1.3)
+describe cuatro; desarrolla las tres inferiores y deja los requisitos de
+aplicación a su documento complementario, el RFC 1123.
 
-## TCP/IP junta en una capa lo que el modelo OSI separa en tres
+| Capa           | Responsabilidad                                                                      | Ejemplos             | En nuestra petición                        |
+| -------------- | ------------------------------------------------------------------------------------ | -------------------- | ------------------------------------------ |
+| **Aplicación** | Define qué significan los mensajes y cómo se interpretan.                            | HTTP, DNS, SMTP, SSH | HTTP expresa «dame `/`».                   |
+| **Transporte** | Comunica los extremos de las aplicaciones, con garantías que dependen del protocolo. | TCP, UDP             | TCP lleva un flujo de bytes al puerto 80.  |
+| **Internet**   | Define direcciones y permite reenviar paquetes entre redes.                          | IPv4, IPv6, ICMP     | La IP de destino es `10.0.2.30`.           |
+| **Enlace**     | Lleva los datos por el enlace local.                                                 | Ethernet, Wi-Fi, PPP | Una trama Ethernet llega al primer router. |
 
-Existe otro modelo de capas muy conocido, el modelo OSI, con siete capas. TCP/IP
-es más simple en dos puntos:
+Una **cabecera** contiene los campos de control de un protocolo. Los datos que
+transporta son su **carga útil**. Al enviar, TCP envuelve los bytes de HTTP; IP
+envuelve el segmento TCP; Ethernet envuelve el paquete IP. Esa operación se
+llama **encapsulación**. En el destino se procesan esas envolturas hasta entregar
+los datos a la aplicación.
 
-- Junta aplicación, presentación y sesión en una sola capa de aplicación.
-- Junta enlace y física en una sola capa de enlace.
+Por eso una misma transmisión tiene varios nombres: **mensaje HTTP**, **segmento
+TCP**, **paquete o datagrama IP** y **trama Ethernet**. No son cuatro envíos
+independientes: cada unidad contiene a la anterior.
 
-<Figure caption="Las siete capas de OSI junto a las cuatro de TCP/IP. Transporte y red coinciden; las capas de arriba y las de abajo se agrupan.">
+## Cuatro, cinco y siete capas son modelos con distinto nivel de detalle
+
+El modelo de cinco capas separa **enlace** y **física**: una describe tramas y
+acceso al medio; la otra, la transmisión de bits mediante señales eléctricas,
+ópticas o de radio. En la representación de cuatro capas que usamos aquí,
+ambas quedan debajo de IP, agrupadas como enlace.
+
+El modelo de referencia OSI distingue siete capas, incluyendo **sesión** y
+**presentación**. Puedes consultar sus funciones en la
+[recomendación ITU-T X.200, §7](https://www.itu.int/rec/T-REC-X.200-199407-I/en).
+En una comparación didáctica, esas funciones suelen agruparse con aplicación
+en TCP/IP. La correspondencia es aproximada: no implica que ambos modelos
+tengan límites idénticos ni que Internet implemente la pila OSI.
+
+<Figure caption="Comparación aproximada de responsabilidades. El modelo de cinco capas separa el medio físico; OSI distingue además sesión y presentación. Las filas alineadas no representan equivalencias exactas entre protocolos.">
   <ModelosCapas />
 </Figure>
 
-## Cuando una conexión falla, el error dice qué capa falló
+Las capas tampoco son procesos ni piezas obligatorias del sistema operativo.
+Decir «TCP es transporte» describe su función. Decir «TCP corre en el kernel»
+describe una implementación. Esta diferencia será clave al llegar a los sockets.
 
-Como cada capa tiene un solo trabajo, cada una falla de una forma distinta. Este
-programa en Python intenta conectarse a tres destinos:
+## Los puertos, las direcciones IP y las MAC tienen alcances distintos
 
-```python
-import socket
-
-
-def probar(host, puerto):
-    try:
-        socket.create_connection((host, puerto), timeout=3).close()
-        print("conectado")
-    except OSError as error:
-        print(type(error).__name__, "-", error)
-
-
-probar("servidor.invalid", 80)  # un nombre que no existe
-probar("127.0.0.1", 81)  # mi computador, un puerto sin programa
-probar("10.9.9.9", 80)  # una red sin ruta desde este equipo
-```
-
-Esta es la salida en un Linux sin ruta hacia `10.9.9.9`:
+En el ejemplo, supongamos que el cliente usa el puerto temporal `34106` y el
+servidor escucha en el `80`. La conexión TCP se distingue por sus dos extremos:
 
 ```text
-gaierror - [Errno -2] Name or service not known
-ConnectionRefusedError - [Errno 111] Connection refused
-OSError - [Errno 101] Network is unreachable
+IP origen:puerto origen     → IP destino:puerto destino
+10.0.1.20:34106             → 10.0.2.30:80
 ```
 
-Cada error apunta a una capa:
+Un puerto **no es el identificador de un proceso**. Junto con las direcciones
+y el protocolo, permite distinguir extremos de comunicación; un servidor puede
+atender muchas conexiones en el mismo puerto. Los puertos TCP y UDP pertenecen
+a espacios separados. Véanse el
+[RFC 9293, §2.2](https://www.rfc-editor.org/rfc/rfc9293.html#section-2.2) y el
+[RFC 768](https://www.rfc-editor.org/rfc/rfc768.html).
 
-| Error                       | Capa que falló   | Qué significa                                                       |
-| --------------------------- | ---------------- | ------------------------------------------------------------------- |
-| `Name or service not known` | aplicación (DNS) | el nombre no existe, así que nunca se obtuvo una dirección IP       |
-| `Connection refused`        | transporte       | el computador respondió, pero ningún programa escucha en ese puerto |
-| `Network is unreachable`    | internet         | no hay una ruta hacia esa red                                       |
+La **dirección IP** sirve para direccionar el paquete entre redes. No identifica
+por sí sola a una persona ni a una aplicación. Un equipo puede tener varias
+interfaces y direcciones; el RFC 1122 explica esta relación en su
+[sección de direccionamiento](https://www.rfc-editor.org/rfc/rfc1122.html#section-3.2.1.3).
 
-`Connection refused` es una buena noticia a medias. Dice que la red funciona
-hasta el servidor, y que el problema está en el servidor: el programa no está
-corriendo o escucha en otro puerto. Hay un cuarto caso, que este ejemplo no
-muestra. Si nadie responde, la conexión espera y termina con un `TimeoutError`.
-Eso suele significar que un firewall descarta los paquetes o que el equipo está
-apagado.
+La **dirección MAC** permite entregar la trama en un enlace como Ethernet. Si
+la ruta hacia `10.0.2.30` pasa por el router `10.0.1.1`, el cliente necesita la
+MAC de **ese router**, aunque el destino IP siga siendo el servidor. Para IPv4
+en Ethernet, ARP permite averiguar esa MAC a partir de la IP del siguiente
+salto. Así lo describe el [RFC 826](https://www.rfc-editor.org/rfc/rfc826.html).
+No todos los enlaces usan direcciones MAC: no debes extender este mecanismo
+a toda la capa de enlace.
 
-## Cuatro capas, cuatro preguntas, y tu programa solo responde una
+Al reenviar, cada router construye la trama que corresponda al enlace de salida.
+En nuestro ejemplo sin traducción de direcciones, las IP de origen y destino
+se conservan. El TTL de IPv4, que limita la vida del paquete, disminuye al menos
+en uno por router; su valor inicial no tiene que ser 64. Esto evita que un
+paquete circule indefinidamente por un bucle. Véase el
+[RFC 1812, §5.3.1](https://www.rfc-editor.org/rfc/rfc1812.html#section-5.3.1).
 
-El modelo TCP/IP reparte el envío de un mensaje en cuatro preguntas: qué dices,
-a qué programa, a qué computador y cómo llegar al siguiente equipo. Cada capa
-responde una y envuelve el mensaje de la capa de arriba. Tu programa solo
-responde la primera. El sistema operativo y la tarjeta de red responden las
-otras tres.
+## La encapsulación explica cómo 72 bytes pueden convertirse en 142
 
-La idea para llevarse es esta: cuando una conexión falle, lee el error y busca a
-qué capa pertenece. Ahí es donde empiezas a buscar.
+Ahora podemos contar las envolturas. Supongamos que los 72 bytes viajan en **un
+solo segmento TCP**, con marcas de tiempo negociadas; que IPv4 no lleva
+opciones; y que Ethernet no lleva etiqueta VLAN:
+
+| Elemento añadido      |   Bytes | Motivo                                                 |
+| --------------------- | ------: | ------------------------------------------------------ |
+| Mensaje HTTP          |      72 | El contenido exacto del ejemplo.                       |
+| Cabecera TCP          |      32 | 20 básicos + 10 de marcas de tiempo + 2 de alineación. |
+| Cabecera IPv4         |      20 | Cabecera mínima, sin opciones.                         |
+| Cabecera Ethernet     |      14 | Dos MAC de 6 bytes y un campo de tipo de 2 bytes.      |
+| FCS de Ethernet       |       4 | Verificación de errores al final de la trama.          |
+| **Total de la trama** | **142** | **72 + 32 + 20 + 14 + 4.**                             |
+
+Los formatos están documentados en el
+[RFC 9293, §3.1](https://www.rfc-editor.org/rfc/rfc9293.html#section-3.1),
+el [RFC 7323, §3.2](https://www.rfc-editor.org/rfc/rfc7323.html#section-3.2)
+para las marcas de tiempo, el
+[RFC 791, §3.1](https://www.rfc-editor.org/rfc/rfc791.html#section-3.1)
+y la [documentación de Ethernet de Wireshark](https://wiki.wireshark.org/Ethernet).
+Los 32 bytes de TCP son una elección de este ejemplo: la opción de marcas de
+tiempo no está presente en todas las conexiones.
+
+<Figure caption="Encapsulación a escala bajo los supuestos del ejemplo: 72 bytes de HTTP, 104 de segmento TCP, 124 de paquete IPv4 y 142 de trama Ethernet con FCS. La frontera de ejecución muestra una implementación habitual con sockets TCP del sistema operativo.">
+  <FronteraKernel />
+</Figure>
+
+La **FCS** (_Frame Check Sequence_) detecta errores en la trama. Muchas
+interfaces no la entregan a las herramientas de captura: en ese caso verías
+**138 bytes**, no 142. Tampoco contamos aquí el preámbulo ni el delimitador de
+inicio, y el intervalo entre tramas no forma parte de la trama. Por tanto,
+142 bytes no representan todo el tiempo ocupado en el medio físico. La
+[documentación de captura de Wireshark](https://wiki.wireshark.org/Ethernet)
+explica estas diferencias.
+
+Un laboratorio con interfaces virtuales `veth` tampoco demuestra que una tarjeta
+física haya transmitido esos bytes: los paquetes pasan entre dispositivos
+virtuales. El cálculo anterior describe una trama Ethernet física bajo los
+supuestos indicados, no una medición del cable. Véase
+[`veth(4)`](https://man7.org/linux/man-pages/man4/veth.4.html).
+
+## IP une redes; TCP y UDP ofrecen servicios diferentes sobre ellas
+
+IP ofrece entrega de **mejor esfuerzo**: intenta llevar cada datagrama a su
+destino, pero no garantiza entrega, orden ni ausencia de duplicados. No
+retransmite los datos perdidos. Ese servicio se describe en el
+[RFC 791, §§1.2 y 2.2](https://www.rfc-editor.org/rfc/rfc791.html#section-1.2).
+Esa separación permite usar IP sobre tecnologías de enlace distintas. El
+[RFC 1958, §2](https://www.rfc-editor.org/rfc/rfc1958.html#section-2)
+explica la idea arquitectónica: una base común de interconexión y funciones
+extremo a extremo, es decir, en los equipos que se comunican.
+
+<Figure caption="IP es la base común entre aplicaciones y tecnologías de enlace. IPv4 e IPv6 son versiones de IP; TCP y UDP son ejemplos de transporte, no una lista completa. El diagrama resume la arquitectura, no el lugar donde se ejecuta cada protocolo.">
+  <RelojDeArena />
+</Figure>
+
+El reloj de arena es una simplificación: hoy hay IPv4 e IPv6, y protocolos de
+control como ICMP. IPv6 tiene un formato distinto, con una cabecera base de
+40 bytes; no puedes trasladarle sin cambios el cálculo de IPv4. Véase el
+[RFC 8200, §3](https://www.rfc-editor.org/rfc/rfc8200.html#section-3).
+
+**TCP ofrece un flujo confiable y ordenado de bytes.** Usa números de secuencia,
+confirmaciones y retransmisiones; también regula el envío para respetar la
+capacidad del receptor y responder a la congestión. Confiable no significa que
+la conexión nunca falle ni que tenga un plazo de entrega garantizado. Estas
+funciones se describen en el
+[RFC 9293, §2.2](https://www.rfc-editor.org/rfc/rfc9293.html#section-2.2).
+
+TCP tampoco conserva los límites de los mensajes. Dos escrituras del programa
+pueden llegar juntas, o una escritura repartida en varias lecturas. La
+aplicación debe reconocer sus mensajes mediante su propio formato; HTTP/1.1
+define cómo hacerlo en el
+[RFC 9112, §6](https://www.rfc-editor.org/rfc/rfc9112.html#section-6).
+
+**UDP transporta datagramas**, conservando sus límites, pero no incorpora las
+garantías de entrega y orden de TCP. Si se necesitan, debe aportarlas otro
+protocolo por encima. Su cabecera y servicio se definen en el
+[RFC 768](https://www.rfc-editor.org/rfc/rfc768.html).
+Un ejemplo es **QUIC**, un transporte sobre UDP que ofrece flujos confiables;
+HTTP/3 utiliza QUIC. Por eso «usa UDP» no significa «la aplicación no puede
+recuperar pérdidas». Véanse el
+[RFC 9000, §2](https://www.rfc-editor.org/rfc/rfc9000.html#section-2)
+y el [RFC 9114, §2](https://www.rfc-editor.org/rfc/rfc9114.html#section-2).
+
+## Un socket conecta el programa con una implementación de la pila
+
+Un **socket** es un extremo de comunicación que el programa maneja a través de
+una interfaz del sistema operativo. En una aplicación que usa el TCP de Linux,
+el programa produce HTTP y el **kernel**, el núcleo del sistema operativo,
+implementa TCP e IP. El controlador y la tarjeta participan en la transmisión
+por el enlace. Es el reparto habitual que muestra la figura de encapsulación.
+
+Las operaciones relevantes son:
+
+1. **`socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)`** crea un socket TCP sobre IPv4.
+2. **`connect()`** inicia la conexión al servidor. En el establecimiento TCP
+   habitual se intercambian SYN, SYN-ACK y ACK antes de enviar la petición.
+3. **`send()` o `sendto()`** entrega bytes al sistema operativo para enviarlos.
+4. **`recv()` o `recvfrom()`** permite leer bytes recibidos.
+
+La interfaz se documenta en
+[`tcp(7)`](https://man7.org/linux/man-pages/man7/tcp.7.html). Un envío que devuelve
+`72` informa cuántos bytes aceptó esa llamada; **no prueba que el servidor ya
+los haya recibido ni procesado**. Además, una llamada puede aceptar menos bytes
+de los solicitados. Véase
+[`send(2)`](https://man7.org/linux/man-pages/man2/send.2.html).
+
+Si el socket es **no bloqueante**, `connect()` puede devolver `EINPROGRESS`:
+la conexión sigue en curso. Se espera la notificación correspondiente y luego
+se consulta `SO_ERROR` con `getsockopt()` para saber si terminó correctamente.
+No es, por sí solo, un fallo de conexión. Este comportamiento está explicado en
+[`connect(2)`](https://man7.org/linux/man-pages/man2/connect.2.html).
+
+Ese reparto entre programa y kernel **no define el modelo TCP/IP**. Por ejemplo,
+curl puede usar bibliotecas de QUIC para HTTP/3, ejecutando funciones de
+transporte en el espacio de usuario. La
+[documentación de HTTP/3 de curl](https://curl.se/docs/http3.html)
+describe esas bibliotecas. La capa de un protocolo depende de lo que hace,
+no del lado de una llamada al sistema donde esté su código.
+
+## Un código de error aporta una pista, no una causa única
+
+Si la petición falla, conviene separar la **observación** de la **hipótesis**.
+Estos errores pueden aparecer al intentar una conexión en Linux:
+
+| Observación    | Hipótesis que conviene comprobar                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------- |
+| `ECONNREFUSED` | No hay un servicio escuchando, o una regla rechaza activamente la conexión.                               |
+| `ENETUNREACH`  | Falta una ruta local, o se recibió una indicación de red inalcanzable.                                    |
+| `EHOSTUNREACH` | Hay un problema de alcance al destino; puede involucrar resolución del vecino, un router o filtrado.      |
+| `ETIMEDOUT`    | La conexión no se completó a tiempo: puede haber pérdida, filtrado silencioso o un extremo sin respuesta. |
+
+Los errores se describen en
+[`connect(2)`](https://man7.org/linux/man-pages/man2/connect.2.html),
+[`ip(7)`](https://man7.org/linux/man-pages/man7/ip.7.html)
+y [`tcp(7)`](https://man7.org/linux/man-pages/man7/tcp.7.html).
+Las hipótesis de la tabla orientan la investigación; no son una correspondencia
+obligatoria entre error y capa.
+
+Por ejemplo, un firewall puede responder con un segmento TCP de reinicio
+(`RST`) o con un mensaje ICMP de destino inalcanzable. Por eso una conexión
+rechazada **no demuestra que el servidor final haya recibido el intento**.
+La acción `REJECT` de
+[`iptables-extensions(8)`](https://man7.org/linux/man-pages/man8/iptables-extensions.8.html)
+documenta ambos comportamientos.
+
+ICMP comunica ciertas condiciones de error, pero sus avisos también pueden
+perderse. IP no promete notificar cada descarte, como aclara el
+[RFC 792](https://www.rfc-editor.org/rfc/rfc792.html). Tampoco existe un tiempo
+de espera universal: depende del sistema, su configuración y los límites que
+establezca la aplicación.
+
+## La entrega confiable de TCP no sustituye la seguridad de TLS
+
+En nuestro ejemplo, HTTP viaja sin cifrado. Los controles de errores de TCP y
+Ethernet no autentican al servidor ni protegen el contenido frente a un atacante.
+Para proteger la comunicación se necesitan mecanismos criptográficos: TLS
+ofrece autenticación, confidencialidad e integridad, según el
+[RFC 8446, §1](https://www.rfc-editor.org/rfc/rfc8446.html#section-1).
+
+En HTTPS con HTTP/1.1, TLS protege los mensajes antes de que sus bytes viajen
+por TCP. En HTTP/3 la integración usa QUIC. Establecer una conexión TCP no
+valida un certificado ni demuestra que una petición esté autorizada: son
+comprobaciones diferentes. Al depurar, distingue «pude conectar», «validé al
+otro extremo» y «la aplicación aceptó mi petición».
+
+## Para diagnosticar, sigue la petición y contrasta cada hipótesis
+
+Para aplicar el modelo en Linux, empieza por identificar el destino y la fase
+que falló. Estos comandos son una guía para el cliente del ejemplo: requieren
+una red que tenga esas direcciones, y `eth0` debe ser la interfaz real de salida.
+Si usas espacios de nombres, ejecútalos dentro del correspondiente al cliente.
+
+```bash
+# Consultar la ruta y, si existe, el siguiente salto.
+ip route get 10.0.2.30
+
+# Revisar la resolución de vecinos en el enlace local.
+ip neigh show
+
+# Observar las llamadas de red de una petición HTTP/1.1 directa.
+strace -f -e trace=network curl --noproxy '*' --http1.1 \
+  --connect-timeout 5 --max-time 10 http://10.0.2.30/
+
+# En otra terminal, capturar TCP e ICMP en la interfaz de salida.
+sudo tcpdump -ni eth0 'tcp port 80 or icmp'
+```
+
+La ruta indica dónde espera enviar el sistema; la tabla de vecinos aporta
+evidencia sobre el enlace; `strace` muestra la interfaz con el programa;
+`tcpdump` permite observar paquetes. Las herramientas responden preguntas
+distintas y se complementan. Sus manuales están enlazados en las referencias.
+
+Si el intento no sale, revisa configuración y ruta local. Si sale y vuelve un
+rechazo, investiga quién lo genera. Si no vuelve nada, considera tanto la ida
+como el retorno. Si recibes una respuesta HTTP, ya tienes evidencia de un
+intercambio de aplicación, aunque eso no descarte fallas posteriores.
+
+La pregunta útil es: **¿qué observé, qué capa describe esa función y qué
+evidencia me falta para localizar la causa?** Las cuatro capas ayudan a ordenar
+la investigación; la captura, la configuración y los registros permiten
+comprobarla.
 
 ## Referencias
 
-- Braden, R. (Ed.). (1989). RFC 1122, _Requirements for Internet Hosts,
-  Communication Layers_. IETF.
-- Postel, J. (1981). RFC 791, _Internet Protocol_. IETF.
-- Eddy, W. (Ed.). (2022). RFC 9293, _Transmission Control Protocol_. IETF.
-- Fielding, R., Nottingham, M., & Reschke, J. (Eds.). (2022). RFC 9110, _HTTP
-  Semantics_. IETF.
-- ISO/IEC 7498-1:1994. _Information technology, Open Systems Interconnection,
-  Basic Reference Model: The Basic Model_.
+Las fuentes enlazadas junto a cada explicación son especificaciones y
+documentación de sus implementaciones. Para profundizar:
+
+- **Arquitectura y modelos:** [RFC 1122](https://www.rfc-editor.org/rfc/rfc1122.html),
+  §1.1.3; [RFC 1958](https://www.rfc-editor.org/rfc/rfc1958.html), §2;
+  [ITU-T X.200](https://www.itu.int/rec/T-REC-X.200-199407-I/en), §7.
+- **IP, direccionamiento y errores:** [RFC 791](https://www.rfc-editor.org/rfc/rfc791.html),
+  [RFC 8200](https://www.rfc-editor.org/rfc/rfc8200.html),
+  [RFC 826](https://www.rfc-editor.org/rfc/rfc826.html),
+  [RFC 1812](https://www.rfc-editor.org/rfc/rfc1812.html) y
+  [RFC 792](https://www.rfc-editor.org/rfc/rfc792.html).
+- **Transporte:** [RFC 9293, TCP](https://www.rfc-editor.org/rfc/rfc9293.html)
+  (sustituye al RFC 793), [RFC 7323, extensiones de TCP](https://www.rfc-editor.org/rfc/rfc7323.html),
+  [RFC 768, UDP](https://www.rfc-editor.org/rfc/rfc768.html) y
+  [RFC 9000, QUIC](https://www.rfc-editor.org/rfc/rfc9000.html).
+- **HTTP y seguridad:** [RFC 9112, HTTP/1.1](https://www.rfc-editor.org/rfc/rfc9112.html),
+  [RFC 9114, HTTP/3](https://www.rfc-editor.org/rfc/rfc9114.html) y
+  [RFC 8446, TLS 1.3](https://www.rfc-editor.org/rfc/rfc8446.html).
+- **Ethernet y capturas:** [Wireshark: Ethernet](https://wiki.wireshark.org/Ethernet).
+- **Sockets y dispositivos en Linux:**
+  [`tcp(7)`](https://man7.org/linux/man-pages/man7/tcp.7.html),
+  [`ip(7)`](https://man7.org/linux/man-pages/man7/ip.7.html),
+  [`connect(2)`](https://man7.org/linux/man-pages/man2/connect.2.html),
+  [`send(2)`](https://man7.org/linux/man-pages/man2/send.2.html) y
+  [`veth(4)`](https://man7.org/linux/man-pages/man4/veth.4.html).
+- **Implementaciones y herramientas:**
+  [HTTP/3 en curl](https://curl.se/docs/http3.html),
+  [manual de curl](https://curl.se/docs/manpage.html),
+  [manual de strace](https://man7.org/linux/man-pages/man1/strace.1.html),
+  [manual de tcpdump](https://man7.org/linux/man-pages/man8/tcpdump.8.html),
+  [`ip-route(8)`](https://man7.org/linux/man-pages/man8/ip-route.8.html),
+  [`ip-neighbour(8)`](https://man7.org/linux/man-pages/man8/ip-neighbour.8.html) e
+  [`iptables-extensions(8)`](https://man7.org/linux/man-pages/man8/iptables-extensions.8.html).

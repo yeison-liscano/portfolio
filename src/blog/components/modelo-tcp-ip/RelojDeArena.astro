@@ -1,0 +1,149 @@
+---
+/**
+ * RelojDeArena - Four-layer architectural sketch of IP's common role.
+ * Widths are illustrative, not protocol counts. IPv4 and IPv6 share the waist.
+ */
+interface Row {
+  layer: string;
+  label: string;
+  text: string;
+  w: number;
+  tone: string;
+}
+
+const ROWS: Row[] = [
+  {
+    layer: "Aplicación",
+    label: "mensajes",
+    text: "HTTP · DNS · SMTP · SSH",
+    w: 520,
+    tone: "l7",
+  },
+  {
+    layer: "Transporte",
+    label: "entre extremos",
+    text: "TCP · UDP",
+    w: 260,
+    tone: "l4",
+  },
+  {
+    layer: "Internet",
+    label: "base común",
+    text: "IPv4 · IPv6",
+    w: 150,
+    tone: "l3",
+  },
+  {
+    layer: "Enlace",
+    label: "siguiente salto",
+    text: "Ethernet · Wi-Fi · PPP",
+    w: 520,
+    tone: "l2",
+  },
+];
+
+const CX = 430;
+const TOP = 12;
+const H = 34;
+const STEP = 50;
+const rowY = (i: number) => TOP + i * STEP;
+---
+
+<svg
+  viewBox="0 0 720 208"
+  role="img"
+  aria-label="Reloj de arena con cuatro capas. Aplicación: HTTP, DNS, SMTP y SSH. Transporte: TCP y UDP como ejemplos. Internet: IPv4 e IPv6, la base común. Enlace: Ethernet, Wi-Fi y PPP como ejemplos. Las anchuras son ilustrativas, no cantidades de protocolos."
+  class="diagram"
+>
+  {ROWS.slice(0, -1).map((row, i) => {
+    const next = ROWS[i + 1];
+    const y1 = rowY(i) + H;
+    const y2 = rowY(i + 1);
+    const points = [
+      `${CX - row.w / 2},${y1}`,
+      `${CX + row.w / 2},${y1}`,
+      `${CX + next.w / 2},${y2}`,
+      `${CX - next.w / 2},${y2}`,
+    ].join(" ");
+    return <polygon points={points} class="neck" />;
+  })}
+
+  {ROWS.map((row, i) => (
+    <g>
+      <text x="0" y={rowY(i) + H / 2 - 7} class="layer">
+        {row.layer}
+      </text>
+      <text x="0" y={rowY(i) + H / 2 + 9} class="count">
+        {row.label}
+      </text>
+      <rect
+        x={CX - row.w / 2}
+        y={rowY(i)}
+        width={row.w}
+        height={H}
+        rx="4"
+        class:list={["box", row.tone]}
+      />
+      <text x={CX} y={rowY(i) + H / 2} class="text">
+        {row.text}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .layer {
+    fill: currentColor;
+    font-size: 13px;
+    font-weight: 600;
+    dominant-baseline: middle;
+  }
+
+  .count {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .neck {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .box {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .l7 {
+    fill: color-mix(in oklab, var(--contrast) 35%, var(--primary));
+  }
+
+  .l4 {
+    fill: color-mix(in oklab, var(--cat-2) 35%, var(--primary));
+  }
+
+  .l3 {
+    fill: color-mix(in oklab, var(--cat-4) 55%, var(--primary));
+  }
+
+  .l2 {
+    fill: color-mix(in oklab, var(--cat-1) 35%, var(--primary));
+  }
+
+  .text {
+    fill: currentColor;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+</style>
