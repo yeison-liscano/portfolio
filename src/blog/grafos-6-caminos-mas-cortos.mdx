@@ -10,8 +10,12 @@ tags: ["math", "algorithms"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
 import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
 import DijkstraPasos from "./components/grafos/DijkstraPasos.astro";
 import SerieGrafos from "./components/grafos/SerieGrafos.astro";
 
@@ -119,7 +123,7 @@ descontar nada. Así que ningún camino es más corto que `L(u)`.
 
 El argumento falla con pesos negativos: un tramo con peso negativo después de
 `y` podría hacer más corto un camino que el algoritmo ya descartó. Para esos
-grafos se puede usar Bellman-Ford. Si un ciclo negativo alcanzable permite
+grafos se puede usar <Term title="Algoritmo que relaja todas las aristas n − 1 veces; admite pesos negativos y detecta ciclos negativos.">Bellman-Ford</Term>. Si un ciclo negativo alcanzable permite
 reducir indefinidamente el costo hacia un destino, no existe una distancia
 mínima finita a ese destino.
 
@@ -134,14 +138,14 @@ fuera de `S` (a lo sumo `n` comparaciones) y se relajan los vértices fuera de
 `S` (a lo sumo `n` sumas y `n` comparaciones). En total, `O(n²)`.
 
 Para grafos dispersos conviene guardar las etiquetas en una **cola de
-prioridad**. Con un montículo binario que admite actualizar prioridades, el
+prioridad**. Con un <Term title="Árbol binario guardado en un arreglo donde cada nodo es menor que sus hijos, así que el mínimo siempre está en la raíz.">montículo binario</Term> que admite actualizar prioridades, el
 costo es `O((n + m) log n)`. El programa usa entradas repetidas en `heapq` y
 descarta las obsoletas: el montículo puede tener O(m) entradas, con costo
 O(n + m log(m + 1)), que se acota por O((n + m) log n) en grafos simples.
 También guarda predecesores para reconstruir rutas. Dijkstra funciona en
 grafos dirigidos y no dirigidos con pesos no negativos; todos los vértices
 deben estar en el diccionario y sus etiquetas deben ser comparables en este
-ejemplo. Véase la [guía de caminos mínimos de NetworkX](https://networkx.org/documentation/stable/reference/algorithms/shortest_paths.html).
+ejemplo. Véase la <ExternalLink href="https://networkx.org/documentation/stable/reference/algorithms/shortest_paths.html" preview="Referencia de NetworkX sobre caminos más cortos: Dijkstra, Bellman-Ford, A* y otros algoritmos.">guía de caminos mínimos de NetworkX</ExternalLink>.
 
 ```python
 import heapq
@@ -200,7 +204,7 @@ qué orden debe visitarlas para minimizar la distancia total?
 
 Como cada vértice se visita exactamente una vez, se trata de encontrar el
 **circuito de Hamilton** de peso mínimo en el grafo completo, la versión con
-pesos del problema de la [parte V](/portfolio/blog/grafos-5-euler-y-hamilton/).
+pesos del problema de la <InternalLink slug="grafos-5-euler-y-hamilton">parte V</InternalLink>.
 
 La forma directa de resolverlo es examinar todos los circuitos. Fijando la
 ciudad de partida, hay `(n − 1)!` órdenes para las demás, y cada circuito
@@ -272,10 +276,10 @@ El método funciona con cinco ciudades. El problema es cómo crece `(n − 1)!/2
 El problema del agente viajero es **NP-difícil**: no se conoce ningún algoritmo
 que lo resuelva en tiempo polinomial en el peor caso. Aun así, en la práctica se
 resuelven instancias grandes con técnicas mucho mejores que la fuerza bruta,
-como ramificación y acotamiento y planos de corte; en 2006 se resolvió de forma
-exacta un [problema con 85 900 puntos de una aplicación VLSI](https://www.math.uwaterloo.ca/tsp/pla85900/index.html). Cuando basta con una buena respuesta, se
+como <Term title="Búsqueda que divide el problema en subproblemas y descarta los que, por una cota, no pueden mejorar la mejor solución hallada.">ramificación y acotamiento</Term> y <Term title="Restricciones que se agregan a un programa lineal para eliminar soluciones fraccionarias sin perder las enteras.">planos de corte</Term>; en 2006 se resolvió de forma
+exacta un <ExternalLink href="https://www.math.uwaterloo.ca/tsp/pla85900/index.html" preview="Página de la Universidad de Waterloo sobre pla85900, el problema de 85 900 ciudades resuelto de forma exacta en 2006.">problema con 85 900 puntos</ExternalLink> de una aplicación <Acronym title="Very Large Scale Integration (integración a muy gran escala, el diseño de chips)">VLSI</Acronym>. Cuando basta con una buena respuesta, se
 usan **algoritmos de aproximación**: el de Christofides garantiza, cuando las
-distancias cumplen la desigualdad triangular, un circuito a lo sumo 1,5 veces
+distancias cumplen la <Term title="Ir directo de A a C nunca es más largo que pasar por B: d(A, C) ≤ d(A, B) + d(B, C).">desigualdad triangular</Term>, un circuito a lo sumo 1,5 veces
 más largo que el óptimo.
 
 ## Conclusión

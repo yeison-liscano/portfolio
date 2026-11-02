@@ -10,7 +10,12 @@ tags: ["finance"]
 isDraft: false
 ---
 
-Un país anuncia que su PIB creció 2,35 %. ¿Es una buena noticia? Depende de
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
+Un país anuncia que su <Acronym title="Producto Interno Bruto (Gross Domestic Product, GDP)">PIB</Acronym> creció 2,35 %. ¿Es una buena noticia? Depende de
 cuánto subieron los precios, de cuánta gente tiene empleo y de cuánto debe el
 gobierno. Los **indicadores económicos** son las estadísticas que responden esas
 preguntas, y cada uno ilumina solo una parte de la economía.
@@ -41,8 +46,8 @@ Un PIB alto describe el tamaño de la economía, no su tasa de crecimiento. Para
 medir cambios en la producción se compara el **PIB real**, ajustado por precios;
 el PIB nominal también puede subir por inflación. No hay una tasa universal de
 crecimiento «sana»: depende de la población, la productividad y el contexto.
-Véase la
-[explicación del PIB de la BEA](https://www.bea.gov/resources/learning-center/what-to-know-gdp).
+Véase
+la <ExternalLink href="https://www.bea.gov/resources/learning-center/what-to-know-gdp" preview="Guía de la Oficina de Análisis Económico de EE. UU. sobre qué es el PIB, cómo se mide y cómo leer sus cifras.">explicación del PIB</ExternalLink> de la <Acronym title="Bureau of Economic Analysis (Oficina de Análisis Económico de EE. UU.)">BEA</Acronym>.
 
 ### Cómo se calcula el PIB
 
@@ -110,8 +115,8 @@ Si usamos participaciones del gasto base `w_i` que suman 1, la forma equivalente
 es `IPC = 100 × Σ w_i × (precio_actual_i / precio_base_i)`. No se deben mezclar
 esas participaciones con cantidades físicas. Los IPC oficiales tienen métodos de
 agregación, actualización de ponderaciones y ajuste de calidad más completos;
-véase la
-[guía del IPC de la BLS](https://www.bls.gov/cpi/questions-and-answers.htm).
+véase
+la <ExternalLink href="https://www.bls.gov/cpi/questions-and-answers.htm" preview="Preguntas frecuentes de la Oficina de Estadísticas Laborales de EE. UU. sobre el IPC: qué mide, cómo se calcula y cómo se usa.">guía del IPC</ExternalLink> de la <Acronym title="Bureau of Labor Statistics (Oficina de Estadísticas Laborales de EE. UU.)">BLS</Acronym>.
 
 ### Ejemplo práctico del IPC
 
@@ -185,8 +190,8 @@ La población económicamente activa suma ocupados y desempleados. La edad míni
 y las excepciones dependen de la metodología nacional. Ser estudiante, jubilado
 o dedicarse al hogar **no excluye automáticamente** a alguien: cuenta si trabaja
 o cumple los criterios de desempleo. Quien no trabaja ni busca activamente suele
-quedar fuera de la fuerza laboral. Véase la
-[metodología de la BLS](https://www.bls.gov/cps/cps_htgm.htm).
+quedar fuera de la fuerza laboral. Véase
+la <ExternalLink href="https://www.bls.gov/cps/cps_htgm.htm" preview="Explicación de la Oficina de Estadísticas Laborales de EE. UU. sobre cómo se mide el desempleo con la encuesta de hogares.">metodología de la BLS</ExternalLink>.
 
 ### Ejemplo práctico del desempleo
 
@@ -207,8 +212,8 @@ empleo.
 
 La balanza comercial mide la diferencia entre el valor de las exportaciones
 (bienes vendidos al exterior) y las importaciones (bienes comprados del
-exterior) en un período determinado. Es parte de la cuenta corriente de la
-balanza de pagos.
+exterior) en un período determinado. Es parte de la cuenta corriente de
+la <Term title="Registro de todas las transacciones de un país con el resto del mundo: comercio, rentas, transferencias y flujos financieros.">balanza de pagos</Term>.
 
 Una balanza comercial positiva (superávit) significa que el país exporta más de
 lo que importa. Una balanza comercial negativa (déficit) significa que importa
@@ -242,14 +247,14 @@ superávit muy grande puede generar fricciones comerciales internacionales. Un
 déficit comercial significa que el país consume más de lo que produce
 internamente, lo cual puede ser sostenible si va acompañado de inversión
 extranjera. Países como Estados Unidos tienen déficit comerciales persistentes
-pero sostienen este modelo mediante la inversión extranjera y el dólar como
-moneda de reserva mundial.
+pero sostienen este modelo mediante la inversión extranjera y el dólar
+como <Term title="Moneda que bancos centrales y gobiernos guardan en grandes cantidades para pagos internacionales y reservas.">moneda de reserva</Term> mundial.
 
 ## Tasa de Interés: el freno y el acelerador del crédito
 
 La tasa de interés es el costo del dinero: el precio que se paga por usar
 capital ajeno durante un período determinado, expresado como un porcentaje para
-un período especificado. Los bancos centrales fijan tasas de política que
+un período especificado. Los bancos centrales fijan <Term title="Tasa que el banco central fija para prestar a los bancos o remunerar sus depósitos; sirve de referencia a las demás.">tasas de política</Term> que
 influyen en las demás; las tasas de mercado y de los préstamos también dependen
 del plazo, el riesgo, la competencia y la oferta y demanda de fondos.
 
@@ -260,8 +265,8 @@ crecimiento. Los bancos centrales ajustan las tasas para mantener un equilibrio
 entre crecimiento e inflación.
 
 Para una explicación más detallada sobre tasas de interés, tipos de interés, y
-su impacto en economías personales, te recomendamos leer nuestro artículo sobre
-[Conceptos básicos de economía](/portfolio/blog/economia-b%C3%A1sica/).
+su impacto en economías personales, te recomendamos leer nuestro artículo
+sobre <InternalLink slug="economia-básica">Conceptos básicos de economía</InternalLink>.
 
 ### Importancia de la tasa de interés
 
@@ -285,7 +290,7 @@ ahorran más como protección.
 
 ### Importancia del ICC
 
-El ICC es un indicador anticipado importante: cambios en confianza generalmente
+El ICC es un <Term title="Indicador que suele cambiar antes que la actividad económica que anticipa.">indicador anticipado</Term> importante: cambios en confianza generalmente
 preceden cambios en el consumo real. Si el ICC cae significativamente, los
 economistas pueden anticipar una reducción futura en consumo, lo que ralentiza
 la economía. Por el contrario, un ICC creciente sugiere expansión económica
@@ -351,8 +356,8 @@ simplemente a refinanciar a un interés menos favorable.
 ## Tipo de Cambio: quién gana cuando una moneda se mueve
 
 El tipo de cambio es el precio de una moneda en términos de otra. Por ejemplo, 1
-dólar estadounidense = 0,95 euros, una cotización hipotética de 0,95 EUR por
-USD. En la convención de pares de mercado se escribiría USD/EUR = 0,95; EUR/USD
+dólar estadounidense = 0,95 euros, una cotización hipotética de 0,95 <Acronym title="Euro (código ISO 4217)">EUR</Acronym>
+por <Acronym title="United States dollar (dólar estadounidense, código ISO 4217)">USD</Acronym>. En la convención de pares de mercado se escribiría USD/EUR = 0,95; EUR/USD
 indicaría cuántos dólares compra un euro. Los tipos de cambio fluctúan
 constantemente en mercados abiertos basándose en oferta y demanda de monedas.
 
@@ -367,7 +372,7 @@ encarece las importaciones.
 - **Para exportadores**: Una moneda débil favorece sus ventas al exterior
 - **Para importadores**: Una moneda fuerte hace más barata la compra de
   productos extranjeros
-- **Para inversores extranjeros**: Necesitan considerar riesgo de cambio
+- **Para inversores extranjeros**: Necesitan considerar <Term title="Posibilidad de perder dinero porque el tipo de cambio se mueve entre la inversión y su retorno.">riesgo de cambio</Term>
 - **Para ahorradores**: La apreciación puede mejorar la capacidad de comprar
   bienes extranjeros, pero no garantiza preservar el poder de compra interno
 
@@ -401,21 +406,21 @@ indicador falta para completar la historia.
 
 ## Referencias
 
-- Banco Mundial (World Bank): <https://www.worldbank.org/>
+- Banco Mundial (World Bank): <ExternalLink href="https://www.worldbank.org/" preview="Sitio del Grupo Banco Mundial, con datos abiertos de PIB, comercio, inflación y desarrollo de casi todos los países.">https://www.worldbank.org/</ExternalLink>
   - Proporciona datos sobre PIB, comercio, inflación, y desarrollo de todos los
     países
 
-- Fondo Monetario Internacional (FMI): <https://www.imf.org/en/home>
+- Fondo Monetario Internacional (FMI): <ExternalLink href="https://www.imf.org/en/home" preview="Sitio del Fondo Monetario Internacional, con análisis, perspectivas de la economía mundial y bases de datos macroeconómicas.">https://www.imf.org/en/home</ExternalLink>
   - Análisis económicos y bases de datos sobre indicadores macroeconómicos
     globales
 
-- Investopedia - Economic Indicators: <https://www.investopedia.com/>
+- Investopedia - Economic Indicators: <ExternalLink href="https://www.investopedia.com/" preview="Investopedia, un sitio en inglés de definiciones y guías sobre finanzas, inversión y economía.">https://www.investopedia.com/</ExternalLink>
   - Definiciones detalladas y ejemplos prácticos de indicadores económicos
 
-- OCDE (Organización para la Cooperación y Desarrollo Económicos):
-  <https://www.oecd.org/>
+- OCDE (Organización para la Cooperación y Desarrollo
+  Económicos): <ExternalLink href="https://www.oecd.org/" preview="Sitio de la OCDE, con estadísticas, análisis y recomendaciones de política sobre sus países miembros.">https://www.oecd.org/</ExternalLink>
   - Estadísticas y análisis de economías avanzadas
 
-- Curso de Indicadores Económicos
-  <https://platzi.com/cursos/indicadores-economicos/>
+- Curso de Indicadores
+  Económicos <ExternalLink href="https://platzi.com/cursos/indicadores-economicos/" preview="Curso de Platzi en español sobre los principales indicadores económicos y cómo interpretarlos.">https://platzi.com/cursos/indicadores-economicos/</ExternalLink>
   - Curso en español que explica en detalle cada indicador y su interpretación

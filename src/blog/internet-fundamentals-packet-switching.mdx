@@ -21,7 +21,11 @@ tags: ["networking"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
 import SharingTimeline from "./components/internet-fundamentals/SharingTimeline.astro";
 import QueueCurve from "./components/internet-fundamentals/QueueCurve.astro";
 import NetworkOfNetworks from "./components/internet-fundamentals/NetworkOfNetworks.astro";
@@ -36,7 +40,7 @@ earlier, was to cut data into small blocks and let every block share every
 link. The Internet is built on that decision, and it still explains why a
 connection is fast at 3 a.m. and slow at 9 p.m. This post covers the
 fundamentals that follow from it: packet switches, bit rate, forwarding and
-routing, access networks, ISPs and the network core. Along the way it answers
+routing, access networks, <Acronym title="Internet Service Providers">ISPs</Acronym> and the network core. Along the way it answers
 one question with numbers: how can a network that reserves nothing serve 35
 users on a link that circuits fill with 10, and what does it give up?
 
@@ -49,7 +53,7 @@ The reservation holds whether anyone speaks or not.
 A link is divided among circuits in one of two ways. **Frequency-division
 multiplexing** (FDM) gives each circuit its own band of frequencies.
 **Time-division multiplexing** (TDM) divides time into frames and gives each
-circuit one slot in every frame. A classic telephone trunk carries 24 circuits
+circuit one slot in every frame. A classic telephone <Term title="A line between telephone exchanges that carries many calls at once.">trunk</Term> carries 24 circuits
 of 64 kb/s each, 1.536 Mb/s of voice in total.
 
 Reservation has a clear cost for data. Send a 640,000-bit file over one of those
@@ -61,15 +65,15 @@ Davies saw that computer traffic is **bursty**: short periods of activity
 separated by long silences. He proposed to split messages into short blocks,
 route each one independently and reassemble them at the destination. He called
 them **packets**, after a linguist told him the word would translate well into
-other languages. Paul Baran had reached the same idea at RAND, where he called
+other languages. Paul Baran had reached the same idea at <Acronym title="Research and Development: the RAND Corporation, a US research organization">RAND</Acronym>, where he called
 them "message blocks" in the reports he published in 1964. In later interviews,
 Baran said that AT&T's engineers dismissed the idea.
 
 The turning point came in October 1967. Roger Scantlebury presented Davies's
-design at an ACM symposium in Gatlinburg, Tennessee, where the people planning
-the ARPANET took notice, and the ARPANET was built as a packet-switched
+design at an <Acronym title="Association for Computing Machinery">ACM</Acronym> symposium in Gatlinburg, Tennessee, where the people planning
+the <Acronym title="Advanced Research Projects Agency Network">ARPANET</Acronym> took notice, and the ARPANET was built as a packet-switched
 network. On 29 October 1969, the first ARPANET message
-went from UCLA to the Stanford Research Institute over a 50 kb/s line. It was
+went from <Acronym title="University of California, Los Angeles">UCLA</Acronym> to the Stanford Research Institute over a 50 kb/s line. It was
 the word "login", and the receiving computer crashed after "lo".
 
 <Figure caption="The same traffic shared two ways. With circuits, each user owns one slot in three, so A's burst takes until slot 16 while the link sits idle. With packets, A finishes at slot 6 and nothing is wasted, but C now waits in a queue behind A.">
@@ -86,9 +90,9 @@ both with numbers.
 
 A packet is a header, which says where it goes, and a piece of data. The
 devices that move packets are **packet switches**. There are two kinds:
-**routers**, which forward by IP address, and **link-layer switches**, which
-forward by MAC address inside one local network. The
-[OSI post](/portfolio/blog/osi-layers-one-request/) follows one packet through
+**routers**, which forward by <Acronym title="Internet Protocol">IP</Acronym> address, and **link-layer switches**, which
+forward by <Acronym title="Media Access Control">MAC</Acronym> address inside one local network.
+The <InternalLink slug="osi-layers-one-request">OSI post</InternalLink> follows one packet through
 both.
 
 Each link has a **bit rate** R, in bits per second: how fast its sender can put
@@ -169,8 +173,8 @@ is active 10% of the time, independently of the others.
 
 With circuits, each user needs a reserved 100 kb/s, so the link takes 10 users.
 With packets, nothing is reserved. The link is only in trouble when more than
-10 users are active at the same moment. The number of active users follows a
-binomial distribution, so the probability is easy to compute:
+10 users are active at the same moment. The number of active users follows
+a <Term title="The distribution of the number of successes in n independent trials that share one probability.">binomial distribution</Term>, so the probability is easy to compute:
 
 ```python
 from math import comb
@@ -213,7 +217,7 @@ and it answers the first half of the question.
 When more than 10 users are active, packets arrive faster than the link can
 send them. The router holds the extra packets in a buffer, a queue, and sends
 them in turn. Waiting in that queue is the **queueing delay**. When the buffer
-is full, new packets are dropped. That is **packet loss**, and TCP reacts to it
+is full, new packets are dropped. That is **packet loss**, and <Acronym title="Transmission Control Protocol">TCP</Acronym> reacts to it
 by sending more slowly.
 
 How long is the wait? It depends on the **load**, the fraction of time the link
@@ -319,11 +323,11 @@ for destination in ("10.20.30.40", "10.20.99.1", "10.1.1.1", "192.0.2.7"):
 
 **Routing** is global and slower. Routers exchange messages to learn which
 destinations exist and which paths lead there, and they compute the forwarding
-tables from that. Inside one network, protocols such as OSPF flood the map of
+tables from that. Inside one network, protocols such as <Acronym title="Open Shortest Path First">OSPF</Acronym> flood the map of
 links to every router, and each router runs Dijkstra's shortest-path algorithm
-(explained, in Spanish, in the
-[Dijkstra post](/portfolio/blog/grafos-6-caminos-mas-cortos/)). Between
-networks, BGP carries reachability and policy: who pays whom decides which path
+(explained, in Spanish, in
+the <InternalLink slug="grafos-6-caminos-mas-cortos">Dijkstra post</InternalLink>). Between
+networks, <Acronym title="Border Gateway Protocol">BGP</Acronym> carries reachability and policy: who pays whom decides which path
 is used, not only which path is shortest. The scale is large. In May 2025, a
 full BGP view held just over 1,000,000 IPv4 prefixes.
 
@@ -396,7 +400,7 @@ The takeaway is a test you can run today. When a connection feels slow, measure
 its latency twice: once while it is idle, and once while a large download runs.
 Many speed tests now report both. If the second number is much higher, the
 bit rate of your plan is not the problem. The bottleneck link is busy, and its
-queue is your delay. Routers with smart queue management, such as `fq_codel` or
+queue is your delay. Routers with <Term title="Router algorithms that keep queues short by dropping or marking packets early and sharing the link fairly between flows.">smart queue management</Term>, such as `fq_codel` or
 CAKE, keep that queue short.
 
 ## References
@@ -411,10 +415,9 @@ CAKE, keep that queue short.
   Gatlinburg.
 - Hafner, K., & Lyon, M. (1996). _Where Wizards Stay Up Late: The Origins of
   the Internet_. Simon & Schuster.
-- Moy, J. (1998). RFC 2328, _OSPF Version 2_. IETF.
+- Moy, J. (1998). <Acronym title="Request for Comments">RFC</Acronym> 2328, _OSPF Version 2_. <Acronym title="Internet Engineering Task Force">IETF</Acronym>.
 - Rekhter, Y., Li, T., & Hares, S. (Eds.). (2006). RFC 4271, _A Border Gateway
   Protocol 4 (BGP-4)_. IETF.
-- Huston, G. (2025, June). A Day in the Life of BGP. _The ISP Column_.
-  [potaroo.net](https://ispcol.potaroo.net/2025-06/daybgp.html).
-- ITU-T G.984 (GPON) and G.9807.1 (XGS-PON). CableLabs, DOCSIS 3.1
+- Huston, G. (2025, June). A Day in the Life of BGP. _The ISP Column_. <ExternalLink href="https://ispcol.potaroo.net/2025-06/daybgp.html" preview="Geoff Huston's ISP Column article on a day in the life of BGP: how many updates the global routing table sees.">potaroo.net</ExternalLink>.
+- ITU-T G.984 (<Acronym title="Gigabit-capable Passive Optical Network">GPON</Acronym>) and G.9807.1 (<Acronym title="10-Gigabit-capable Symmetric Passive Optical Network">XGS-PON</Acronym>). CableLabs, <Acronym title="Data Over Cable Service Interface Specification">DOCSIS</Acronym> 3.1
   specifications (2013).

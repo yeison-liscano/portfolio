@@ -10,6 +10,9 @@ lang: "en"
 isDraft: true
 ---
 
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
 Two suspects each do the sensible thing, and both end up worse off. The same
 trap catches rival firms in price wars and countries in arms races. Game theory
 explains why, and it points to a fix: **what works best for you depends on what
@@ -83,9 +86,8 @@ Fewer years is better. Now reason as player A:
 Whatever B does, betraying is the better reply. A strategy with this property is
 called a **dominant strategy**. B reasons identically, so both betray and both
 serve 2 years. Yet if both had stayed silent, each would have served only
-
-1. Each player's choice is rational, and together they produce an outcome both
-   dislike.
+1 year. Each player's choice is rational, and together they produce an outcome
+both dislike.
 
 This is not just a story about prisoners. The same structure appears whenever
 individual incentives pull against the group:
@@ -133,8 +135,8 @@ occur. Players need something outside the matrix, such as a habit, a convention,
 or a conversation, to coordinate. Games of this kind explain why societies
 settle on conventions like driving on the right.
 
-Other games, such as rock-paper-scissors, have no equilibrium in pure
-strategies, because any fixed choice can be exploited. Nash proved that every
+Other games, such as rock-paper-scissors, have no equilibrium in <Term title="Strategies in which a player always makes the same choice, with no randomness.">pure strategies</Term>,
+because any fixed choice can be exploited. Nash proved that every
 finite game has an equilibrium once players are allowed to _randomize_. In
 rock-paper-scissors, it is to play each option one third of the time.
 
@@ -176,7 +178,7 @@ Game theory is therefore about much more than winning. It helps us examine
 competition, cooperation, negotiation, and trust. Its models simplify human
 behavior, so they cannot predict every decision. Real people are not always
 perfectly rational, they care about fairness, and they often misjudge what
-others know. Behavioral economics studies exactly these gaps.
+others know. <Term title="The study of how psychology makes real choices differ from the predictions of rational models.">Behavioral economics</Term> studies exactly these gaps.
 
 But the models offer a useful starting point: to understand a choice, look
 beyond the person making it and consider the incentives and choices of everyone
@@ -199,33 +201,34 @@ is rarely enough. Change the incentives, and the equilibrium changes with them.
 
 ## Recommended
 
-- [Once you understand game theory, you understand the world](https://www.youtube.com/watch?v=mScpHTIi-kM),
+{/* prettier-ignore */}
+- <ExternalLink href="https://www.youtube.com/watch?v=mScpHTIi-kM" preview="Veritasium video on the prisoner's dilemma, Axelrod's tournaments and why cooperation can win.">Once you understand game theory, you understand the world</ExternalLink>,
   by Veritasium. A video introduction to the same ideas, if you prefer to watch
   rather than read.
-- [The Evolution of Trust](https://ve42.co/Case2023), an interactive game by
+- <ExternalLink href="https://ve42.co/Case2023" preview="The Evolution of Trust, Nicky Case's interactive guide to the game theory of why and how we trust each other.">The Evolution of Trust</ExternalLink>, an interactive game by
   Nicky Case. Play the repeated prisoner's dilemma against different strategies,
   including tit for tat.
-- [Tit for Tat](https://ve42.co/T4T) and
-  [The Golden Rule](https://ve42.co/GoldenRule), two Radiolab episodes on
+- <ExternalLink href="https://ve42.co/T4T" preview="Radiolab episode Tit for Tat, on whether evolution rewards genuine cooperation in a selfish world.">Tit for Tat</ExternalLink>
+  and <ExternalLink href="https://ve42.co/GoldenRule" preview="Radiolab episode The Golden Rule, on a game show that turns the prisoner's dilemma into a live showdown.">The Golden Rule</ExternalLink>, two Radiolab episodes on
   cooperation.
 
 ## References
 
 - Axelrod, R. (1984). _The Evolution of Cooperation_. Basic Books.
 - Axelrod, R. (1980). Effective choice in the prisoner's dilemma. _Journal of
-  Conflict Resolution_, 24(1), 3–25. <https://ve42.co/Axelrod1980a>
+  Conflict Resolution_, 24(1), 3–25. <ExternalLink href="https://ve42.co/Axelrod1980a" preview="Axelrod's 1980 paper on his first computer tournament of the repeated prisoner's dilemma, won by tit for tat.">https://ve42.co/Axelrod1980a</ExternalLink>
 - Axelrod, R. (1980). More effective choice in the prisoner's dilemma. _Journal
-  of Conflict Resolution_, 24(3), 379–403. <https://ve42.co/Axelrod1980b>
+  of Conflict Resolution_, 24(3), 379–403. <ExternalLink href="https://ve42.co/Axelrod1980b" preview="Axelrod's 1980 paper on the second, larger tournament, which tit for tat won again.">https://ve42.co/Axelrod1980b</ExternalLink>
 - Axelrod, R., & Hamilton, W. D. (1981). The evolution of cooperation.
-  _Science_, 211(4489), 1390–1396. <https://ve42.co/Axelrod1981>
+  _Science_, 211(4489), 1390–1396. <ExternalLink href="https://ve42.co/Axelrod1981" preview="Axelrod and Hamilton's 1981 Science paper on how cooperation can evolve among self-interested individuals.">https://ve42.co/Axelrod1981</ExternalLink>
 - Wu, J., & Axelrod, R. (1995). How to cope with noise in the iterated
-  prisoner's dilemma. _Journal of Conflict Resolution_, 39(1), 183–189.
-  <https://ve42.co/Wu1995>
-- Flood, M. M. (1952). Some experimental games. <https://ve42.co/Flood1952>
+  prisoner's dilemma. _Journal of Conflict Resolution_, 39(1),
+  183–189. <ExternalLink href="https://ve42.co/Wu1995" preview="Wu and Axelrod's 1995 paper on how generosity and contrition help players cope with noise in the repeated game.">https://ve42.co/Wu1995</ExternalLink>
+- Flood, M. M. (1952). Some experimental games. <ExternalLink href="https://ve42.co/Flood1952" preview="Merrill Flood's 1952 RAND memorandum on the experiments in which the prisoner's dilemma first appeared.">https://ve42.co/Flood1952</ExternalLink>
 - Poundstone, W. (1992). _Prisoner's Dilemma_. Doubleday.
 - Binmore, K. (2007). _Game Theory: A Very Short Introduction_. Oxford
   University Press.
 - Dawkins, R. (2016). _The Selfish Gene_. Oxford University Press.
 - Nowak, M. A., & Highfield, R. (2011). _SuperCooperators_. Canongate.
-- Prisoner's dilemma, [Wikipedia](https://ve42.co/WikiPD) and
-  [Stanford Encyclopedia of Philosophy](https://ve42.co/StanfordPD).
+- Prisoner's dilemma, <ExternalLink href="https://ve42.co/WikiPD" preview="Wikipedia article on the prisoner's dilemma: the payoff matrix, the repeated game and real-world examples.">Wikipedia</ExternalLink>
+  and <ExternalLink href="https://ve42.co/StanfordPD" preview="Stanford Encyclopedia of Philosophy entry on the prisoner's dilemma and its many variants.">Stanford Encyclopedia of Philosophy</ExternalLink>.

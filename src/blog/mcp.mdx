@@ -11,15 +11,18 @@ isDraft: false
 
 import { Image } from "astro:assets";
 import mcpSessionDiscussion from "./images/mcp_session_lost_discussion.png";
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
 import Mermaid from "../components/blog/Mermaid.astro";
 import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
 import SessionModels from "./components/mcp/SessionModels.astro";
 import ScopeFilter from "./components/mcp/ScopeFilter.astro";
 
-The Model Context Protocol (MCP) is an open standard for connecting LLMs to
-external tools and data sources via a JSON-RPC interface. The key insight is
-that MCP gives you a proper, discoverable API: a model can list available tools,
+The Model Context Protocol (MCP) is an open standard for connecting <Acronym title="Large Language Models">LLMs</Acronym> to
+external tools and data sources via a <Acronym title="JavaScript Object Notation Remote Procedure Call">JSON-RPC</Acronym> interface. The key insight is
+that MCP gives you a proper, discoverable <Acronym title="Application Programming Interface">API</Acronym>: a model can list available tools,
 inspect input schemas and optional output schemas, and request tool calls
 through a host application. MCP defines separate primitives for tools, resources,
 and prompts; retrieving a prompt is not itself execution of a function.
@@ -34,8 +37,8 @@ management, and authorization at scale.
 There was one problem: in April 2025, the Python MCP ecosystem was still very
 young. I needed a library that I could embed directly in a Starlette/FastAPI
 application — one that was lightweight, type-safe, and simple to reason about.
-The official SDK had significant issues with our infrastructure, particularly
-around session management in horizontally scaled environments:
+The official <Acronym title="Software Development Kit">SDK</Acronym> had significant issues with our infrastructure, particularly
+around session management in <Term title="Handling more load by adding server instances instead of making one server bigger.">horizontally scaled</Term> environments:
 
 <Image
   src={mcpSessionDiscussion}
@@ -44,25 +47,27 @@ around session management in horizontally scaled environments:
   sizes="(max-width: 720px) 100vw, (max-width: 1300px) 80vw, 900px"
 />
 
-[GitHub Discussion Link](https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583)
+{/* prettier-ignore */}
+<ExternalLink href="https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583" preview="GitHub issue on the MCP Python SDK: a server loses its session when requests reach different workers.">GitHub Discussion Link</ExternalLink>
 
 Rather than working around these limitations, I decided to build a library from
 scratch with the characteristics mentioned above — and without the problems
 encountered in that deployment. This is a historical account, not a claim that
-current SDK releases require the same workaround. The official SDK now documents
-[deployment and scaling options](https://py.sdk.modelcontextprotocol.io/run/deploy/),
+current SDK releases require the same workaround. The official SDK now
+documents <ExternalLink href="https://py.sdk.modelcontextprotocol.io/run/deploy/" preview="MCP Python SDK documentation on deploying and scaling servers, including stateless operation.">deployment and scaling options</ExternalLink>,
 including stateless operation.
 
 ## Building http-mcp
 
-[`http-mcp`](https://github.com/yeison-liscano/http_mcp) (published on PyPI as
-`http-mcp`) provides tools and prompts over HTTP and stdio. Its supported
+{/* prettier-ignore */}
+<ExternalLink href="https://github.com/yeison-liscano/http_mcp" preview="Source code of http-mcp, the author's MCP server library over HTTP and stdio, built on Starlette and Pydantic.">`http-mcp`</ExternalLink> (published on <Acronym title="Python Package Index">PyPI</Acronym> as
+`http-mcp`) provides tools and prompts over <Acronym title="Hypertext Transfer Protocol">HTTP</Acronym> and <Term title="Standard input and output: the client starts the server as a subprocess and talks to it through stdin and stdout.">stdio</Term>. Its supported
 features and protocol versions should be checked against the client in use. I
 designed it around a few principles:
 
 **1. Pydantic-first, schema automatically generated.** Tools are declared by
 wrapping a Python function in a `Tool` dataclass and pointing at its Pydantic
-input/output models. The JSON schema that MCP clients use for discovery is
+input/output models. The <Acronym title="JavaScript Object Notation">JSON</Acronym> schema that MCP clients use for discovery is
 derived automatically from those models:
 
 ```python
@@ -141,8 +146,9 @@ not inherently erase the model's conversation history, which the host manages.
 
 The difficulty is coordinating state, not the mere existence of state:
 
+{/* prettier-ignore */}
 1. Requests can reach a worker that does not own an in-memory session.
-2. Session affinity is one option, with failover trade-offs. Shared state and
+2. <Term title="A load balancer setting that sends every request of one session to the same worker.">Session affinity</Term> is one option, with failover trade-offs. Shared state and
    routing to the owning worker are other possible designs.
 3. Stateless request handling simplifies horizontal scaling, but stateful
    services can also scale with appropriate coordination and recovery.
@@ -152,8 +158,7 @@ For our workload, avoiding per-worker session state was a useful trade-off.
 The solution was to implement a **stateless HTTP transport** that treats each
 request as independent. Instead of maintaining session objects in memory, the
 transport sends all necessary context in each request. This stateless design
-became the foundation for `http-mcp`:
-[https://pypi.org/project/http-mcp/](https://pypi.org/project/http-mcp/)
+became the foundation for `http-mcp`: <ExternalLink href="https://pypi.org/project/http-mcp/" preview="The http-mcp package on PyPI: install instructions, versions and release history.">https://pypi.org/project/http-mcp/</ExternalLink>
 
 <Figure caption="With the session in worker memory, the second request fails as soon as the balancer picks another worker. When each request carries its context, any worker can answer.">
   <SessionModels />
@@ -161,7 +166,7 @@ became the foundation for `http-mcp`:
 
 ## Remote MCP Architecture: Streamable HTTP vs stdio
 
-The [2025-11-25 MCP specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+The <ExternalLink href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports" preview="The MCP specification (2025-11-25) on transports: stdio, Streamable HTTP and custom transports.">2025-11-25 MCP specification</ExternalLink>
 defines two standard transports and permits custom ones:
 
 - **Stdio Transport**: The MCP server runs as a subprocess on the same machine,
@@ -173,7 +178,7 @@ defines two standard transports and permits custom ones:
 
 For production systems, HTTP transport is the practical choice. It allows
 separate deployment and scaling of the MCP server, easier monitoring and
-logging, integration with load balancers and service meshes, and
+logging, integration with load balancers and <Term title="An infrastructure layer of proxies that handles traffic, security and observability between services.">service meshes</Term>, and
 language-agnostic communication between components.
 
 The trade-off is complexity: handle network errors, timeouts, authentication,
@@ -185,7 +190,7 @@ it does not require every server to be stateless.
 Input-schema validation and tool execution are different stages. Malformed
 protocol requests can produce JSON-RPC errors; recoverable execution failures can
 be represented as tool results. MCP defines an `isError` flag for tool execution
-errors. See the [tool error rules](https://modelcontextprotocol.io/specification/2025-11-25/server/tools#error-handling).
+errors. See the <ExternalLink href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools#error-handling" preview="The MCP specification (2025-11-25) on tools, at error handling: protocol errors versus tool results with isError.">tool error rules</ExternalLink>.
 
 In `http-mcp`, the documented `return_error_message` option handles supported
 `ToolInvocationError` exceptions. For example, a handler can report that a
@@ -235,7 +240,7 @@ Tool(
 
 This approach has several benefits: tools are self-documenting about their
 requirements, authorization is centralized and consistent, you can change
-permissions without modifying tool code, and the AI agent can query which tools
+permissions without modifying tool code, and the <Acronym title="Artificial Intelligence">AI</Acronym> agent can query which tools
 are available in its current context — which reduces suggestions for unavailable tools. A client can still submit
 a hidden or stale tool name, so the server must authorize every invocation.
 
@@ -273,9 +278,6 @@ Building a production MCP server taught me several things:
 
 ## References
 
-- **Official MCP Specification**:
-  [modelcontextprotocol.io](https://modelcontextprotocol.io)
-- **My HTTP Transport Implementation**:
-  [http-mcp on PyPI](https://pypi.org/project/http-mcp/)
-- **Stateless Sessions Discussion**:
-  [Python SDK GitHub Issue #520](https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583)
+- **Official MCP Specification**: <ExternalLink href="https://modelcontextprotocol.io" preview="Official site of the Model Context Protocol: introduction, specification, SDKs and guides.">modelcontextprotocol.io</ExternalLink>
+- **My HTTP Transport Implementation**: <ExternalLink href="https://pypi.org/project/http-mcp/" preview="The http-mcp package on PyPI: install instructions, versions and release history.">http-mcp on PyPI</ExternalLink>
+- **Stateless Sessions Discussion**: <ExternalLink href="https://github.com/modelcontextprotocol/python-sdk/issues/520#issuecomment-2808158583" preview="GitHub issue on the MCP Python SDK: a server loses its session when requests reach different workers.">Python SDK GitHub Issue #520</ExternalLink>

@@ -10,11 +10,14 @@ tags: ["security", "programming"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import Term from "../components/blog/Term.astro";
+
 Palabras clave: método científico, falsabilidad, hipótesis, threat modeling,
 registro de premisas
 
 En seguridad tomamos decisiones apoyadas en supuestos: "este servicio no es
-alcanzable desde fuera de la VPC", "nuestro SAST detecta inyecciones", "el token
+alcanzable desde fuera de la <Acronym title="Virtual Private Cloud (nube privada virtual)">VPC</Acronym>", "nuestro <Acronym title="Static Application Security Testing (pruebas estáticas de seguridad de aplicaciones)">SAST</Acronym> detecta inyecciones", "el token
 expira en 15 minutos". Si no los verificamos, pueden convertirse en puntos
 ciegos. La idea central de este artículo es sencilla: **toda premisa es una
 hipótesis hasta que la sometes a una prueba que podría refutarla**.
@@ -28,12 +31,12 @@ hipótesis hasta que la sometes a una prueba que podría refutarla**.
    es segura" no.
 3. **Predicción**: si la hipótesis es cierta, qué debería pasar en una prueba
    concreta, y qué resultado la refutaría.
-4. **Experimento**: un test, un fuzzing, un escaneo, un ejercicio de red team o
+4. **Experimento**: un test, un <Term title="Probar un programa con entradas generadas automáticamente, a menudo inválidas o aleatorias, para provocar fallos.">fuzzing</Term>, un escaneo, un ejercicio de <Term title="Equipo que simula a un atacante real para poner a prueba las defensas.">red team</Term> o
    un benchmark, con las variables controladas.
 5. **Análisis y registro**: se documentan todos los resultados, incluidos los
    negativos y los que contradicen lo esperado.
-6. **Revisión por pares**: en la práctica son el code review, la revisión del
-   threat model y el postmortem sin culpables.
+6. **Revisión por pares**: en la práctica son el code review, la revisión
+   del <Term title="Descripción estructurada de quién puede atacar un sistema, cómo, y qué defensas aplican.">threat model</Term> y el <Term title="Análisis de un incidente que busca causas en el sistema y el proceso, no culpables individuales.">postmortem sin culpables</Term>.
 
 El criterio que separa esto de una opinión es la **falsabilidad**: una
 afirmación empírica que ningún resultado posible puede contradecir no ofrece un
@@ -44,9 +47,9 @@ formalmente se evalúan de otras maneras.
 
 ### Threat models como conjuntos de hipótesis
 
-Muchos supuestos de un threat model ("el atacante no tiene acceso al bucket",
+Muchos supuestos de un threat model ("el atacante no tiene acceso al <Term title="Contenedor de objetos en un servicio de almacenamiento en la nube, como Amazon S3.">bucket</Term>",
 "el token expira en 15 minutos") pueden convertirse en una verificación
-automática sobre la infraestructura o en un test en el pipeline de CI. Así el
+automática sobre la infraestructura o en un test en el pipeline de <Acronym title="Continuous Integration (integración continua)">CI</Acronym>. Así el
 modelo deja de ser un documento que envejece y pasa a ser una batería de pruebas
 que puede fallar. El test del inicio de este artículo es exactamente eso: la
 hipótesis "el token expira a los 15 minutos" escrita de forma que pueda ser

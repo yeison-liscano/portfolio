@@ -8,6 +8,11 @@ tags: ["networking"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
 ## Introduction
 
 Computer networks form the backbone of modern digital communication. Whether
@@ -21,7 +26,7 @@ models that explain how communication happens across the internet.
 
 ## TCP/IP Model
 
-The TCP/IP model is a practical, four-layer conceptual framework that describes
+The <Acronym title="Transmission Control Protocol/Internet Protocol">TCP/IP</Acronym> model is a practical, four-layer conceptual framework that describes
 how modern internet communication works. Unlike more theoretical models, TCP/IP
 is designed around the protocols actually used in the real world. Understanding
 this model is crucial for grasping how data moves across networks.
@@ -29,8 +34,8 @@ this model is crucial for grasping how data moves across networks.
 1. **Application Layer**: This layer includes protocols that provide network
    services directly to user applications. When you access a website, send an
    email, or use a chat application, you're using protocols from this layer.
-   Common examples include HTTP/HTTPS for web browsing, SMTP for sending emails,
-   POP3 and IMAP for retrieving emails, and FTP for file transfer. These
+   Common examples include <Acronym title="Hypertext Transfer Protocol">HTTP</Acronym>/<Acronym title="HTTP Secure: HTTP over an encrypted TLS connection">HTTPS</Acronym> for web browsing, <Acronym title="Simple Mail Transfer Protocol">SMTP</Acronym> for sending
+   emails, <Acronym title="Post Office Protocol version 3">POP3</Acronym> and <Acronym title="Internet Message Access Protocol">IMAP</Acronym> for retrieving emails, and <Acronym title="File Transfer Protocol">FTP</Acronym> for file transfer. These
    protocols define how applications communicate with each other over the
    network.
 
@@ -45,10 +50,10 @@ this model is crucial for grasping how data moves across networks.
 
 3. **Internet Layer**: This layer handles routing—determining the best path for
    data packets to travel across networks. The Internet Protocol (IP) is the
-   primary protocol here, providing addressing and best-effort packet delivery.
+   primary protocol here, providing addressing and <Term title="Delivery with no guarantee: packets may be lost, duplicated or reordered.">best-effort</Term> packet delivery.
    Addresses identify interfaces, which can have multiple addresses; many
-   devices share a public IPv4 address through NAT. IPv4 permits router
-   fragmentation, while IPv6 routers do not fragment packets.
+   devices share a public IPv4 address through <Acronym title="Network Address Translation">NAT</Acronym>. IPv4 permits
+   router <Term title="Splitting a packet into smaller pieces so that it fits a link's maximum packet size.">fragmentation</Term>, while IPv6 routers do not fragment packets.
 
 4. **Link Layer**: Also called the network interface or data link layer, this
    layer manages the physical transmission of data over network media. Protocols
@@ -65,15 +70,15 @@ the TCP/IP model and helps explain how different network technologies and
 protocols interact.
 
 1. **Application Layer**: This layer provides network services to applications
-   and user interfaces. It includes protocols like HTTP, FTP, SMTP, DNS, and
+   and user interfaces. It includes protocols like HTTP, FTP, SMTP, <Acronym title="Domain Name System">DNS</Acronym>, and
    Telnet. When you interact with any network-enabled application, the
    application layer is handling the protocols that enable that interaction.
 
 2. **Presentation Layer**: This layer is responsible for data translation,
    encryption, and compression. It ensures that data sent by the application
    layer of one system is readable and usable by the application layer of
-   another system. For example, if one computer uses EBCDIC character encoding
-   and another uses ASCII, the presentation layer handles the conversion. It
+   another system. For example, if one computer uses <Acronym title="Extended Binary Coded Decimal Interchange Code">EBCDIC</Acronym> character encoding
+   and another uses <Acronym title="American Standard Code for Information Interchange">ASCII</Acronym>, the presentation layer handles the conversion. It
    also handles data encryption for secure transmission.
 
 3. **Session Layer**: This layer manages sessions between applications. It
@@ -91,12 +96,12 @@ protocols interact.
 5. **Network Layer**: Responsible for routing data packets across networks, this
    layer determines the best path for data to travel. The Internet Protocol (IP)
    is the primary protocol at this layer, and it works with routing protocols
-   like BGP and OSPF to direct traffic across the internet.
+   like <Acronym title="Border Gateway Protocol">BGP</Acronym> and <Acronym title="Open Shortest Path First">OSPF</Acronym> to direct traffic across the internet.
 
 6. **Data Link Layer**: This layer handles physical addressing and framing of
    data. It defines how devices on the same network segment communicate with
    each other using MAC (Media Access Control) addresses. Common protocols
-   include Ethernet, Wi-Fi (802.11), and PPP. This layer also manages error
+   include Ethernet, Wi-Fi (802.11), and <Acronym title="Point-to-Point Protocol">PPP</Acronym>. This layer also manages error
    detection and handling at the frame level.
 
 7. **Physical Layer**: The lowest layer, it's responsible for the actual
@@ -133,8 +138,8 @@ example: `192.168.1.1`. This gives us a theoretical maximum of about 4.3 billion
 unique addresses, which seemed sufficient when IPv4 was designed in 1981 but is
 now insufficient for the number of internet-connected devices.
 
-Modern networks use classless prefixes (CIDR), rather than the historical class
-A/B/C system. RFC 1918 reserves these private IPv4 ranges:
+Modern networks use classless prefixes (<Acronym title="Classless Inter-Domain Routing">CIDR</Acronym>), rather than the historical class
+A/B/C system. <Acronym title="Request for Comments: the IETF's numbered document series">RFC</Acronym> 1918 reserves these private IPv4 ranges:
 
 - **Private ranges**: Used for internal networks and not routable on the public
   internet
@@ -178,10 +183,10 @@ For an uncached name, a simplified DNS lookup proceeds as follows. Browser,
 operating-system and resolver caches can skip some or all of these queries;
 aliases can require additional lookups:
 
-1. Your computer queries a DNS resolver (usually provided by your ISP)
+1. Your computer queries a DNS resolver (usually provided by your <Acronym title="Internet Service Provider">ISP</Acronym>)
 2. The resolver queries a root nameserver, which directs it to the appropriate
    top-level domain (TLD) server
-3. The TLD server directs the resolver to the authoritative nameserver for
+3. The TLD server directs the resolver to the <Term title="The server that holds the official records for a domain.">authoritative nameserver</Term> for
    `example.com`
 4. The authoritative nameserver returns the IP address associated with
    `www.example.com`
@@ -207,7 +212,7 @@ TCP is a **connection-oriented** protocol providing a reliable, ordered byte
 stream while a connection succeeds. A connection can still fail or time out; TCP
 does not guarantee that an application processed a message.
 
-- Establishes a connection before sending data (three-way handshake)
+- Establishes a connection before sending data (<Term title="TCP's opening exchange of SYN, SYN-ACK and ACK segments.">three-way handshake</Term>)
 - Presents received bytes to the application in order
 - Detects and retransmits lost packets
 - Provides flow control and error checking
@@ -227,7 +232,7 @@ UDP is a **connectionless** protocol that prioritizes speed over reliability:
 - Latency and throughput depend on the application and network
 
 UDP is preferred for real-time applications: video and audio streaming, online
-gaming, VoIP, and DNS queries.
+gaming, <Acronym title="Voice over Internet Protocol">VoIP</Acronym>, and DNS queries.
 
 **Summary table:**
 
@@ -244,11 +249,11 @@ gaming, VoIP, and DNS queries.
 
 HTTP (HyperText Transfer Protocol) is the foundation of the World Wide Web. It's
 an application-layer protocol that defines communication between clients and
-servers. HTTP/1.1 and HTTP/2 commonly use TCP; HTTP/3 uses QUIC over UDP. See
-[RFC 9114](https://www.rfc-editor.org/rfc/rfc9114.html).
+servers. HTTP/1.1 and HTTP/2 commonly use TCP; HTTP/3 uses <Term title="A transport protocol over UDP with built-in encryption and multiplexed streams, standardized in RFC 9000.">QUIC</Term> over UDP.
+See <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9114.html" preview="RFC 9114, the IETF specification of HTTP/3, which maps HTTP semantics onto QUIC.">RFC 9114</ExternalLink>.
 
-HTTPS protects HTTP with TLS, providing encryption, integrity and server
-authentication when certificates are correctly validated. SSL is obsolete. HTTPS
+HTTPS protects HTTP with <Acronym title="Transport Layer Security">TLS</Acronym>, providing encryption, integrity and server
+authentication when certificates are correctly validated. <Acronym title="Secure Sockets Layer, the predecessor of TLS">SSL</Acronym> is obsolete. HTTPS
 does not make a malicious endpoint trustworthy or conceal all traffic metadata.
 
 HTTP/HTTPS are request-response protocols:
@@ -258,7 +263,7 @@ HTTP/HTTPS are request-response protocols:
 3. Server sends an HTTP response (with status code and body)
 
 For a deeper dive into web protocols and how modern web frameworks handle HTTP,
-see our article on [WSGI vs ASGI](/portfolio/blog/wsgi-vs-asgi-protocols/)—it
+see our article on <InternalLink slug="wsgi-vs-asgi-protocols">WSGI vs ASGI</InternalLink>—it
 explores how Python web applications process HTTP requests at scale.
 
 ## Common Network Tools
@@ -269,7 +274,7 @@ are the most essential ones:
 ### Ping
 
 Ping tests whether a remote host is reachable and measures round-trip time. It
-sends ICMP Echo Request packets and waits for Echo Reply responses.
+sends <Acronym title="Internet Control Message Protocol">ICMP</Acronym> Echo Request packets and waits for Echo Reply responses.
 
 ```bash
 # Ping Google's DNS server
@@ -370,9 +375,9 @@ returning to these fundamental concepts repeatedly.
 - Kurose, J. F., & Ross, K. W. (2020). _Computer Networking: A Top-Down
   Approach_ (8th ed.). Pearson.
 - Internet Engineering Task Force (IETF). (1981). _RFC 791: Internet Protocol_.
-  Retrieved from <https://tools.ietf.org/html/rfc791>
-- Internet Engineering Task Force (IETF). (2022).
-  [RFC 9293: Transmission Control Protocol](https://www.rfc-editor.org/rfc/rfc9293.html),
+  Retrieved from <ExternalLink href="https://tools.ietf.org/html/rfc791" preview="RFC 791, the 1981 specification of the Internet Protocol, version 4.">https://tools.ietf.org/html/rfc791</ExternalLink>
+- Internet Engineering Task Force (IETF).
+  (2022). <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9293.html" preview="RFC 9293, the 2022 consolidated specification of TCP, which obsoletes RFC 793.">RFC 9293: Transmission Control Protocol</ExternalLink>,
   which supersedes RFC 793.
-- Cloudflare Learning Center. (2026). _Network Fundamentals_. Retrieved from
-  <https://www.cloudflare.com/learning/network-layer/what-is-a-computer-network/>
+- Cloudflare Learning Center. (2026). _Network Fundamentals_. Retrieved
+  from <ExternalLink href="https://www.cloudflare.com/learning/network-layer/what-is-a-computer-network/" preview="Cloudflare Learning Center article on what a computer network is and how its parts fit together.">https://www.cloudflare.com/learning/network-layer/what-is-a-computer-network/</ExternalLink>

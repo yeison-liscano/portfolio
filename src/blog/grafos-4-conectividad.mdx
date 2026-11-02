@@ -12,6 +12,7 @@ isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import CaminoExplorer from "./components/grafos/CaminoExplorer.astro";
 import Conexidad from "./components/grafos/Conexidad.astro";
 import SerieGrafos from "./components/grafos/SerieGrafos.astro";
@@ -159,7 +160,7 @@ longitud del camino más corto entre ellos. En el grafo de colaboración
 académica, la distancia de un matemático a Paul Erdős es su **número de Erdős**;
 en el grafo de Hollywood, la distancia de un actor a Kevin Bacon es su **número
 de Bacon**. Que casi todos los actores tengan un número de Bacon pequeño es una
-forma concreta del fenómeno de los "seis grados de separación". BFS calcula esas
+forma concreta del fenómeno de los "<Term title="La idea de que dos personas cualesquiera del mundo están unidas por una cadena de, a lo sumo, seis conocidos.">seis grados de separación</Term>". BFS calcula esas
 distancias: el orden en que visita los vértices es justamente el orden de
 distancia al vértice inicial.
 

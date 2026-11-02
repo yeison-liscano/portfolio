@@ -8,6 +8,12 @@ tags: ["devops"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
+{/* cspell:ignore Beda Hightower */}
+
 Kubernetes is an open-source container orchestration platform that automates the
 deployment, scaling, and management of containerized applications. It provides a
 framework for running distributed systems resiliently, allowing you to manage
@@ -17,7 +23,7 @@ high availability.
 Kubernetes abstracts away the underlying infrastructure, making it easier to
 deploy and manage applications consistently across different environments,
 whether on-premises or in the cloud. It also offers features like service
-discovery, load balancing, rolling updates, and self-healing, which help
+discovery, load balancing, rolling updates, and <Term title="Kubernetes restarts failed containers and replaces Pods that stop working, without manual action.">self-healing</Term>, which help
 maintain the desired state of your applications and improve their reliability.
 
 ## Cluster and Namespace
@@ -31,7 +37,7 @@ maintain the desired state of your applications and improve their reliability.
   security boundary; access and network isolation require policies. Namespaces
   help organize resources and prevent naming conflicts.
   - **Kube-system**: The `kube-system` namespace is used for Kubernetes system
-    components and add-ons, often including cluster DNS. An optional dashboard
+    components and add-ons, often including cluster <Acronym title="Domain Name System">DNS</Acronym>. An optional dashboard
     is not guaranteed to be installed there.
 
 ## Nodes
@@ -42,7 +48,7 @@ is managed by the control plane.
 
 ### Control Plane Nodes
 
-The control plane manages the cluster through the API server, scheduler and
+The control plane manages the cluster through the <Acronym title="Application Programming Interface">API</Acronym> server, scheduler and
 controllers. It can run across multiple machines for availability, and etcd may
 run on separate machines. Controllers continually reconcile actual and desired
 state; they do not guarantee uninterrupted availability.
@@ -78,7 +84,7 @@ have access to the latest state of the cluster.
 ### Worker Nodes
 
 Worker nodes are the machines where your applications run. They host the pods
-and provide the necessary resources (CPU, memory, storage) for your containers.
+and provide the necessary resources (<Acronym title="Central Processing Unit">CPU</Acronym>, memory, storage) for your containers.
 Worker nodes communicate with the control plane to receive instructions and
 report their status.
 
@@ -92,7 +98,7 @@ pods and reports back to the API server.
 #### Kube-proxy
 
 Kube-proxy implements Service traffic forwarding using node network rules. The
-available backends depend on Kubernetes version and OS; Linux options include
+available backends depend on Kubernetes version and <Acronym title="Operating System">OS</Acronym>; Linux options include
 iptables and nftables. Some network implementations replace kube-proxy. Pod
 networking is supplied by the cluster network implementation, and DNS-based
 service discovery is typically provided by CoreDNS.
@@ -122,7 +128,7 @@ containers need to work closely together.
 ### What Are Pods?
 
 A pod provides a shared network namespace, meaning all containers within a pod
-share the same IP address and port space. Containers in a pod can communicate
+share the same <Acronym title="Internet Protocol">IP</Acronym> address and port space. Containers in a pod can communicate
 through localhost. Pods are ephemeral—they are created and destroyed based on
 the desired state defined in higher-level resources like Deployments or
 StatefulSets.
@@ -141,8 +147,8 @@ Pods go through several phases during their lifecycle:
 - **Unknown**: The state of the pod could not be determined.
 
 `CrashLoopBackOff` is a displayed container restart condition, not a Pod phase.
-See the
-[Pod lifecycle reference](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/).
+See
+the <ExternalLink href="https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/" preview="Kubernetes documentation on the Pod lifecycle: phases, container states, restart policy and probes.">Pod lifecycle reference</ExternalLink>.
 
 ### Multi-Container Pods
 
@@ -236,8 +242,8 @@ spec:
 
 A LoadBalancer Service requests an external load balancer from a supporting
 controller or provider. Without one, its external address can remain pending.
-The address may be public or internal depending on configuration. HTTP routing
-may instead use an Ingress or Gateway implementation.
+The address may be public or internal depending on configuration. <Acronym title="Hypertext Transfer Protocol">HTTP</Acronym> routing
+may instead use an <Term title="A Kubernetes resource that routes external HTTP and HTTPS traffic to Services by host and path.">Ingress</Term> or Gateway implementation.
 
 ```yaml
 apiVersion: v1
@@ -256,7 +262,7 @@ spec:
 ## Deployments
 
 Deployments are higher-level resources that manage the creation and scaling of
-pods through ReplicaSets. They work toward the requested replica count and
+pods through <Term title="A controller that keeps a set number of identical Pods running.">ReplicaSets</Term>. They work toward the requested replica count and
 provide declarative updates; failures or insufficient capacity can leave fewer
 replicas available.
 
@@ -276,7 +282,7 @@ it with the desired state.
 ### Rolling Updates
 
 Deployments support rolling updates that gradually replace old Pods. Avoiding
-downtime also requires sufficient capacity, meaningful readiness probes,
+downtime also requires sufficient capacity, meaningful <Term title="A periodic check that tells Kubernetes whether a container is ready to receive traffic.">readiness probes</Term>,
 graceful shutdown and compatible application versions; the strategy alone is not
 a guarantee.
 
@@ -341,12 +347,12 @@ data:
 ### Secrets
 
 Secrets store sensitive data like passwords, API keys, and tokens. They are
-stored separately from ConfigMaps. Base64 is encoding, not encryption; upstream
-Kubernetes stores Secrets unencrypted in etcd unless encryption at rest is
-configured. Restrict access with RBAC. In a manifest, `data` requires base64
+stored separately from ConfigMaps. <Term title="An encoding that writes binary data with 64 printable characters; anyone can decode it.">Base64</Term> is encoding, not encryption; upstream
+Kubernetes stores Secrets unencrypted in etcd unless <Term title="Encrypting stored data, so reading the disk or database files directly does not reveal it.">encryption at rest</Term> is
+configured. Restrict access with <Acronym title="Role-Based Access Control">RBAC</Acronym>. In a manifest, `data` requires base64
 strings, while `stringData` accepts plain strings. `kubectl apply` does not
-expand shell variables embedded in YAML. See the
-[Secrets documentation](https://kubernetes.io/docs/concepts/configuration/secret/).
+expand shell variables embedded in <Acronym title="YAML Ain't Markup Language">YAML</Acronym>. See
+the <ExternalLink href="https://kubernetes.io/docs/concepts/configuration/secret/" preview="Kubernetes documentation on Secrets: their types, how Pods use them and how to keep them safe.">Secrets documentation</ExternalLink>.
 
 ```yaml
 apiVersion: v1
@@ -644,9 +650,10 @@ domain-specific abstractions.
 
 ## References
 
-- [Kubernetes Official Documentation](https://kubernetes.io/docs/)
-- [Kubernetes Up and Running, 2nd Edition](https://www.oreilly.com/library/view/kubernetes-up-and/9781492046523/)
+{/* prettier-ignore */}
+- <ExternalLink href="https://kubernetes.io/docs/" preview="Official Kubernetes documentation: concepts, tasks, tutorials and reference.">Kubernetes Official Documentation</ExternalLink>
+- <ExternalLink href="https://www.oreilly.com/library/view/kubernetes-up-and/9781492046523/" preview="O'Reilly page for Kubernetes: Up and Running, 2nd edition, by Brendan Burns, Joe Beda and Kelsey Hightower.">Kubernetes Up and Running, 2nd Edition</ExternalLink>
   (O'Reilly)
-- [Cloud Native Computing Foundation (CNCF)](https://www.cncf.io/)
-- [Kubernetes API Reference](https://kubernetes.io/docs/reference/kubernetes-api/)
-- [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+- <ExternalLink href="https://www.cncf.io/" preview="The Cloud Native Computing Foundation, the Linux Foundation project that hosts Kubernetes and other cloud native projects.">Cloud Native Computing Foundation (CNCF)</ExternalLink>
+- <ExternalLink href="https://kubernetes.io/docs/reference/kubernetes-api/" preview="Reference for the Kubernetes API: every resource kind, its fields and its operations.">Kubernetes API Reference</ExternalLink>
+- <ExternalLink href="https://kubernetes.io/docs/reference/kubectl/cheatsheet/" preview="kubectl Quick Reference: commonly used kubectl commands and flags.">kubectl Cheat Sheet</ExternalLink>

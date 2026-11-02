@@ -6,7 +6,10 @@ tags: ["ai", "python"]
 isDraft: false
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import Convolution from "./components/artificial-vision/Convolution.astro";
 
 ## Introduction
@@ -29,7 +32,7 @@ processing, starting with basic spatial domain operations and progressing to
 more advanced frequency domain techniques. We'll examine practical applications
 and provide working code examples using OpenCV, a widely used computer vision library with Python bindings.
 The examples require OpenCV, NumPy and Matplotlib, input images at the stated
-paths, and a desktop GUI for `cv2.imshow`. They do not run unchanged in the
+paths, and a desktop <Acronym title="Graphical User Interface">GUI</Acronym> for `cv2.imshow`. They do not run unchanged in the
 browser runner. Later fragments reuse variables from earlier examples.
 
 ## Understanding Visual Computing: Three Distinct Disciplines
@@ -97,8 +100,8 @@ intensities (in the ideal case).
 
 Rotation pivots an image around a center point by a specified angle. When
 rotating, we face a fundamental challenge: pixel coordinates in the rotated
-image often fall between integer positions of the original image, requiring
-interpolation.
+image often fall between integer positions of the original image,
+requiring <Term title="Estimating a pixel value between known pixels from its neighbors.">interpolation</Term>.
 
 ```python
 import cv2
@@ -118,7 +121,7 @@ cv2.imshow('Rotated Image', rotated)
 cv2.waitKey(0)
 ```
 
-The rotation matrix is a 2×3 affine transformation matrix that OpenCV applies
+The rotation matrix is a 2×3 <Term title="A transformation that keeps straight and parallel lines: rotation, scaling, translation and shear.">affine transformation</Term> matrix that OpenCV applies
 using `warpAffine`. The third parameter (1.0) is a scale factor for zooming
 during rotation.
 
@@ -126,7 +129,7 @@ during rotation.
 
 Scaling resizes an image by a factor. Upscaling (enlarging) requires
 interpolation. Downscaling also resamples the image; area interpolation is
-often useful for reducing aliasing, but not every resize method averages neighborhoods.
+often useful for reducing <Term title="Artifacts such as jagged edges or moiré patterns, caused by sampling fine detail too coarsely.">aliasing</Term>, but not every resize method averages neighborhoods.
 
 ```python
 # Scale to 50% of original size
@@ -144,8 +147,8 @@ Different interpolation methods offer speed-quality tradeoffs:
 - `INTER_LINEAR`: Bilinear interpolation, a common general-purpose option.
 - `INTER_AREA`: Area-based resampling, often useful for shrinking.
 - `INTER_CUBIC` and `INTER_LANCZOS4`: Use larger neighborhoods and may improve
-  some enlargements, but can introduce ringing. There is no universal best method.
-  See [OpenCV geometric transforms](https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html).
+  some enlargements, but can introduce <Term title="Ripples that appear next to sharp edges after some filters or resampling methods.">ringing</Term>. There is no universal best method.
+  See <ExternalLink href="https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html" preview="OpenCV reference for geometric image transformations, such as resize, warpAffine and the interpolation flags.">OpenCV geometric transforms</ExternalLink>.
 
 #### Translation
 
@@ -276,8 +279,8 @@ Correlation: Output[i,j] = Σu Σv Kernel[u,v] × Image[i+u, j+v]
 The indices here are offsets from the kernel center. Convolution flips the
 kernel; correlation does not. `cv2.filter2D` and the explorable below use
 correlation. A symmetric blur kernel gives the same result either way; an
-asymmetric derivative kernel can change sign. See the
-[OpenCV filtering reference](https://docs.opencv.org/4.x/d4/d86/group__imgproc__filter.html).
+asymmetric derivative kernel can change sign. See
+the <ExternalLink href="https://docs.opencv.org/4.x/d4/d86/group__imgproc__filter.html" preview="OpenCV reference for image filtering, such as filter2D, blur, the median filter and Sobel.">OpenCV filtering reference</ExternalLink>.
 
 The kernel defines what features the filter detects or what effect it applies.
 
@@ -328,8 +331,8 @@ edges = cv2.Canny(smoothed, 100, 200)
 cv2.imshow('Edges', edges)
 ```
 
-The conceptual Canny pipeline smooths the image, computes gradients, performs
-non-maximum suppression, and uses hysteresis thresholding—it's a complete edge
+The conceptual Canny pipeline smooths the image, computes gradients,
+performs <Term title="Thinning edges by keeping only the pixels whose gradient is the largest along the gradient direction.">non-maximum suppression</Term>, and uses <Term title="Keeping strong edges, and weak edges only when they connect to strong ones, with two thresholds.">hysteresis thresholding</Term>—it's a complete edge
 detection pipeline. The example smooths explicitly before calling `cv2.Canny`.
 
 ##### Sharpening
@@ -371,7 +374,7 @@ Frequency domain processing offers advantages:
 - **Efficient filtering**: Some operations are faster in the frequency domain
 - **Insight**: Visualizing the frequency spectrum reveals image properties
 - **Compression**: Many compression algorithms work in the frequency domain
-  (e.g., JPEG uses DCT)
+  (e.g., <Acronym title="Joint Photographic Experts Group, the committee that created the format">JPEG</Acronym> uses <Acronym title="Discrete Cosine Transform">DCT</Acronym>)
 - **Analysis**: Periodic patterns and noise characteristics become obvious
 
 ```python
@@ -474,7 +477,7 @@ Computer vision technology powers countless real-world applications:
 
 Computer vision assists in diagnosis and treatment planning. Algorithms detect
 tumors, segment organs, measure anatomical structures, and register images
-across time or modalities (CT, MRI, ultrasound). Performance depends on the
+across time or modalities (<Acronym title="Computed Tomography">CT</Acronym>, <Acronym title="Magnetic Resonance Imaging">MRI</Acronym>, ultrasound). Performance depends on the
 specific task, data and clinical validation; success on a benchmark does not
 establish safe use in a clinical workflow.
 
@@ -537,16 +540,15 @@ journey.
 
 ## References
 
-- **OpenCV Documentation**: [https://docs.opencv.org/](https://docs.opencv.org/) - Comprehensive reference
-  for the OpenCV library with tutorials and API documentation.
+- **OpenCV Documentation**: <ExternalLink href="https://docs.opencv.org/" preview="OpenCV documentation: tutorials and the API reference for each release of the library.">https://docs.opencv.org/</ExternalLink> - Comprehensive reference
+  for the OpenCV library with tutorials and <Acronym title="Application Programming Interface">API</Acronym> documentation.
 
 - **Gonzalez, R. C., & Woods, R. E. (2018). Digital Image Processing (4th ed.).
   Pearson.** - The definitive textbook on digital image processing, covering
   both spatial and frequency domain techniques with rigorous mathematical
   foundations.
 
-- **Stanford CS231n: Convolutional Neural Networks for Visual Recognition**:
-  [http://cs231n.stanford.edu/](http://cs231n.stanford.edu/) - Excellent course covering image
+- **Stanford CS231n: Convolutional Neural Networks for Visual Recognition**: <ExternalLink href="https://cs231n.stanford.edu/" preview="Stanford's CS231n course, Deep Learning for Computer Vision, with lecture notes and assignments.">https://cs231n.stanford.edu/</ExternalLink> - Excellent course covering image
   classification, feature extraction, and the connection between classical image
   processing and modern deep learning.
 

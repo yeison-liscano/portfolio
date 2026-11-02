@@ -8,14 +8,18 @@ tags: ["programming", "web"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Term from "../components/blog/Term.astro";
+
 ## What is gRPC?
 
 gRPC is a modern, open-source, high-performance remote procedure call (RPC)
 framework developed by Google that enables seamless communication between
 clients and servers across languages. It commonly uses Protocol Buffers for
-service definitions and message serialization, and native gRPC uses HTTP/2. REST
-is an architectural style, not a competing transport protocol; REST APIs can
-also use HTTP/2 or HTTP/3 and typed schemas.
+service definitions and message serialization, and native gRPC uses <Acronym title="Hypertext Transfer Protocol version 2">HTTP/2</Acronym>. <Acronym title="Representational State Transfer">REST</Acronym>
+is an architectural style, not a competing transport protocol; REST <Acronym title="Application Programming Interfaces">APIs</Acronym> can
+also use HTTP/2 or <Acronym title="Hypertext Transfer Protocol version 3, which runs over QUIC instead of TCP">HTTP/3</Acronym> and typed schemas.
 
 gRPC provides generated client and server interfaces for distributed services.
 Its name is not a reliable expansion of «Google RPC»: the project has used
@@ -23,14 +27,14 @@ different meanings for the letter g across releases.
 
 At its core, gRPC allows you to define services as if you were calling functions
 locally, even though the code runs on a different machine. This abstraction
-simplifies call syntax, but a remote call still has latency, deadlines and
+simplifies call syntax, but a remote call still has latency, <Term title="A time limit the client sets for a call; when it passes, the call fails instead of waiting forever.">deadlines</Term> and
 partial-failure behavior that a local call does not.
 
 ## Why use gRPC?
 
 ### Performance
 
-Native gRPC uses HTTP/2 framing, multiplexed streams and header compression.
+Native gRPC uses HTTP/2 framing, multiplexed streams and <Term title="HPACK, which encodes HTTP headers compactly and avoids resending repeated ones.">header compression</Term>.
 These can reduce overhead, especially with reused connections and compact
 messages. There is no general 7–10× throughput advantage over REST: results
 depend on transport versions, payloads, serialization, caching and runtime.
@@ -39,10 +43,10 @@ depend on transport versions, payloads, serialization, caching and runtime.
 
 Multiplexing lets several streams share one connection without waiting for an
 entire HTTP response to finish. It removes HTTP/1.1 response-order blocking on
-that connection, but **TCP packet loss can still stall all streams**. HTTP/2
-server push is not what implements gRPC server-streaming RPCs. See
-[RFC 9113](https://www.rfc-editor.org/rfc/rfc9113.html) and the
-[gRPC RPC lifecycle](https://grpc.io/docs/what-is-grpc/core-concepts/).
+that connection, but **<Acronym title="Transmission Control Protocol">TCP</Acronym> packet loss can still stall all streams**. HTTP/2
+server push is not what implements gRPC server-streaming RPCs.
+See <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9113.html" preview="RFC 9113, the IETF specification of HTTP/2: framing, streams, multiplexing and flow control.">RFC 9113</ExternalLink> and
+the <ExternalLink href="https://grpc.io/docs/what-is-grpc/core-concepts/" preview="gRPC's introduction to service definitions, the four RPC types, deadlines, cancellation and the RPC life cycle.">gRPC RPC lifecycle</ExternalLink>.
 
 ### Streaming Support
 
@@ -51,7 +55,7 @@ communication patterns: unary (request-response), server streaming, client
 streaming, and bidirectional streaming. This makes gRPC ideal for applications
 that need to continuously push or pull data, such as real-time notifications,
 live data feeds, or chat applications. HTTP APIs can also stream responses, for
-example using server-sent events; gRPC adds a defined streaming RPC contract.
+example using <Term title="A web standard where the server keeps an HTTP response open and pushes text events through it.">server-sent events</Term>; gRPC adds a defined streaming RPC contract.
 
 ### Language-Agnostic
 
@@ -66,7 +70,7 @@ with a Go server without any manual serialization work.
 Protocol Buffers define typed messages and generate language bindings. Binary
 messages identify fields by number and wire type, not by field name. A schema
 does not validate every business constraint, and compatible evolution still
-requires discipline. JSON-based APIs can also validate contracts with schemas
+requires discipline. <Acronym title="JavaScript Object Notation">JSON</Acronym>-based APIs can also validate contracts with schemas
 and generate clients from OpenAPI.
 
 ## How gRPC Works
@@ -74,7 +78,7 @@ and generate clients from OpenAPI.
 ### Protocol Buffers
 
 Protocol Buffers (protobuf) is Google's serialization format designed for
-simplicity and efficiency. Instead of JSON or XML, protobuf uses a binary format
+simplicity and efficiency. Instead of JSON or <Acronym title="Extensible Markup Language">XML</Acronym>, protobuf uses a binary format
 that can be compact and efficient to parse, depending on the data and
 implementation. A `.proto` file defines the structure of messages and services
 in a language-agnostic way.
@@ -103,8 +107,8 @@ service PersonService {
 
 The numbers (1, 2, 3) are field identifiers used in the binary encoding and must
 remain consistent across versions for backward compatibility. Reserve removed
-field numbers and names, and follow the
-[protobuf schema-evolution rules](https://protobuf.dev/programming-guides/proto3/#updating).
+field numbers and names, and follow
+the <ExternalLink href="https://protobuf.dev/programming-guides/proto3/#updating" preview="The proto3 language guide, at the rules for updating a message type without breaking code that uses the old version.">protobuf schema-evolution rules</ExternalLink>.
 
 ### Service Definitions
 
@@ -173,7 +177,7 @@ service AuthService {
 This file illustrates RPC cardinalities using authentication-themed messages;
 reusing login credentials for chat or token validation is not a production
 authentication design. The compiler will generate classes for `LoginRequest`,
-`LoginResponse`, and stub implementations for both client and server.
+`LoginResponse`, and <Term title="Generated code that exposes remote methods as local functions and handles the network call.">stub</Term> implementations for both client and server.
 
 ## gRPC vs REST Comparison
 
@@ -182,8 +186,8 @@ excel in different scenarios:
 
 ### REST Advantages
 
-- **Simplicity**: REST is more straightforward to learn and implement for simple
-  CRUD operations.
+- **Simplicity**: REST is more straightforward to learn and implement for
+  simple <Acronym title="Create, Read, Update and Delete">CRUD</Acronym> operations.
 - **Browser Compatibility**: REST APIs are natively callable from browsers via
   fetch or XMLHttpRequest. gRPC requires special handling (gRPC-web) in
   browsers.
@@ -292,7 +296,7 @@ response = stub.UploadFiles(chunks())
 
 ### 4. Bidirectional Streaming
 
-Both client and server send streams of messages, allowing for full-duplex
+Both client and server send streams of messages, allowing for <Term title="Both sides send at the same time, independently of each other.">full-duplex</Term>
 communication. Perfect for chat, gaming, or collaborative applications.
 
 ```proto
@@ -410,9 +414,9 @@ if __name__ == '__main__':
 ```
 
 Save the server as `server.py` and the client as `client.py`. This local demo
-uses an insecure loopback connection. Remote deployments need appropriate TLS,
-authentication and deadlines. See the
-[gRPC Python quickstart](https://grpc.io/docs/languages/python/quickstart/).
+uses an insecure loopback connection. Remote deployments need appropriate <Acronym title="Transport Layer Security">TLS</Acronym>,
+authentication and deadlines. See
+the <ExternalLink href="https://grpc.io/docs/languages/python/quickstart/" preview="gRPC's Python quick start: install grpcio and grpcio-tools, generate code and run a simple client and server.">gRPC Python quickstart</ExternalLink>.
 
 To run this example:
 
@@ -427,7 +431,7 @@ To run this example:
 
 - Building microservices that communicate frequently and require low latency.
 - Real-time features like live notifications, chat, or live updates are needed.
-- You're working in a polyglot environment where strong typing prevents errors.
+- You're working in a <Term title="A system whose services are written in several programming languages.">polyglot</Term> environment where strong typing prevents errors.
 - Bandwidth efficiency is critical (IoT, mobile edge computing).
 - Your team is comfortable with Protocol Buffers and async patterns.
 - Internal APIs within your organization are your focus.
@@ -459,14 +463,15 @@ approach leverages the strengths of each protocol.
 
 ## References
 
-- [gRPC Official Documentation](https://grpc.io/docs/) - Comprehensive guides,
+{/* prettier-ignore */}
+- <ExternalLink href="https://grpc.io/docs/" preview="Official gRPC documentation: concepts, language guides, tutorials and API references.">gRPC Official Documentation</ExternalLink> - Comprehensive guides,
   tutorials, and API references for all supported languages.
-- [Protocol Buffers Documentation](https://protobuf.dev/) - Complete reference
+- <ExternalLink href="https://protobuf.dev/" preview="Official Protocol Buffers documentation, Google's language-neutral mechanism for serializing structured data.">Protocol Buffers Documentation</ExternalLink> - Complete reference
   for Protocol Buffers syntax, best practices, and language-specific code
   generation.
-- [gRPC GitHub Repository](https://github.com/grpc/grpc) - Source code, issues,
+- <ExternalLink href="https://github.com/grpc/grpc" preview="The main gRPC repository: the C++ core and the Python, Ruby, Objective-C, PHP and C# implementations built on it.">gRPC GitHub Repository</ExternalLink> - Source code, issues,
   and community contributions.
-- [gRPC Performance Best Practices](https://grpc.io/docs/guides/performance/) -
+- <ExternalLink href="https://grpc.io/docs/guides/performance/" preview="gRPC's performance best practices, general and per language, such as reusing channels and using streaming RPCs.">gRPC Performance Best Practices</ExternalLink> -
   Optimization techniques for production gRPC services.
-- [Protobuf Style Guide](https://protobuf.dev/programming-guides/style/) - Best
+- <ExternalLink href="https://protobuf.dev/programming-guides/style/" preview="Protocol Buffers style guide: how to name and structure .proto files, messages, fields, enums and services.">Protobuf Style Guide</ExternalLink> - Best
   practices for writing maintainable `.proto` files.

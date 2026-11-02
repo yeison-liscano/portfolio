@@ -12,6 +12,8 @@ isDraft: true
 ---
 
 import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
 import Planaridad from "./components/grafos/Planaridad.astro";
 import ColoracionVoraz from "./components/grafos/ColoracionVoraz.astro";
 import SerieGrafos from "./components/grafos/SerieGrafos.astro";
@@ -129,7 +131,7 @@ esa es la única razón:
 
 El grafo de Petersen, por ejemplo, no es planar porque contiene una subdivisión
 de K₃,₃. Una versión equivalente, el teorema de Wagner, usa la contracción de
-aristas de la [parte II](/portfolio/blog/grafos-2-grados-y-familias/): un grafo
+aristas de la <InternalLink slug="grafos-2-grados-y-familias">parte II</InternalLink>: un grafo
 es planar si y solo si no se puede llegar a K₅ ni a K₃,₃ eliminando vértices y
 aristas y contrayendo aristas. Además, la planaridad se puede decidir en tiempo
 lineal, `O(n)`, con el algoritmo de Hopcroft y Tarjan (1974).
@@ -184,8 +186,8 @@ muchos más colores: K₅ necesita cinco.
 ### Calcular el número cromático es difícil
 
 No se conoce un algoritmo eficiente para calcular `χ(G)`. Incluso decidir si un
-grafo se puede colorear con tres colores es un problema NP-completo. En la
-práctica se usan heurísticas, y la más simple es el **algoritmo voraz**:
+grafo se puede colorear con tres colores es un problema <Term title="Un problema de NP al que se reduce cualquier otro de NP: resolverlo en tiempo polinomial los resolvería todos.">NP-completo</Term>. En la
+práctica se usan <Term title="Métodos prácticos que suelen dar buenas soluciones rápido, sin garantizar la óptima.">heurísticas</Term>, y la más simple es el **algoritmo voraz**:
 recorrer los vértices en algún orden y darle a cada uno el menor color que no
 tenga ninguno de sus vecinos ya coloreados. El resultado siempre es una
 coloración válida, pero la cantidad de colores depende del orden:

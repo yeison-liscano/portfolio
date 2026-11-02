@@ -7,8 +7,13 @@ to use each protocol for optimal web application performance."
 tags: ["python", "web"]
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import Timeline from "../components/blog/Timeline.astro";
+
+{/* cspell:ignore aioextensions */}
 
 Python web applications require protocols to communicate between web servers and
 application code. WSGI (Web Server Gateway Interface) and ASGI (Asynchronous
@@ -17,9 +22,9 @@ characteristics and use cases.
 
 ## WSGI: Synchronous Web Applications
 
-WSGI is the traditional protocol for Python web applications, introduced in
-[PEP 333](https://peps.python.org/pep-0333/) and updated for Python 3 in
-[PEP 3333](https://peps.python.org/pep-3333/). Its application interface is
+WSGI is the traditional protocol for Python web applications, introduced
+in <Acronym title="Python Enhancement Proposal">PEP</Acronym> <ExternalLink href="https://peps.python.org/pep-0333/" preview="PEP 333, the original 2003 specification of WSGI, the interface between Python web servers and applications.">333</ExternalLink> and updated for Python 3
+in <ExternalLink href="https://peps.python.org/pep-3333/" preview="PEP 3333, the update of WSGI for Python 3, which clarifies how strings and bytes are handled.">PEP 3333</ExternalLink>. Its application interface is
 synchronous; a server can still handle concurrent requests using threads,
 processes, or compatible worker implementations.
 
@@ -56,8 +61,8 @@ gunicorn --workers=2 --bind 127.0.0.1:8000 wsgi_app:simple_wsgi_app
 ## ASGI: Modern Async Applications
 
 ASGI is a separate asynchronous interface designed as a successor to WSGI.
-Its protocol specifications cover HTTP and WebSockets; actual HTTP/2 support
-depends on the server. See the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/main.html).
+Its protocol specifications cover <Acronym title="Hypertext Transfer Protocol">HTTP</Acronym> and <Term title="A protocol that keeps one connection open so that client and server can send each other messages at any time.">WebSockets</Term>; actual HTTP/2 support
+depends on the server. See the <ExternalLink href="https://asgi.readthedocs.io/en/latest/specs/main.html" preview="The ASGI specification: the asynchronous interface between Python web servers, frameworks and applications.">ASGI specification</ExternalLink>.
 
 ### Key Features
 
@@ -116,16 +121,17 @@ WSGI:
 
 ASGI:
 
+{/* prettier-ignore */}
 - Real-time applications
 - WebSocket requirements
 - High-concurrency needs
-- [I/O-bound](https://fluidattacks.github.io/aioextensions/#io-bound-tasks)
+- <ExternalLink href="https://fluidattacks.github.io/aioextensions/#io-bound-tasks" preview="aioextensions documentation, at its explanation of I/O-bound tasks and why asyncio speeds them up.">I/O-bound</ExternalLink>
   applications
 
 ## Performance Considerations
 
-- ASGI can overlap I/O efficiently when the application uses nonblocking libraries.
-- Blocking calls inside an async handler block its event-loop thread unless offloaded.
+- ASGI can overlap <Acronym title="Input/Output">I/O</Acronym> efficiently when the application uses nonblocking libraries.
+- Blocking calls inside an async handler block its <Term title="A loop that waits for events, such as finished I/O, and runs the callback registered for each one.">event-loop</Term> thread unless offloaded.
 - CPU-bound work needs an appropriate execution strategy with either interface,
   such as worker processes. Benchmark the actual application and server settings.
 

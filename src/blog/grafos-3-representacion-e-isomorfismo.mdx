@@ -11,7 +11,10 @@ tags: ["math", "algorithms"]
 isDraft: true
 ---
 
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
 import Figure from "../components/blog/Figure.astro";
+import Term from "../components/blog/Term.astro";
 import RepresentacionExplorer from "./components/grafos/RepresentacionExplorer.astro";
 import Isomorfismo from "./components/grafos/Isomorfismo.astro";
 import SerieGrafos from "./components/grafos/SerieGrafos.astro";
@@ -175,7 +178,7 @@ En la figura, el pentágono y la estrella de cinco puntas son el mismo grafo con
 los vértices dibujados en otro orden. La noción precisa es la de isomorfismo:
 
 > **Definición.** Los grafos simples `G1 = (V1, E1)` y `G2 = (V2, E2)` son
-> **isomorfos** si existe una función biyectiva `f: V1 → V2` tal que, para todo
+> **isomorfos** si existe una función <Term title="Función que empareja cada elemento del primer conjunto con exactamente uno del segundo, sin que sobre ninguno.">biyectiva</Term> `f: V1 → V2` tal que, para todo
 > par de vértices `u` y `v` de `V1`, `u` y `v` son adyacentes en `G1` si y solo
 > si `f(u)` y `f(v)` son adyacentes en `G2`. La función `f` se llama un
 > **isomorfismo**. Dos grafos que no son isomorfos se llaman **no isomorfos**.
@@ -195,8 +198,8 @@ pentágono a una punta de la estrella; la arista resaltada `{u1, u2}` va a
 Decidir si dos grafos son isomorfos es difícil en general. Con `n` vértices hay
 `n!` biyecciones posibles, y revisar cada una deja de ser práctico muy rápido:
 con 20 vértices ya son más de `2 × 10¹⁸`. No se conoce un algoritmo de tiempo
-polinomial para el problema general; en 2015 László Babai anunció uno de tiempo
-cuasipolinomial; véase su [artículo original](https://arxiv.org/abs/1512.03547).
+polinomial para el problema general; en 2015 László Babai anunció uno de
+tiempo <Term title="Más rápido que exponencial pero más lento que polinomial: del orden de 2 elevado a una potencia de log n.">cuasipolinomial</Term>; véase su <ExternalLink href="https://arxiv.org/abs/1512.03547" preview="Artículo de László Babai en arXiv que presenta un algoritmo de tiempo cuasipolinomial para el isomorfismo de grafos.">artículo original</ExternalLink>.
 
 Demostrar que dos grafos **no** son isomorfos suele ser más fácil. Basta
 encontrar una propiedad que se conserve bajo isomorfismos y que solo uno de los
@@ -277,7 +280,7 @@ para responder cuándo un grafo está conectado.
 ## Referencias
 
 - Babai, L. (2016). Graph isomorphism in quasipolynomial time. _Proceedings of
-  the 48th Annual ACM Symposium on Theory of Computing (STOC)_, 684–697.
+  the 48th Annual <Acronym title="Association for Computing Machinery">ACM</Acronym> Symposium on Theory of Computing (STOC)_, 684–697.
 - Rosen, K. H. (2018). _Discrete Mathematics and Its Applications_ (8th ed.),
   sección 10.3. McGraw-Hill.
 - Suárez, J. (2025). _Fundamentos de Matemáticas Discretas, capítulo 3: Grafos_.
