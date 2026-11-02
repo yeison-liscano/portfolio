@@ -1,0 +1,183 @@
+---
+/**
+ * Tooltip - Shows a short note while the reader hovers over or focuses a word.
+ * Acronym, Term, ExternalLink and InternalLink are built on it; posts use
+ * those, not this component.
+ *
+ * The note is in the HTML from the start and tied to the word with
+ * aria-describedby, so screen readers and no-JS readers get it too. Without
+ * JavaScript, CSS shows it on :hover and :focus-within. With JavaScript it is
+ * kept inside the viewport (and outside scrolling figures and tables), stays
+ * open while the pointer moves onto it, and closes with Escape.
+ */
+type TagName = "a" | "abbr" | "dfn";
+
+interface Props {
+  /** Element that carries the word: a link, an abbreviation or a term. */
+  as: TagName;
+  /** Text of the note. */
+  note: string;
+  /** Optional first line of the note, such as a site or post title. */
+  heading?: string;
+  href?: string;
+  target?: string;
+  rel?: string;
+  class?: string;
+}
+
+const { as: Tag, note, heading, class: className, ...attrs } = Astro.props;
+const id = `tooltip-${Math.random().toString(36).slice(2, 10)}`;
+// Links are focusable already; an abbreviation or term needs a tab stop so
+// keyboard and touch readers can open the note.
+const tabindex = Tag === "a" ? undefined : 0;
+// Keep the markup below on one line: whitespace would show in the sentence.
+---
+
+{/* prettier-ignore */}
+<blog-tooltip><Tag class:list={["tooltip-trigger", className]} aria-describedby={id} tabindex={tabindex} {...attrs}><slot /></Tag><span class="tooltip-note" role="tooltip" id={id}>{heading && <span class="tooltip-heading">{heading}</span>}{note}</span></blog-tooltip>
+
+<script>
+  const GAP = 6;
+  const EDGE = 8;
+
+  class BlogTooltip extends HTMLElement {
+    private closeTimer = 0;
+    private readonly reposition = () => this.place();
+    private readonly onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") this.close();
+    };
+
+    connectedCallback() {
+      this.classList.add("is-enhanced");
+      // Touch readers open the note by focusing the word (a tap), so only
+      // mouse and pen hover counts here.
+      this.addEventListener("pointerenter", (event) => {
+        if (event.pointerType !== "touch") this.open();
+      });
+      this.addEventListener("pointerleave", (event) => {
+        if (event.pointerType !== "touch") this.closeSoon();
+      });
+      this.addEventListener("focusin", () => this.open());
+      this.addEventListener("focusout", () => {
+        if (!this.matches(":hover")) this.close();
+      });
+    }
+
+    disconnectedCallback() {
+      this.close();
+    }
+
+    open() {
+      window.clearTimeout(this.closeTimer);
+      if (this.hasAttribute("data-open")) return;
+      this.setAttribute("data-open", "");
+      this.place();
+      document.addEventListener("keydown", this.onKey);
+      window.addEventListener("scroll", this.reposition, {
+        capture: true,
+        passive: true,
+      });
+      window.addEventListener("resize", this.reposition, { passive: true });
+    }
+
+    // A short delay lets the pointer cross the gap between word and note.
+    closeSoon() {
+      window.clearTimeout(this.closeTimer);
+      this.closeTimer = window.setTimeout(() => {
+        if (!this.contains(document.activeElement)) this.close();
+      }, 150);
+    }
+
+    close() {
+      window.clearTimeout(this.closeTimer);
+      this.removeAttribute("data-open");
+      document.removeEventListener("keydown", this.onKey);
+      window.removeEventListener("scroll", this.reposition, { capture: true });
+      window.removeEventListener("resize", this.reposition);
+    }
+
+    place() {
+      const trigger = this.querySelector<HTMLElement>(".tooltip-trigger");
+      const note = this.querySelector<HTMLElement>(".tooltip-note");
+      if (!trigger || !note) return;
+      // A word that wraps onto two lines has two boxes: anchor to the first.
+      const anchor =
+        trigger.getClientRects()[0] ?? trigger.getBoundingClientRect();
+      const { width, height } = note.getBoundingClientRect();
+      const viewport = document.documentElement.clientWidth;
+      const maxLeft = Math.max(EDGE, viewport - width - EDGE);
+      const left = Math.min(Math.max(anchor.left, EDGE), maxLeft);
+      const above = anchor.top - height - GAP;
+      const top = above >= EDGE ? above : anchor.bottom + GAP;
+      note.style.setProperty("--tooltip-x", `${left}px`);
+      note.style.setProperty("--tooltip-y", `${top}px`);
+    }
+  }
+
+  customElements.define("blog-tooltip", BlogTooltip);
+</script>
+
+<style>
+  blog-tooltip {
+    position: relative;
+  }
+
+  .tooltip-trigger:not(a) {
+    font-style: normal;
+    text-decoration: underline dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    cursor: help;
+  }
+
+  .tooltip-trigger:focus-visible {
+    border-radius: 2px;
+    outline: 2px solid var(--contrast);
+    outline-offset: 2px;
+  }
+
+  .tooltip-note {
+    display: none;
+    position: absolute;
+    z-index: 30;
+    bottom: calc(100% + 6px);
+    left: 0;
+    width: max-content;
+    max-width: min(20rem, calc(100vw - 16px));
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background-color: var(--code-background);
+    box-shadow: 0 4px 12px
+      color-mix(in oklab, var(--text-color) 12%, transparent);
+    color: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: normal;
+    line-height: 1.45;
+    text-align: start;
+    text-transform: none;
+    white-space: normal;
+  }
+
+  .tooltip-heading {
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+
+  blog-tooltip:not(.is-enhanced):is(:hover, :focus-within) .tooltip-note {
+    display: block;
+  }
+
+  /* Fixed, so a figure or table that scrolls does not clip the note. */
+  blog-tooltip.is-enhanced[data-open] .tooltip-note {
+    display: block;
+    position: fixed;
+    top: var(--tooltip-y, 0);
+    bottom: auto;
+    left: var(--tooltip-x, 0);
+  }
+</style>

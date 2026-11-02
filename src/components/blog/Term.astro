@@ -1,0 +1,19 @@
+---
+/**
+ * Term - A technical term whose one-sentence definition shows on hover or
+ * focus. Wrap the use that introduces the term; later uses stay plain text.
+ *
+ *   <Term title="A protocol for secure communication over a network">TLS</Term>
+ */
+import Tooltip from "./Tooltip.astro";
+
+interface Props {
+  /** The definition, in one sentence and in the language of the post. */
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+{/* prettier-ignore */}
+<Tooltip as="dfn" note={title}><slot /></Tooltip>

@@ -16,6 +16,58 @@ const attribute = (block: string, name: string): string | undefined =>
 const isBlockEnd = (line: string, name: string): boolean =>
   line === `</${name}>` || line === "/>";
 
+// Inline components (ExternalLink, InternalLink, Acronym, Term) sit inside a
+// sentence. They become a Markdown link or plain text, so the sentence stays
+// whole. Left as tags, markdown-it would print them escaped, and one that a
+// line wrap put at column 0 would be read as a block and dropped.
+const ATTRIBUTES = String.raw`(?:\s+[\w-]+(?:=(?:"[^"]*"|'[^']*'|\{[^}]*\}))?)*\s*`;
+const INLINE = new RegExp(
+  String.raw`<(ExternalLink|InternalLink|Acronym|Term)(${ATTRIBUTES})>([\s\S]*?)</\1>`,
+  "g",
+);
+// Fenced code is copied as is: a post may show these tags as an example. The
+// capture group keeps each fence in split()'s output, at the odd indexes.
+const FENCE = /(^```[^\n]*\n[\s\S]*?^```[^\n]*$)/m;
+
+const inlineToMarkdown = (
+  name: string,
+  attributes: string,
+  text: string,
+  postUrl: string,
+): string => {
+  if (name === "ExternalLink") {
+    const href = attribute(attributes, "href");
+    return href ? `[${text}](${href})` : text;
+  }
+  if (name === "InternalLink") {
+    const slug = attribute(attributes, "slug");
+    const hash = attribute(attributes, "hash");
+    if (!slug) return text;
+    // postUrl is .../blog/<id>/, so a sibling post is ../<slug>/.
+    const target = new URL(`../${slug}/${hash ? `#${hash}` : ""}`, postUrl);
+    return `[${text}](${target.href})`;
+  }
+  if (name === "Acronym") {
+    const title = attribute(attributes, "title");
+    return title ? `${text} (${title})` : text;
+  }
+  return text;
+};
+
+const replaceInline = (body: string, postUrl: string): string =>
+  body
+    .split(FENCE)
+    .map((part, index) =>
+      index % 2 === 1
+        ? part
+        : part.replace(
+            INLINE,
+            (_, name: string, attributes: string, text: string) =>
+              inlineToMarkdown(name, attributes, text, postUrl),
+          ),
+    )
+    .join("");
+
 const summarize = (block: string, postUrl: string): string => {
   const caption = attribute(block, "caption");
   if (caption) {
@@ -26,7 +78,7 @@ const summarize = (block: string, postUrl: string): string => {
 };
 
 export const mdxToMarkdown = (body: string, postUrl: string): string => {
-  const lines = body.split("\n");
+  const lines = replaceInline(body, postUrl).split("\n");
   const output: string[] = [];
   let index = 0;
   let inCode = false;

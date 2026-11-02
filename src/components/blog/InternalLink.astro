@@ -1,0 +1,41 @@
+---
+/**
+ * InternalLink - A link to another post on this blog, by slug. On hover or
+ * focus it previews the post's title and description.
+ *
+ *   <InternalLink slug="json-rpc">the JSON-RPC post</InternalLink>
+ *
+ * The build fails when the slug does not exist, and when a published post
+ * links to a draft, because that link would break in production. Drafts may
+ * link to drafts: the link then points to the draft preview.
+ */
+import { getEntry } from "astro:content";
+import Tooltip from "./Tooltip.astro";
+
+interface Props {
+  /** The post id: its file name in src/blog, without the extension. */
+  slug: string;
+  /** Optional heading id on the target post, without "#". */
+  hash?: string;
+}
+
+const { slug, hash } = Astro.props;
+
+const post = await getEntry("blog", slug);
+if (!post) {
+  throw new Error(`InternalLink: there is no post "${slug}" in src/blog.`);
+}
+
+const fromDraft = Astro.url.pathname.includes("/blog/drafs/");
+if (post.data.isDraft && !fromDraft) {
+  throw new Error(
+    `InternalLink: "${slug}" is a draft, so this link would break once the post is published. Publish "${slug}" first or remove the link.`,
+  );
+}
+
+const section = post.data.isDraft ? "blog/drafs" : "blog";
+const href = `${import.meta.env.BASE_URL}${section}/${slug}/${hash ? `#${hash}` : ""}`;
+---
+
+{/* prettier-ignore */}
+<Tooltip as="a" href={href} heading={post.data.title} note={post.data.description}><slot /></Tooltip>

@@ -141,6 +141,7 @@ Oligopolio
 Ollama
 OpenStax
 PERMA
+PKCE
 POP3
 PPP
 PYODIDE
@@ -173,6 +174,7 @@ Rivest
 Rossum
 SAMEORIGIN
 SAST
+Scannability
 SIEM
 SIGTTIN
 SMTP
@@ -239,6 +241,7 @@ astro
 astrojs
 asyncio
 autocumplida
+autolinks
 axum
 backface
 bezier
@@ -281,6 +284,7 @@ darwin
 dataclass
 datagram
 datagrams
+dataviz
 datetime
 ddof
 defaultdict
@@ -423,6 +427,7 @@ opcion
 optgroup
 orquestadores
 overlappingly
+pageviews
 paypal
 pentagono
 pentesters
@@ -465,6 +470,7 @@ refinanciamiento
 refinanciar
 reflog
 rehype
+remarkrc
 remediación
 renice
 repr
@@ -487,6 +493,7 @@ shiki
 shopt
 simbolik
 sobel
+sparticuz
 srcs
 starlette
 staticmethod
@@ -497,6 +504,7 @@ subarray
 subcircuit
 subcircuito
 subcircuitos
+subfolders
 subgrafo
 subgrafos
 subindice

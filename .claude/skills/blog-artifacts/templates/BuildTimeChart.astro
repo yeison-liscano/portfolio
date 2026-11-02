@@ -1,0 +1,123 @@
+---
+/**
+ * GrowthChart - Future value of 1,000 at 5% a year, by decade.
+ * Drawn at build time from the data below: no JavaScript ships.
+ *
+ * TEMPLATE: copy to src/blog/components/<post-slug>/<Name>.astro, rename,
+ * replace DATA, UNIT and the aria-label. Keep one scale for bars, ticks and
+ * labels so every label names a value the chart reaches.
+ */
+interface Datum {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}
+
+const DATA: Datum[] = [
+  { label: "Year 0", value: 1000 },
+  { label: "Year 10", value: 1629 },
+  { label: "Year 20", value: 2653 },
+  { label: "Year 30", value: 4322 },
+  { label: "Year 40", value: 7040, highlight: true },
+];
+const UNIT = "$";
+
+// Drawing box. Margins leave room for the outermost labels.
+const W = 640;
+const H = 300;
+const M = { top: 24, right: 16, bottom: 36, left: 56 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+
+// A "nice" tick step: 1, 2 or 5 times a power of ten.
+const rawMax = Math.max(...DATA.map((d) => d.value));
+const magnitude = 10 ** Math.floor(Math.log10(rawMax / 4));
+const step =
+  [1, 2, 5, 10].map((f) => f * magnitude).find((s) => rawMax / s <= 5) ??
+  magnitude * 10;
+const yMax = Math.ceil(rawMax / step) * step;
+const ticks = Array.from({ length: yMax / step + 1 }, (_, i) => i * step);
+
+const y = (value: number) => M.top + plotH - (value / yMax) * plotH;
+const band = plotW / DATA.length;
+const barW = band * 0.56;
+const x = (index: number) => M.left + band * index + (band - barW) / 2;
+const format = (value: number) => `${UNIT}${value.toLocaleString("en-US")}`;
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label="Bar chart: 1,000 at 5% a year grows to 7,040 after 40 years"
+  class="chart"
+>
+  {ticks.map((tick) => (
+    <g>
+      <line
+        x1={M.left}
+        x2={W - M.right}
+        y1={y(tick)}
+        y2={y(tick)}
+        class="grid"
+      />
+      <text x={M.left - 8} y={y(tick)} class="tick" text-anchor="end">
+        {format(tick)}
+      </text>
+    </g>
+  ))}
+  {DATA.map((d, i) => (
+    <g>
+      <rect
+        x={x(i)}
+        y={y(d.value)}
+        width={barW}
+        height={y(0) - y(d.value)}
+        rx="2"
+        class:list={["bar", { highlight: d.highlight }]}
+      />
+      <text
+        x={x(i) + barW / 2}
+        y={y(d.value) - 6}
+        class="value"
+        text-anchor="middle"
+      >
+        {format(d.value)}
+      </text>
+      <text x={x(i) + barW / 2} y={H - 12} class="tick" text-anchor="middle">
+        {d.label}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .chart {
+    min-width: 480px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .tick {
+    fill: var(--muted);
+    font-size: 11px;
+    dominant-baseline: middle;
+  }
+
+  .value {
+    fill: var(--text-color);
+    font-size: 12px;
+  }
+
+  .bar {
+    fill: var(--muted);
+  }
+
+  .bar.highlight {
+    fill: var(--contrast);
+  }
+</style>
