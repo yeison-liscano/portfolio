@@ -31,7 +31,7 @@ let
     else
       inputs.nixpkgs.fetchzip {
         url = "https://cdn.cypress.io/desktop/${version}/darwin-arm64/cypress.zip";
-        sha256 = "sha256-htKCmrwddD5uJj/x5wuF4injQOJiqH3qD64gL92+gq0=";
+        sha256 = "sha256-r8akzSxrjRrwE/Y5Y3rHgG4yr4FPRSX9eM5J7mriR6k=";
         stripRoot = false;
       };
 in
