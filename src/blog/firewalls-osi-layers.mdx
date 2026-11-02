@@ -1,0 +1,422 @@
+---
+lang: "en"
+title: "Firewalls by OSI Layer: What Each Type Reads in One HTTPS Request, and Why Only One Can Block a DELETE"
+pubDate: 2026-11-02
+description:
+  "One HTTPS request meets a firewall at each OSI layer, from an air gap to a
+  web application firewall: which bytes each type reads, which rule it can
+  enforce, how attackers get around it, and what it costs."
+summary:
+  - "A firewall decides only on the bytes it reads. In the request's 142-byte
+    frame, a MAC filter reads 14 bytes, a packet filter reads up to byte 66,
+    and only a firewall that holds the TLS key reads the request."
+  - "A stateless filter must accept anything that looks like a reply, so a SYN
+    from source port 443 gets in. A stateful firewall accepts only replies to
+    connections it saw open, and its table becomes the target of a flood."
+  - "Circuit-level gateways and SNI filters see who connects and to which name,
+    never what is sent. Encrypted Client Hello hides even the name."
+  - "To read layer 7 of HTTPS, a firewall must end the TLS connection. Choose
+    the lowest layer that can answer the question your rule asks."
+tags: ["networking", "security"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import FirewallReach from "./components/firewalls-osi-layers/FirewallReach.astro";
+import StateTable from "./components/firewalls-osi-layers/StateTable.astro";
+import TlsPaths from "./components/firewalls-osi-layers/TlsPaths.astro";
+
+{/* cspell:ignore Shwed Koblas Mogul Cheswick Durumeric daddr dport saddr vmap Pescatore Andersdotter Carnahan Dormann Huitema Messmer Ranum Scarfone Senie Shirey Traina Ultrix ultrix Ziemba Zúñiga CNSSI NDSS */}
+
+Keywords: firewall, OSI model, packet filter, stateful inspection, connection
+tracking, SOCKS, TLS inspection, web application firewall, NGFW
+
+The orders <Acronym title="Application Programming Interface">API</Acronym> from the <InternalLink slug="osi-layers-one-request">OSI post</InternalLink> has a new
+rule: the checkout app may read order 42, and nobody may delete it. "Put a
+firewall in front of it" sounds like an answer. But there are several kinds of
+firewall, and each one reads the request only up to one layer. A <Acronym title="Media Access Control">MAC</Acronym>
+filter reads the 14-byte Ethernet header. A packet filter reads the 52 bytes of
+the <Acronym title="Internet Protocol">IP</Acronym> and <Acronym title="Transmission Control Protocol">TCP</Acronym> headers. Only a firewall that decrypts <Acronym title="Transport Layer Security">TLS</Acronym> can read the
+word `DELETE`. This post sends the same request through a firewall at each <Acronym title="Open Systems Interconnection">OSI</Acronym>
+layer, from 1 to 7. For each one you will see which bytes it reads, which rule
+it can enforce, where it stops, and what it costs.
+
+## A firewall can only decide on the bytes it reads
+
+The <Acronym title="National Institute of Standards and Technology">NIST</Acronym> guide
+to firewalls, <ExternalLink href="https://csrc.nist.gov/pubs/sp/800/41/r1/final" preview="NIST's guidelines on firewall technologies and firewall policy (2009): packet filters, stateful inspection, application firewalls, proxies and their placement.">SP 800-41 Rev. 1</ExternalLink>,
+defines a firewall as "a device or program that controls the flow of network
+traffic between networks or hosts". The <Acronym title="Internet Engineering Task Force">IETF</Acronym>'s <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2979.html" preview="IETF requirements for Internet firewalls (2000): what a firewall is, and why it must not break standards-compliant traffic.">RFC 2979</ExternalLink>
+adds how: firewalls "either act as a protocol end point and relay, as a packet
+filter, or some combination of both". A packet filter judges each packet as it
+passes. A relay ends the connection and opens a new one. Both decide with rules,
+and a rule can only test a field that the firewall can read.
+
+The request is the one the OSI post built byte by byte. The checkout app at
+`10.0.1.20` sends `GET /orders/42` over <Acronym title="HTTP Secure: HTTP over an encrypted TLS connection">HTTPS</Acronym> to the orders API at
+`10.0.2.30:443`. On the wire it is a 142-byte Ethernet frame. It holds a 14-byte
+Ethernet header, a 20-byte IPv4 header, 32 bytes of TCP header, a 72-byte TLS
+record whose last 67 bytes are encrypted, and a 4-byte frame check sequence. A
+`DELETE` for the same order would be the same frame with three more encrypted
+bytes.
+
+<Figure caption="Each kind of firewall reads the frame up to one layer. Only the firewall that holds the TLS key reaches the request, so only it can tell GET from DELETE.">
+  <FirewallReach />
+</Figure>
+
+The figure raises three questions. Why can't a MAC filter in front of the API
+tell the checkout app from an attacker? Why does a rule that lets replies in
+also let an attacker reach the database? And which firewall can block the
+`DELETE`?
+
+NIST describes firewalls with the four layers of the TCP/IP model, and notes
+that "basic firewalls operate at one or a few layers, usually the lower layers,
+while the more advanced firewalls operate at all of the layers". This post uses
+the OSI numbers, like the OSI post, and gives each kind of firewall the layer
+whose header it reads. The numbering is a map, not a standard. Sources disagree
+about where some types belong, and the sections below say where. The <InternalLink slug="torre-de-protocolos">protocol tower post</InternalLink> (in
+Spanish) ends with the rule this post builds on: a device can only check what
+its layer lets it read. The sections below answer the three questions from the
+bottom up, starting at layer 1.
+
+## Layer 1 has no rules, only isolation: air gaps and data diodes
+
+The physical layer carries signals, not headers, so there is no field for a rule
+to test. Firewalls at this layer do not filter. They decide whether a signal can
+travel at all, and in which direction.
+
+An **air gap** is the simplest form. The <ExternalLink href="https://csrc.nist.gov/glossary/term/air_gap" preview="NIST glossary entry for air gap, quoting CNSSI 4009 and RFC 4949: systems with no physical connection, where data moves only by hand.">NIST glossary</ExternalLink>
+describes systems that are "not connected physically", where data moves "only
+manually, under human control". A **data diode** is "a network appliance or
+device that allows data to travel only in one direction", in the words of NIST
+SP 800-82r3. Industrial plants use diodes to send measurements out to the office
+network while nothing can come back in.
+
+A diode cannot carry a TCP connection, because TCP needs acknowledgments in the
+other direction. A <Term title="A data diode with software on each side that copies data across and stands in for the servers on the far side.">unidirectional gateway</Term> works around this in software: it
+replicates databases and emulates protocol servers on each side, while the
+hardware between them is "physically unable to send any information" back.
+
+For the orders API, layer 1 offers all or nothing. A diode could let the API
+publish reports to another network, but the checkout app needs answers, so it
+needs both directions. The strength of this layer is that there is no rule to
+misconfigure. Its cost is that nothing interactive gets through.
+
+## A layer 2 filter trusts MAC addresses, which every router rewrites
+
+A layer 2 filter decides on the Ethernet header: the source and destination MAC
+addresses, the EtherType and the <Acronym title="Virtual Local Area Network">VLAN</Acronym> tag. Switches filter with port
+security and VLANs. Linux filters with a <Term title="A firewall that forwards frames like a switch, so it needs no IP address and the hosts on either side do not see it as a hop.">bridging firewall</Term>: ebtables, and now
+the <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Bridge_filtering" preview="nftables wiki: the bridge family, which replaces ebtables, its hooks, and connection tracking on bridges since Linux 5.3.">nftables bridge family</ExternalLink>,
+filter frames as they cross a bridge. The `arp` family sees <Acronym title="Address Resolution Protocol">ARP</Acronym> traffic "before
+any L3 handling". The <ExternalLink href="https://ebtables.netfilter.org/" preview="The ebtables project page: a filtering tool for Linux bridging firewalls, now kept as a documentation reference.">ebtables documentation</ExternalLink>
+is plain about the reach: "The filtering possibilities are limited to link
+layer filtering and some basic filtering on higher network layers."
+
+That reach answers the first question. The OSI post showed that a router
+rewrites both MAC addresses before it forwards a frame. Every frame that reaches
+the API's subnet from another subnet carries the router's MAC address as its
+source, `02:00:00:00:02:01`, whether the checkout app sent it or an attacker
+did. A MAC filter in front of the API can only learn that the frame came through
+the router. A MAC address names the previous hop, not the sender.
+
+Even on one link, a MAC address is a weak identity, because software sets it.
+The command `ip link set dev eth0 address 02:00:00:00:01:20` changes it. Most
+modern operating systems already randomize it, per network or per boot, as
+documented in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9724.html" preview="IETF overview (2025) of randomized and changing MAC addresses, now the default in most modern operating systems.">RFC 9724</ExternalLink>.
+
+The stronger tool at this layer is <Acronym title="Institute of Electrical and Electronics Engineers">IEEE</Acronym> 802.1X. The switch port stays closed
+until the device behind it authenticates. The same exchange can set up MACsec
+keys, which encrypt and authenticate every frame on that link. That answers
+"which device is plugged into this port?". It still says nothing about the
+request, five layers up.
+
+## A stateless packet filter must leave a door open for replies
+
+A packet filter reads the IP header and the TCP or <Acronym title="User Datagram Protocol">UDP</Acronym> header: source and
+destination addresses, the protocol, source and destination ports, and the TCP
+flags. It judges each packet alone. NIST's summary is short: packet filters "do
+not keep track of the state of each flow" and "do not analyze the content of
+packets". This is the oldest kind. In 1989 Jeffrey Mogul described access
+controls for datagrams on a Unix gateway, and by 1991 Cisco sold the same idea
+as "packet filtering". Router <Acronym title="Access Control Lists">ACLs</Acronym> still work this way.
+
+For the orders API, a packet filter can enforce half of the rule: only
+`10.0.1.20` may reach `10.0.2.30` on port 443. `GET` and `DELETE` arrive in the
+same kind of packets on the same port, so the other half is out of reach.
+
+The trouble starts with connections that the servers open. Suppose the orders
+API calls a payment provider at `198.51.100.7:443`. Its <Term title="The first segment of TCP's handshake, which asks to open a connection.">SYN</Term> leaves from a
+temporary port, say 40112, and the replies come back from port 443 to port 40112. A stateless filter cannot know that those packets are replies, so it
+needs a wide rule: accept TCP from port 443 to any port above 1023. The classic
+form, in <ExternalLink href="https://www.cisco.com/c/en/us/support/docs/ip/access-lists/26448-ACLsamples.html" preview="Cisco's examples of standard and extended IP access lists, including the established keyword for return traffic.">Cisco's ACL examples</ExternalLink>,
+is `permit tcp any any gt 1023 established`, where `established` matches
+packets with the ACK or RST bit set.
+
+That rule answers the second question. The sender chooses its own source port.
+An attacker who sends a SYN from port 443 to the orders database at
+`10.0.2.40:5432` matches "from port 443 to a port above 1023" and reaches the
+database. The <ExternalLink href="https://nmap.org/book/man-bypass-firewalls-ids.html" preview="Nmap reference guide: firewall and IDS evasion options, including --source-port to send probes from a trusted port.">Nmap manual</ExternalLink>
+calls it "one surprisingly common misconfiguration": trust "based only on the
+source port number". It offers `--source-port` to exploit it. The `established`
+keyword stops a bare SYN. It does not stop a packet with the ACK bit set, and
+those are enough to map a network. Nmap's ACK scan exists "to map out firewall
+rulesets, determining whether they are stateful or not".
+
+Two more gaps come from judging packets one at a time. A filter trusts the
+source address it reads, so forged addresses pass unless each network drops them
+at its edge, which is what <Acronym title="Best Current Practice">BCP</Acronym> 38 asks. And IP fragments can hide the
+TCP header. In the tiny-fragment attack from <ExternalLink href="https://www.rfc-editor.org/rfc/rfc1858.html" preview="IETF security considerations for IP fragment filtering (1995): the tiny-fragment and overlapping-fragment attacks, and how a filter can stop them.">RFC 1858</ExternalLink>,
+the first fragment is so small that the TCP flags land in the second one, which
+a filter that checks only first fragments lets through. Its fix is blunt:
+drop any TCP fragment whose offset is 1, that is, one that starts 8 bytes into
+the packet.
+
+## A stateful firewall remembers each connection, and its table can fill up
+
+A stateful firewall reads the same headers, but it also keeps a table of the
+connections it has seen. NIST defines stateful inspection as "packet filtering
+that also tracks the state of connections and blocks packets that deviate from
+the expected state". Check Point's FireWall-1 brought it to market in 1994,
+after Gil Shwed filed the patent in 1993.
+
+Linux implements it with <Term title="The Linux kernel subsystem that records every connection passing through the host, so filtering rules can match its state.">connection tracking</Term>, or conntrack. Each packet gets a
+state. It is `new` when packets have been seen in only one direction, and
+`established` when valid packets have traveled in both. A packet is `related`
+when it belongs to an existing connection without being part of it, such as
+an <Acronym title="Internet Control Message Protocol">ICMP</Acronym> error, and `invalid` when it fits nothing. A stateful version of the
+rules for the server subnet, written for nftables, looks like this:
+
+```text
+table inet filter {
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+    ct state vmap { established : accept, related : accept, invalid : drop }
+    ip saddr 10.0.1.20 ip daddr 10.0.2.30 tcp dport 443 ct state new accept
+    ip saddr 10.0.2.0/24 tcp dport 443 ct state new accept
+  }
+}
+```
+
+The first rule replaces the wide reply rule. The payment provider's SYN-ACK is
+accepted because it belongs to a connection that the API opened. The attacker's
+SYN from port 443 belongs to no connection, and no rule allows a new connection
+to port 5432, so the policy drops it. The `vmap` line follows
+the <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Simple_ruleset_for_a_server" preview="nftables wiki: a ready-made stateful ruleset for a server, with a ct state verdict map for established, related and invalid packets.">nftables wiki's server ruleset</ExternalLink>.
+One Linux detail: by default, conntrack also picks up connections it did not see
+open (`nf_conntrack_tcp_loose`), so a stray ACK is classified `new`, not
+`invalid`. The policy still drops it, because no rule accepts it.
+
+<Figure caption="The same SYN from port 443 meets two kinds of filter. The stateless rule takes it for a reply. The stateful firewall finds no connection it belongs to and drops it.">
+  <Stepper
+    label="Packets through a stateful firewall"
+    steps={[
+      "The orders API opens a connection to the payment provider. Its SYN leaves from port 40112 to port 443, and the firewall records the connection as new.",
+      "The provider answers from port 443. The SYN-ACK matches the record, so the firewall accepts it and marks the connection established.",
+      "An attacker sends a SYN to the database on port 5432, from source port 443. A stateless rule that accepts anything from port 443 lets it in.",
+      "The stateful firewall finds no record for this packet, and no rule allows new connections to port 5432, so it drops the packet.",
+    ]}
+  >
+    <StateTable />
+  </Stepper>
+</Figure>
+
+The price of that memory is memory. Every connection takes an entry, and the
+table has a limit. The <ExternalLink href="https://docs.kernel.org/networking/nf_conntrack-sysctl.html" preview="Linux kernel documentation of the conntrack sysctls: table size, hash buckets and the timeout of each connection state.">kernel's conntrack settings</ExternalLink>
+set `nf_conntrack_max` to the number of hash buckets by default, which is
+between 1,024 and 262,144 depending on memory. An established TCP entry lives
+for 432,000 seconds, five days, unless the connection closes. When the table is
+full and nothing can be evicted, the kernel logs `nf_conntrack: table full,
+dropping packet`, and new connections fail for everyone. A <Term title="An attack that sends many SYN segments and never completes the handshakes, to fill the tables that hold half-open connections.">SYN flood</Term> aims at
+exactly this. As <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4987.html" preview="IETF overview (2007) of TCP SYN flooding attacks and their mitigations, including SYN cookies, firewalls and proxies.">RFC 4987</ExternalLink>
+notes, a firewall that screens handshakes "moves the problem away from end hosts
+to become the firewall's or proxy's problem".
+
+Some protocols open connections that the table cannot predict. Active <Acronym title="File Transfer Protocol">FTP</Acronym>
+agrees on a data port inside its control connection. Conntrack helpers read that
+negotiation and mark the data connection `related`. Since Linux 4.7 they are no
+longer assigned automatically, and the <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Conntrack_helpers" preview="nftables wiki: how to assign conntrack helpers such as FTP explicitly, and why to restrict them by address.">nftables wiki on helpers</ExternalLink>
+warns that a helper with no destination address restriction can allow arbitrary
+port forwarding.
+
+For the orders API, the table knows that a connection came from the checkout
+app and opened the right way. It still cannot tell `GET` from `DELETE`, because
+both travel inside the same established connection.
+
+## A circuit-level gateway checks who connects, never what they send
+
+A circuit-level gateway does not let packets through. The client opens a TCP
+connection to the gateway and asks for a destination. The gateway checks the
+request against its rules, opens a second TCP connection to the destination,
+and copies bytes between the two. NIST's 1994 introduction to firewalls, SP
+800-10, describes it as a relay of TCP connections with no further processing
+of the protocol, like a Telnet relay that "just forwards bytes".
+
+SOCKS is the standard form. David and Michelle Koblas presented it in 1992, and
+version 5 is specified in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc1928.html" preview="The SOCKS version 5 protocol (1996): how a client asks a proxy to connect to a host and port, and how it authenticates.">RFC 1928</ExternalLink>
+(1996). The client sends a `CONNECT` request with the host and port it wants,
+and the server can require authentication first. The RFC calls SOCKS "a
+'shim-layer' between the application layer and the transport layer". Vendors
+place circuit-level gateways at layer 5, the session layer, and SP 800-10 notes
+that some authors group them with application gateways. The session label fits
+what they judge: who opened a connection, to where, and for how long.
+
+Because the gateway builds a fresh connection, nothing the client sends below
+TCP reaches the server. Odd flags, fragments and forged replies end at the
+gateway. For HTTPS, the gateway relays the TLS stream without keys, but it can
+still read the start of it. The ClientHello, the first message of the TLS
+handshake, carries the server name in clear text, in the <Acronym title="Server Name Indication">SNI</Acronym> extension.
+As <ExternalLink href="https://www.rfc-editor.org/rfc/rfc8744.html" preview="IETF analysis (2020) of why the TLS server name is sent in clear text, who relies on it, and what encrypting it requires.">RFC 8744</ExternalLink>
+notes, enterprise firewalls use it to block sites. The record headers show
+each record's type and length. TLS "does not hide the length of the data it
+transmits", says the <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9846.html" preview="The TLS 1.3 specification (2026), which obsoletes RFC 8446.">TLS 1.3 specification</ExternalLink>,
+although endpoints may pad records to hide it.
+
+That view is shrinking. <Acronym title="Encrypted Client Hello">ECH</Acronym>, standardized in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9849.html" preview="The TLS Encrypted Client Hello specification (2026): the real ClientHello is encrypted under the server's public key.">RFC 9849</ExternalLink>,
+encrypts the real ClientHello under the server's public key. The outer
+ClientHello that observers see names only the provider's public name. The RFC
+counts "a middlebox that filters based on plaintext packet contents" as an
+example of "a passive attacker".
+
+For the orders API, a circuit-level gateway can enforce "only the checkout
+service account may connect to `orders.internal:443`". The `DELETE` travels
+through the same tunnel as the `GET`.
+
+## TLS hides layer 7, so an application firewall must decrypt to read it
+
+An application firewall reads the protocol itself. NIST defines it as a
+firewall that "uses stateful protocol analysis to analyze network traffic for
+one or more applications". Its close relative, the application-proxy gateway,
+"combines lower-layer access control with upper layer-functionality": its proxy
+"never allows a direct connection between the hosts" and "can inspect the actual
+content". The design is as old as packet filters. Bill Cheswick's 1990 gateway
+at AT&T Bell Labs was an application-level gateway: two machines on a private
+link, with no direct IP path between the networks.
+
+For HTTP, it is a <Term title="A firewall that reads HTTP requests and responses and blocks those that match its rules, usually placed in front of a web server.">web application firewall</Term>, or <Acronym title="Web Application Firewall">WAF</Acronym>. <Acronym title="Open Worldwide Application Security Project">OWASP</Acronym> defines it as "an
+application firewall for HTTP applications" that "applies a set of rules to an
+HTTP conversation". The <ExternalLink href="https://owasp.org/www-project-modsecurity-core-rule-set/" preview="OWASP project page of the Core Rule Set: generic attack detection rules for ModSecurity and compatible web application firewalls.">OWASP Core Rule Set</ExternalLink>
+gives ModSecurity and compatible WAFs a set of generic attack detection rules.
+The orders rule is one more line in any of them: refuse `DELETE` on `/orders/`.
+
+That answers the third question, with a condition. The `DELETE` exists in clear
+text only at the two ends of the TLS connection. To read it, the firewall must
+become one of those ends. It completes the handshake with the client, decrypts
+the request and decides. For a request it allows, it opens a second TLS
+connection to the API.
+
+<Figure caption="A circuit-level gateway relays one TLS connection, so the DELETE reaches the API. An application firewall ends the client's TLS connection, reads the DELETE and answers 403 itself.">
+  <TlsPaths />
+</Figure>
+
+There are two ways to become that end, and they cost different amounts of
+trust:
+
+- **In front of your own server.** A <Term title="A server that receives requests on behalf of one or more backend servers and forwards them.">reverse proxy</Term> or load balancer holds
+  the API's certificate and private key, like the load balancer in the OSI post.
+  Clients change nothing. You trust the WAF with the key, and it becomes part of
+  the API.
+- **In front of your users.** A firewall that inspects outgoing HTTPS has no key
+  for other people's sites. It issues a certificate for each site itself,
+  signed by its own <Term title="An entity that signs certificates; a client accepts a certificate only if a certificate authority it trusts signed it.">certificate authority</Term>, and every client must trust
+  that authority. The <Acronym title="Cybersecurity and Infrastructure Security Agency">CISA</Acronym> alert <ExternalLink href="https://www.cisa.gov/news-events/alerts/2017/03/16/https-interception-weakens-tls-security" preview="CISA alert TA17-075A (2017): HTTPS inspection products often weaken TLS, for example by not verifying certificate chains.">TA17-075A</ExternalLink>
+  calls this "performing a man-in-the-middle" and warns that many products "do
+  not properly verify the certificate chain". <Acronym title="CERT Coordination Center, at Carnegie Mellon's Software Engineering Institute">CERT/CC</Acronym> adds that "the client
+  can verify only that it is communicating with the SSL-inspecting software".
+  A study of interception at scale found that "nearly all reduce connection
+  security and many introduce severe vulnerabilities".
+
+For the orders API, the first way applies, because the API is yours. A WAF in
+front of it holds its key and answers the `DELETE` with 403. The cost is upkeep.
+OWASP notes that a WAF's tuning must be "maintained as the application is
+modified", and every rule that blocks a valid request becomes an outage.
+
+## A next-generation firewall combines the layers but keeps their limits
+
+The name comes from a 2009 Gartner note. As <ExternalLink href="https://www.networkworld.com/article/716373/what-you-should-know-about-next-generation-firewalls-2.html" preview="Network World (2010) on next-generation firewalls and the criteria Gartner set for them.">Network World reported its criteria</ExternalLink>,
+an <Acronym title="Next-Generation Firewall">NGFW</Acronym> has four things. It has "standard firewall features such as
+network address translation, stateful inspection, VPN". It has a "truly
+integrated" intrusion prevention system and "application-awareness" regardless
+of the port. And it draws on intelligence from outside the firewall, such as
+the users and groups of a directory. NIST's name for the wider bundle is <Term title="A product that combines a firewall with other security functions, such as intrusion prevention, antivirus and VPN, in one system.">unified threat management</Term>.
+
+An NGFW is the layers of this post in one box, and it inherits each layer's
+limits. Without decryption, it identifies applications from what a circuit
+gateway sees: server names, traffic patterns, and certificates, which TLS 1.3
+now encrypts. With decryption, it pays the costs of the previous section. And
+one box means one connection table for a SYN flood to fill.
+
+## Pick the firewall by the question your rule asks
+
+The three questions have answers now. A MAC filter in front of the API sees
+every frame arrive from the router, so it cannot tell the checkout app from an
+attacker. A stateless reply rule trusts a source port that the sender chooses,
+so a SYN from port 443 reaches the database. And only a firewall that ends the
+TLS connection can read `DELETE /orders/42`, so only it can refuse it.
+
+The same pattern holds for any rule. The fields the rule names set the lowest
+layer that can enforce it:
+
+| Your rule asks                                    | Layer | Firewall                          | It cannot see                      |
+| ------------------------------------------------- | ----- | --------------------------------- | ---------------------------------- |
+| Can a signal get through, and in which direction? | 1     | air gap, data diode               | anything; it has no rules          |
+| Which device on this link sent the frame?         | 2     | MAC or bridge filter, 802.1X      | anything past the last router      |
+| Which addresses and ports?                        | 3–4   | stateless packet filter           | whether a packet is a reply        |
+| Is it part of a connection we allowed?            | 3–4   | stateful firewall                 | what the connection carries        |
+| Which user connects to which name?                | 5–6   | circuit-level gateway, SNI filter | the request, and the name with ECH |
+| What does the request ask for?                    | 7     | WAF or proxy that ends TLS        | whether the caller owns the order  |
+
+The lower rows are cheap and fast, and they are hard to fool about what they do
+see, so they should drop everything they can. The top row is the only one that
+understands the request. It is also the most expensive, and the easiest to get
+wrong. The orders API needs both: a stateful firewall that lets only the
+checkout app reach port 443, and a WAF that refuses the `DELETE`. The API should
+still check that the caller may delete that order, because no firewall knows
+who owns it.
+
+Before you choose or configure a firewall, write the rule as a question. If the
+firewall cannot read the field that the question names, it does not enforce the
+rule, whatever its dashboard shows.
+
+## References
+
+- **Definitions and guides:** <ExternalLink href="https://csrc.nist.gov/pubs/sp/800/41/r1/final" preview="NIST's guidelines on firewall technologies and firewall policy (2009).">NIST SP 800-41 Rev. 1</ExternalLink>
+  (Scarfone and Hoffman, 2009) and its summary, the <ExternalLink href="https://csrc.nist.gov/files/pubs/shared/itlb/itlbul2009-10.pdf" preview="NIST ITL Bulletin, October 2009: a summary of the revised firewall guidelines, layer by layer.">ITL Bulletin of October 2009</ExternalLink>;
+  NIST glossary entries for <ExternalLink href="https://csrc.nist.gov/glossary/term/firewall" preview="NIST glossary: firewall.">firewall</ExternalLink>, <ExternalLink href="https://csrc.nist.gov/glossary/term/packet_filter" preview="NIST glossary: packet filter.">packet filter</ExternalLink>, <ExternalLink href="https://csrc.nist.gov/glossary/term/Stateful_Inspection" preview="NIST glossary: stateful inspection.">stateful inspection</ExternalLink>, <ExternalLink href="https://csrc.nist.gov/glossary/term/application_firewall" preview="NIST glossary: application firewall.">application firewall</ExternalLink>
+  and <ExternalLink href="https://csrc.nist.gov/glossary/term/application_proxy_gateway" preview="NIST glossary: application-proxy gateway.">application-proxy gateway</ExternalLink>; <ExternalLink href="https://csrc.nist.gov/pubs/sp/800/10/final" preview="NIST SP 800-10 (1994, withdrawn in 2015): an early introduction to Internet firewalls.">NIST SP 800-10</ExternalLink>
+  (Wack and Carnahan, 1994, withdrawn, cited for history); <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2979.html" preview="Behavior of and requirements for Internet firewalls (2000).">RFC 2979</ExternalLink>
+  (Freed, 2000); <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4949.html" preview="Internet Security Glossary, version 2 (2007).">RFC 4949</ExternalLink>
+  (Shirey, 2007).
+- **Layers 1 and 2:** NIST glossary entries for <ExternalLink href="https://csrc.nist.gov/glossary/term/air_gap" preview="NIST glossary: air gap.">air gap</ExternalLink>, <ExternalLink href="https://csrc.nist.gov/glossary/term/data_diode" preview="NIST glossary: data diode, from SP 800-82r3.">data diode</ExternalLink>
+  and <ExternalLink href="https://csrc.nist.gov/glossary/term/unidirectional_gateway" preview="NIST glossary: unidirectional gateway, from SP 800-82r3.">unidirectional gateway</ExternalLink>; <ExternalLink href="https://standards.ieee.org/ieee/802.1X/7345/" preview="IEEE 802.1X-2020: port-based network access control.">IEEE 802.1X-2020</ExternalLink>; <ExternalLink href="https://ebtables.netfilter.org/" preview="The ebtables project page.">ebtables</ExternalLink>; <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Nftables_families" preview="nftables wiki: the ip, ip6, inet, arp, bridge and netdev families.">nftables families</ExternalLink>
+  and <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Bridge_filtering" preview="nftables wiki: bridge filtering.">bridge filtering</ExternalLink>; <ExternalLink href="https://man7.org/linux/man-pages/man8/ip-link.8.html" preview="Linux manual of ip link, whose address option changes an interface's MAC address.">`ip-link(8)`</ExternalLink>; <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9724.html" preview="State of affairs for randomized and changing MAC addresses (2025).">RFC 9724</ExternalLink>
+  (Zúñiga, Bernardos and Andersdotter, 2025).
+- **Packet filters:** Mogul's 1991 note on <ExternalLink href="https://www.tuhs.org/Usenet/comp.unix.ultrix/1991-May/004446.html" preview="Jeffrey Mogul on comp.unix.ultrix, May 1991: the Ultrix packet filter and the gateway screen, which Cisco calls packet filtering.">packet filters and gateway screens</ExternalLink>
+  and his 1989 report, <ExternalLink href="https://ftp.mirrorservice.org/sites/www.bitsavers.org/pdf/dec/tech_reports/WRL-89-4.pdf" preview="DEC WRL Research Report 89/4 (1989): simple and flexible datagram access controls for Unix-based gateways.">WRL 89/4</ExternalLink>; <ExternalLink href="https://www.cisco.com/c/en/us/support/docs/ip/access-lists/26448-ACLsamples.html" preview="Cisco: configure commonly used IP ACLs.">Cisco, commonly used IP ACLs</ExternalLink>; <ExternalLink href="https://nmap.org/book/man-bypass-firewalls-ids.html" preview="Nmap reference guide: firewall and IDS evasion.">Nmap, firewall evasion</ExternalLink>
+  and <ExternalLink href="https://nmap.org/book/man-port-scanning-techniques.html" preview="Nmap reference guide: port scanning techniques, including the ACK scan.">port scanning techniques</ExternalLink>; <ExternalLink href="https://www.rfc-editor.org/rfc/rfc1858.html" preview="Security considerations for IP fragment filtering (1995).">RFC 1858</ExternalLink>
+  (Ziemba, Reed and Traina, 1995); <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2827.html" preview="BCP 38: network ingress filtering against forged source addresses (2000).">RFC 2827, BCP 38</ExternalLink>
+  (Ferguson and Senie, 2000).
+- **Stateful inspection:** <ExternalLink href="https://patents.google.com/patent/US5606668A/en" preview="US patent 5,606,668 (filed 1993, granted 1997), Gil Shwed, Check Point.">US patent 5,606,668</ExternalLink>; <ExternalLink href="https://www.csoonline.com/article/547768/the-firewall-questions-abound-about-its-future-role-in-cloud-mobile-and-sdn-environments.html" preview="CSO / Network World (2014): twenty years since Check Point FireWall-1, and the history around it.">Messmer, CSO, 2014</ExternalLink>; <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Matching_connection_tracking_stateful_metainformation" preview="nftables wiki: matching connection tracking states.">nftables, matching conntrack state</ExternalLink>, <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Simple_ruleset_for_a_server" preview="nftables wiki: a simple ruleset for a server.">server ruleset</ExternalLink>
+  and <ExternalLink href="https://wiki.nftables.org/wiki-nftables/index.php/Conntrack_helpers" preview="nftables wiki: conntrack helpers.">conntrack helpers</ExternalLink>; <ExternalLink href="https://docs.kernel.org/networking/nf_conntrack-sysctl.html" preview="Linux kernel documentation: conntrack sysctls.">Linux conntrack sysctls</ExternalLink>
+  and <ExternalLink href="https://github.com/torvalds/linux/blob/master/net/netfilter/nf_conntrack_core.c" preview="Linux source: nf_conntrack_core.c, where a full table drops new connections.">`nf_conntrack_core.c`</ExternalLink>; <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4987.html" preview="TCP SYN flooding attacks and common mitigations (2007).">RFC 4987</ExternalLink>
+  (Eddy, 2007).
+- **Circuit-level gateways:** <ExternalLink href="https://www.rfc-editor.org/rfc/rfc1928.html" preview="SOCKS protocol version 5 (1996).">RFC 1928</ExternalLink>
+  (Leech and others, 1996); the <ExternalLink href="https://www.usenix.org/conference/sec92" preview="USENIX UNIX Security Symposium III (1992), where SOCKS and Chapman's packet filtering paper were presented.">USENIX UNIX Security III program</ExternalLink>
+  (1992), with Koblas and Koblas, "SOCKS", and Chapman, "Network (In)Security
+  Through IP Packet Filtering".
+- **TLS and application firewalls:** <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9846.html" preview="The TLS 1.3 specification (2026).">RFC 9846</ExternalLink>
+  (Rescorla, 2026); <ExternalLink href="https://www.rfc-editor.org/rfc/rfc8744.html" preview="Issues and requirements for SNI encryption in TLS (2020).">RFC 8744</ExternalLink>
+  (Huitema, 2020); <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9849.html" preview="TLS Encrypted Client Hello (2026).">RFC 9849</ExternalLink>
+  (Rescorla, Oku, Sullivan and Wood, 2026); <ExternalLink href="https://www.cerias.purdue.edu/about/history/coast/archive/data/categ17.php" preview="CERIAS COAST archive: abstracts of early firewall papers by Mogul, Cheswick, Chapman, Ranum and others.">CERIAS COAST archive of firewall papers</ExternalLink>,
+  including Cheswick, "The Design of a Secure Internet Gateway" (1990); <ExternalLink href="https://owasp.org/www-community/Web_Application_Firewall" preview="OWASP: what a web application firewall is.">OWASP, web application firewall</ExternalLink>; <ExternalLink href="https://owasp.org/www-project-modsecurity-core-rule-set/" preview="OWASP Core Rule Set project page.">OWASP Core Rule Set</ExternalLink>; <ExternalLink href="https://www.cisa.gov/news-events/alerts/2017/03/16/https-interception-weakens-tls-security" preview="CISA alert TA17-075A: HTTPS interception weakens TLS security (2017).">CISA TA17-075A</ExternalLink>
+  (2017); <ExternalLink href="https://www.sei.cmu.edu/blog/the-risks-of-ssl-inspection/" preview="CMU SEI CERT/CC blog (2015): the risks of SSL inspection.">Dormann, "The Risks of SSL Inspection"</ExternalLink>
+  (CERT/CC, 2015); <ExternalLink href="https://www.ndss-symposium.org/ndss2017/ndss-2017-programme/security-impact-https-interception/" preview="NDSS 2017 paper measuring HTTPS interception and the security of intercepting products.">Durumeric and others, "The Security Impact of HTTPS Interception"</ExternalLink>
+  (NDSS, 2017).
+- **Next-generation firewalls:** <ExternalLink href="https://www.networkworld.com/article/716373/what-you-should-know-about-next-generation-firewalls-2.html" preview="Network World (2010): what you should know about next-generation firewalls.">Messmer, Network World, 2010</ExternalLink>,
+  reporting Young and Pescatore, "Defining the Next-Generation Firewall"
+  (Gartner, 2009).

@@ -1,0 +1,200 @@
+---
+/**
+ * TlsPaths - The same DELETE request through two kinds of firewall. A
+ * circuit-level gateway relays one TLS connection from the client to the
+ * orders API and sees only who connects, to which name, and record sizes.
+ * An application firewall ends the client's TLS connection, reads the
+ * request, refuses it with 403, and would open a second TLS connection to
+ * the API for allowed requests.
+ */
+interface Box {
+  x: number;
+  name: string;
+  sub: string;
+}
+
+const W = 140;
+const H = 50;
+const LANES = [
+  {
+    y: 34,
+    title: "Circuit-level gateway: one TLS connection, relayed",
+    boxes: [
+      { x: 8, name: "checkout app", sub: "10.0.1.20" },
+      { x: 290, name: "gateway", sub: "SOCKS, relay" },
+      { x: 572, name: "orders API", sub: "10.0.2.30:443" },
+    ] as Box[],
+  },
+  {
+    y: 176,
+    title: "Application firewall: TLS ends at the firewall",
+    boxes: [
+      { x: 8, name: "checkout app", sub: "10.0.1.20" },
+      { x: 290, name: "application firewall", sub: "holds a TLS key" },
+      { x: 572, name: "orders API", sub: "10.0.2.30:443" },
+    ] as Box[],
+  },
+];
+const [relay, inspect] = LANES;
+---
+
+<svg
+  viewBox="0 0 720 272"
+  role="img"
+  aria-label="Top: through a circuit-level gateway, one TLS connection runs from the checkout app to the orders API. The gateway sees the user, the name orders.internal and port 443, and record sizes, so DELETE /orders/42 reaches the API. Bottom: an application firewall ends the client's TLS connection with its own certificate, reads DELETE /orders/42 and answers 403. Allowed requests go to the API over a second TLS connection. The client must trust the firewall's certificate."
+  class="diagram"
+>
+  {LANES.map((lane) => (
+    <g>
+      <text x="8" y={lane.y - 14} class="title">
+        {lane.title}
+      </text>
+      {lane.boxes.map((box, i) => (
+        <g>
+          <rect
+            x={box.x}
+            y={lane.y}
+            width={W}
+            height={H}
+            rx="4"
+            class:list={["box", { accent: lane === inspect && i === 1 }]}
+          />
+          <text x={box.x + W / 2} y={lane.y + 14} class="name">
+            {box.name}
+          </text>
+          <text x={box.x + W / 2} y={lane.y + 44} class="sub">
+            {box.sub}
+          </text>
+        </g>
+      ))}
+    </g>
+  ))}
+
+  <rect
+    x="148"
+    y={relay.y + 19}
+    width="424"
+    height="12"
+    rx="6"
+    class="tunnel"
+  ></rect>
+  <text x="156" y={relay.y + 13} class="edge">
+    TLS, client ↔ API
+  </text>
+  <text x="360" y={relay.y + H + 18} class="note mid">
+    sees the user, orders.internal:443
+  </text>
+  <text x="360" y={relay.y + H + 34} class="note mid">
+    and record sizes, not the request
+  </text>
+  <text x="642" y={relay.y + H + 18} class="note mid">
+    DELETE runs
+  </text>
+
+  <rect
+    x="148"
+    y={inspect.y + 19}
+    width="142"
+    height="12"
+    rx="6"
+    class="tunnel"
+  ></rect>
+  <rect
+    x="430"
+    y={inspect.y + 19}
+    width="142"
+    height="12"
+    rx="6"
+    class="tunnel"
+  ></rect>
+  <text x="156" y={inspect.y + 13} class="edge">
+    TLS 1
+  </text>
+  <text x="438" y={inspect.y + 13} class="edge">
+    TLS 2
+  </text>
+  <text x="78" y={inspect.y + H + 18} class="note mid">
+    must trust the
+  </text>
+  <text x="78" y={inspect.y + H + 34} class="note mid">
+    firewall's certificate
+  </text>
+  <text x="360" y={inspect.y + H + 18} class="note mid strong">
+    reads DELETE /orders/42
+  </text>
+  <text x="360" y={inspect.y + H + 34} class="note mid strong">
+    answers 403
+  </text>
+  <text x="642" y={inspect.y + H + 18} class="note mid">
+    gets only
+  </text>
+  <text x="642" y={inspect.y + H + 34} class="note mid">
+    allowed requests
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .box.accent {
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .name {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .tunnel {
+    fill: color-mix(in oklab, var(--cat-3) 30%, transparent);
+    stroke: var(--cat-3);
+    stroke-width: 1;
+  }
+
+  .edge {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11px;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .strong {
+    fill: var(--contrast);
+    font-weight: 600;
+  }
+</style>

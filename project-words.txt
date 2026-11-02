@@ -269,6 +269,7 @@ coloracion
 colorbar
 colour
 connectionless
+conntrack
 contablemente
 containerd
 contraejemplo
@@ -305,6 +306,7 @@ docstrings
 dotglob
 downscaling
 drafs
+ebtables
 elif
 enrutador
 esbenp
@@ -359,6 +361,7 @@ icosian
 icosiano
 imread
 imshow
+inet
 inlines
 inplace
 introsort
@@ -387,6 +390,7 @@ markdownlint
 matplotlib
 maxdepth
 mdast
+middlebox
 mindepth
 mitigaciones
 mitigación
@@ -400,6 +404,7 @@ multimodal
 nameserver
 necolas
 netcat
+netdev
 nftables
 nginx
 nixfmt
@@ -513,6 +518,7 @@ subpackages
 subshell
 subshells
 subtyping
+sysctls
 tecnica
 thresholding
 timsort
