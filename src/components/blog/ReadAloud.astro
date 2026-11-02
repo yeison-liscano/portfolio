@@ -1,0 +1,351 @@
+---
+import { readAloudLabels, type ReadingLanguage } from "../../utils/readAloud";
+
+interface Props {
+  title: string;
+  lang: ReadingLanguage;
+}
+
+const { title, lang } = Astro.props;
+const words = readAloudLabels[lang];
+---
+
+<article-read-aloud data-title={title} lang={lang} hidden>
+  <section aria-labelledby="read-aloud-title">
+    <h2 id="read-aloud-title">{words.title}</h2>
+    <div class="controls">
+      <button type="button" data-play>
+        {words.play}
+      </button>
+      <button type="button" data-stop disabled>
+        {words.stop}
+      </button>
+      <label class="voice">
+        {words.voice}
+        <select data-voice>
+          <option value="">{words.automatic}</option>
+        </select>
+      </label>
+      <label>
+        {words.speed}
+        <select data-speed>
+          {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
+            <option value={rate} selected={rate === 1}>
+              {rate}×
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+    <p data-status role="status">
+      {words.ready}
+    </p>
+    <div class="progress">
+      <progress
+        data-progress
+        max="1"
+        value="0"
+        aria-label={words.progress}
+      ></progress>
+      <span data-position aria-hidden="true"></span>
+    </div>
+  </section>
+</article-read-aloud>
+
+<script>
+  import {
+    articlePassages,
+    readAloudLabels,
+    type ReadingLanguage,
+  } from "../../utils/readAloud";
+
+  class ArticleReadAloud extends HTMLElement {
+    private cleanup?: () => void;
+
+    connectedCallback() {
+      if (
+        this.cleanup ||
+        !("speechSynthesis" in window) ||
+        !("SpeechSynthesisUtterance" in window)
+      )
+        return;
+      const article = document.getElementById("post-article");
+      const play = this.querySelector<HTMLButtonElement>("[data-play]");
+      const stop = this.querySelector<HTMLButtonElement>("[data-stop]");
+      const voice = this.querySelector<HTMLSelectElement>("[data-voice]");
+      const speed = this.querySelector<HTMLSelectElement>("[data-speed]");
+      const status = this.querySelector<HTMLElement>("[data-status]");
+      const progress =
+        this.querySelector<HTMLProgressElement>("[data-progress]");
+      const position = this.querySelector<HTMLElement>("[data-position]");
+      if (
+        !article ||
+        !play ||
+        !stop ||
+        !voice ||
+        !speed ||
+        !status ||
+        !progress ||
+        !position
+      )
+        return;
+
+      const lang: ReadingLanguage =
+        this.lang === "es" || this.lang === "fr" ? this.lang : "en";
+      const words = readAloudLabels[lang];
+      const synth = window.speechSynthesis;
+      const events = new AbortController();
+      let voices: SpeechSynthesisVoice[] = [];
+      let passages: string[] = [];
+      let index = 0;
+      let generation = 0;
+      let state: "idle" | "playing" | "paused" = "idle";
+      // Retain the utterance until it ends; some engines otherwise lose events.
+      let utterance: SpeechSynthesisUtterance | null = null;
+      let missingVoice = false;
+
+      const render = (message: string) => {
+        play.textContent =
+          state === "playing"
+            ? words.pause
+            : state === "paused"
+              ? words.resume
+              : words.play;
+        play.disabled = missingVoice;
+        stop.disabled = state === "idle";
+        // Do not repeat the same live announcement at every passage boundary.
+        if (status.textContent !== message) status.textContent = message;
+        progress.max = Math.max(passages.length, 1);
+        progress.value = index;
+        position.textContent = passages.length
+          ? `${index} / ${passages.length}`
+          : "";
+      };
+      const cancel = () => {
+        // Ignore late end/error events from an utterance cancelled by this player.
+        generation += 1;
+        if (utterance) {
+          utterance.onend = null;
+          utterance.onerror = null;
+          utterance = null;
+          synth.cancel();
+        }
+      };
+      const reset = () => {
+        cancel();
+        state = "idle";
+        index = 0;
+        render(missingVoice ? words.unavailable : words.ready);
+      };
+      const speak = () => {
+        if (state !== "playing") return;
+        if (index >= passages.length) {
+          state = "idle";
+          render(words.finished);
+          return;
+        }
+        const current = generation;
+        const next = new SpeechSynthesisUtterance(passages[index]);
+        utterance = next;
+        const selected =
+          voices.find((item) => item.voiceURI === voice.value) ??
+          voices.find((item) => item.default) ??
+          voices.find((item) => item.localService) ??
+          voices[0];
+        next.lang = selected?.lang ?? lang;
+        if (selected) next.voice = selected;
+        next.rate = Number(speed.value);
+        next.onend = () => {
+          if (current !== generation || state !== "playing") return;
+          utterance = null;
+          index += 1;
+          render(words.playing);
+          speak();
+        };
+        const fail = () => {
+          if (current !== generation) return;
+          cancel();
+          state = "idle";
+          render(words.error);
+        };
+        next.onerror = fail;
+        try {
+          // Only one short passage is queued at a time, including on long posts.
+          synth.speak(next);
+        } catch {
+          fail();
+        }
+      };
+      const refreshVoices = () => {
+        const all = synth.getVoices();
+        voices = all.filter(
+          (item) => item.lang.toLowerCase().split(/[-_]/u)[0] === lang,
+        );
+        const selected = voice.value;
+        voice.replaceChildren(
+          new Option(words.automatic, ""),
+          ...voices.map(
+            (item) => new Option(`${item.name} (${item.lang})`, item.voiceURI),
+          ),
+        );
+        if (voices.some((item) => item.voiceURI === selected))
+          voice.value = selected;
+        voice.disabled = voices.length === 0;
+        // An empty initial list may be populated asynchronously. Let the engine
+        // try its language default until voiceschanged supplies a complete list.
+        missingVoice = all.length > 0 && voices.length === 0;
+        if (missingVoice) reset();
+        else if (state === "idle") render(words.ready);
+      };
+      play.addEventListener(
+        "click",
+        () => {
+          if (state === "playing") {
+            // Cancel and replay the current passage on resume: native pause/resume
+            // is inconsistent across speech engines, particularly on mobile.
+            cancel();
+            state = "paused";
+            render(words.paused);
+            return;
+          }
+          if (state === "idle") {
+            passages = articlePassages(article, this.dataset.title ?? "", lang);
+            index = 0;
+            if (passages.length === 0) {
+              render(words.empty);
+              return;
+            }
+          }
+          state = "playing";
+          render(words.playing);
+          speak();
+        },
+        { signal: events.signal },
+      );
+      stop.addEventListener("click", reset, { signal: events.signal });
+      const changeSettings = () => {
+        if (state === "playing") {
+          cancel();
+          speak();
+        }
+      };
+      voice.addEventListener("change", changeSettings, {
+        signal: events.signal,
+      });
+      speed.addEventListener("change", changeSettings, {
+        signal: events.signal,
+      });
+      synth.addEventListener("voiceschanged", refreshVoices);
+      window.addEventListener("pagehide", reset, { signal: events.signal });
+      document.addEventListener("astro:before-swap", reset, {
+        signal: events.signal,
+      });
+      this.cleanup = () => {
+        reset();
+        events.abort();
+        synth.removeEventListener("voiceschanged", refreshVoices);
+      };
+      refreshVoices();
+      this.hidden = false;
+    }
+
+    disconnectedCallback() {
+      this.cleanup?.();
+      this.cleanup = undefined;
+    }
+  }
+
+  if (!customElements.get("article-read-aloud")) {
+    customElements.define("article-read-aloud", ArticleReadAloud);
+  }
+</script>
+
+<style>
+  article-read-aloud {
+    display: block;
+    width: 100%;
+  }
+  article-read-aloud[hidden] {
+    display: none;
+  }
+  section {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 8px;
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .voice {
+    flex: 1 1 180px;
+  }
+  button,
+  select {
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    background: var(--primary);
+  }
+  select {
+    width: 100%;
+    text-overflow: ellipsis;
+  }
+  button {
+    cursor: pointer;
+  }
+  [data-play] {
+    color: var(--contrast);
+    border-color: var(--contrast);
+    min-width: 100px;
+    font-weight: 600;
+  }
+  button:disabled,
+  select:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  button:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 3px;
+  }
+  [data-status] {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  progress {
+    flex: 1;
+    min-width: 0;
+    height: 6px;
+    accent-color: var(--contrast);
+  }
+</style>
