@@ -1,0 +1,217 @@
+---
+/**
+ * FirewallReach - The 142-byte frame of the orders request, colored by
+ * layer, and under it how far into the frame each kind of firewall reads.
+ * Each row repeats the frame up to the last byte that firewall can use in a
+ * decision; the rest is a dashed, empty track. Only the last row reaches the
+ * request, because only it holds the TLS key.
+ */
+interface Part {
+  label: string;
+  bytes: number;
+  layer: string;
+}
+
+interface Row {
+  name: string;
+  reads: string;
+  to: number;
+}
+
+const PARTS: Part[] = [
+  { label: "Ethernet", bytes: 14, layer: "l2" },
+  { label: "IPv4", bytes: 20, layer: "l3" },
+  { label: "TCP", bytes: 32, layer: "l4" },
+  { label: "TLS", bytes: 5, layer: "l56" },
+  { label: "request (encrypted)", bytes: 50, layer: "l7" },
+  { label: "type+tag", bytes: 17, layer: "l56" },
+  { label: "FCS", bytes: 4, layer: "l2" },
+];
+
+const ROWS: Row[] = [
+  {
+    name: "Layer 2: MAC or bridge filter",
+    reads: "MAC addresses, EtherType",
+    to: 14,
+  },
+  {
+    name: "Layers 3–4: packet filter, stateless or stateful",
+    reads: "IP addresses, ports, flags",
+    to: 66,
+  },
+  {
+    name: "Layers 5–6: circuit gateway or SNI filter",
+    reads: "record type, length (name: in ClientHello)",
+    to: 71,
+  },
+  {
+    name: "Layer 7: application firewall with the TLS key",
+    reads: "GET /orders/42, decrypted",
+    to: 138,
+  },
+];
+
+const TOTAL = PARTS.reduce((sum, part) => sum + part.bytes, 0);
+const X0 = 8;
+const WIDTH = 680;
+const scale = WIDTH / TOTAL;
+const starts = PARTS.map((_, i) =>
+  PARTS.slice(0, i).reduce((sum, part) => sum + part.bytes, 0),
+);
+const BAR_Y = 30;
+const BAR_H = 30;
+const ROW_Y = 118;
+const ROW_PITCH = 46;
+const ROW_H = 14;
+
+/** The parts of the frame that lie before byte `to`, clipped to it. */
+const covered = (to: number) =>
+  PARTS.map((part, i) => ({
+    layer: part.layer,
+    from: starts[i],
+    until: Math.min(starts[i] + part.bytes, to),
+  })).filter((piece) => piece.until > piece.from);
+---
+
+<svg
+  viewBox="0 0 696 286"
+  role="img"
+  aria-label={`The ${TOTAL}-byte frame of the request: Ethernet header 14 bytes, IPv4 20, TCP 32, TLS record header 5, the request encrypted 50, TLS type and tag 17, frame check sequence 4. A layer 2 filter reads the first 14 bytes. A packet filter, stateless or stateful, reads up to byte 66: the IP addresses, ports and TCP flags. A circuit gateway or SNI filter also reads the 5-byte TLS record header. Only an application firewall that holds the TLS key reads the request itself.`}
+  class="diagram"
+>
+  <text x={X0} y="14" class="title">
+    The request's {TOTAL}-byte frame, by layer
+  </text>
+
+  {PARTS.map((part, i) => {
+    const x = X0 + starts[i] * scale;
+    const w = part.bytes * scale;
+    return (
+      <g>
+        <rect
+          x={x}
+          y={BAR_Y}
+          width={w}
+          height={BAR_H}
+          class:list={["seg", part.layer]}
+        />
+        <text x={x + w / 2} y={BAR_Y + BAR_H / 2} class="count">
+          {part.bytes}
+        </text>
+        {w > 40 && (
+          <text x={x + w / 2} y={BAR_Y + BAR_H + 16} class="label">
+            {part.label}
+          </text>
+        )}
+      </g>
+    );
+  })}
+
+  <text x={X0} y={ROW_Y - 22} class="title">
+    How far into it each kind of firewall reads
+  </text>
+
+  {ROWS.map((row, r) => {
+    const y = ROW_Y + r * ROW_PITCH;
+    const last = r === ROWS.length - 1;
+    return (
+      <g>
+        <text x={X0} y={y} class="row-name">
+          {row.name}
+        </text>
+        <text x={X0 + WIDTH} y={y} class:list={["row-reads", { last }]}>
+          {row.reads}
+        </text>
+        <rect x={X0} y={y + 8} width={WIDTH} height={ROW_H} class="track" />
+        {covered(row.to).map((piece) => (
+          <rect
+            x={X0 + piece.from * scale}
+            y={y + 8}
+            width={(piece.until - piece.from) * scale}
+            height={ROW_H}
+            class:list={["seg", piece.layer]}
+          />
+        ))}
+      </g>
+    );
+  })}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .seg {
+    stroke: var(--primary);
+    stroke-width: 1;
+  }
+
+  .l7 {
+    fill: var(--contrast);
+  }
+
+  .l56 {
+    fill: var(--cat-3);
+  }
+
+  .l4 {
+    fill: var(--cat-2);
+  }
+
+  .l3 {
+    fill: var(--cat-4);
+  }
+
+  .l2 {
+    fill: var(--cat-1);
+  }
+
+  .count {
+    fill: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .label {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .track {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+
+  .row-name {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .row-reads {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: end;
+  }
+
+  .row-reads.last {
+    fill: currentColor;
+    font-weight: 600;
+  }
+</style>

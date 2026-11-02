@@ -1,0 +1,287 @@
+---
+/**
+ * StateTable - Why a stateful firewall drops what a stateless one accepts.
+ * The orders API opens a connection to a payment provider, and the firewall
+ * records it. The reply matches the record. An attacker then sends a SYN to
+ * the database from source port 443: a stateless "replies come from port
+ * 443" rule lets it in, while the stateful firewall finds no record and
+ * drops it. Each group is one step for <Stepper>.
+ */
+const id = "state-table";
+
+const LEFT_X = 8;
+const RIGHT_X = 560;
+const BOX_W = 152;
+const BOX_H = 44;
+const WALL_X = 344;
+const WALL_W = 32;
+const ROW_A = 48;
+const ROW_B = 176;
+---
+
+<svg
+  viewBox="0 0 720 312"
+  role="img"
+  aria-label="The orders API sends a SYN from port 40112 to a payment provider on port 443, and the stateful firewall records the connection. The provider's SYN-ACK from port 443 matches the record and is accepted. An attacker sends a SYN from source port 443 to the database on port 5432. A stateless rule that accepts anything from port 443 lets it reach the database. The stateful firewall has no record for it and drops it."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x={LEFT_X} y="16" class="side">
+    outside
+  </text>
+  <text x={RIGHT_X} y="16" class="side">
+    server subnet 10.0.2.0/24
+  </text>
+  <text x={WALL_X + WALL_W / 2} y="16" class="side mid">
+    firewall
+  </text>
+
+  <rect
+    x={WALL_X}
+    y="28"
+    width={WALL_W}
+    height="200"
+    rx="3"
+    class="wall"
+  ></rect>
+
+  <g>
+    <rect
+      x={LEFT_X}
+      y={ROW_A}
+      width={BOX_W}
+      height={BOX_H}
+      rx="4"
+      class="box"
+    ></rect>
+    <text x={LEFT_X + BOX_W / 2} y={ROW_A + 17} class="name">
+      payment provider
+    </text>
+    <text x={LEFT_X + BOX_W / 2} y={ROW_A + 33} class="addr">
+      198.51.100.7:443
+    </text>
+    <rect
+      x={RIGHT_X}
+      y={ROW_A}
+      width={BOX_W}
+      height={BOX_H}
+      rx="4"
+      class="box"
+    ></rect>
+    <text x={RIGHT_X + BOX_W / 2} y={ROW_A + 17} class="name">
+      orders API
+    </text>
+    <text x={RIGHT_X + BOX_W / 2} y={ROW_A + 33} class="addr">
+      10.0.2.30
+    </text>
+    <rect
+      x={LEFT_X}
+      y={ROW_B}
+      width={BOX_W}
+      height={BOX_H}
+      rx="4"
+      class="box"
+    ></rect>
+    <text x={LEFT_X + BOX_W / 2} y={ROW_B + 17} class="name">
+      attacker
+    </text>
+    <text x={LEFT_X + BOX_W / 2} y={ROW_B + 33} class="addr">
+      203.0.113.9
+    </text>
+    <rect
+      x={RIGHT_X}
+      y={ROW_B}
+      width={BOX_W}
+      height={BOX_H}
+      rx="4"
+      class="box"
+    ></rect>
+    <text x={RIGHT_X + BOX_W / 2} y={ROW_B + 17} class="name">
+      database
+    </text>
+    <text x={RIGHT_X + BOX_W / 2} y={ROW_B + 33} class="addr">
+      10.0.2.40:5432
+    </text>
+  </g>
+
+  <rect x="168" y="246" width="404" height="56" rx="4" class="table"></rect>
+  <text x="180" y="264" class="table-head">
+    state table
+  </text>
+
+  <g data-step="1">
+    <line
+      x1={RIGHT_X - 4}
+      y1={ROW_A + 14}
+      x2={LEFT_X + BOX_W + 4}
+      y2={ROW_A + 14}
+      marker-end={`url(#${id}-arrow)`}
+      class="edge"
+    ></line>
+    <text x="196" y={ROW_A + 7} class="msg">
+      SYN :40112 → :443
+    </text>
+    <text x="180" y="288" class="row">
+      10.0.2.30:40112 ↔ 198.51.100.7:443
+    </text>
+    <text x="440" y="288" class="row">
+      new
+    </text>
+  </g>
+
+  <g data-step="2">
+    <line
+      x1={LEFT_X + BOX_W + 4}
+      y1={ROW_A + 32}
+      x2={RIGHT_X - 4}
+      y2={ROW_A + 32}
+      marker-end={`url(#${id}-arrow)`}
+      class="edge"
+    ></line>
+    <text x="388" y={ROW_A + 50} class="msg">
+      SYN-ACK :443 → :40112
+    </text>
+    <text x="196" y={ROW_A + 50} class="note">
+      matches the record
+    </text>
+    <text x="470" y="288" class="row">
+      → established
+    </text>
+  </g>
+
+  <g data-step="3">
+    <line
+      x1={LEFT_X + BOX_W + 4}
+      y1={ROW_B + 16}
+      x2={WALL_X - 4}
+      y2={ROW_B + 16}
+      marker-end={`url(#${id}-arrow)`}
+      class="edge"
+    ></line>
+    <text x="172" y={ROW_B + 8} class="msg">
+      SYN :443 → :5432
+    </text>
+    <line
+      x1={WALL_X + WALL_W + 4}
+      y1={ROW_B + 16}
+      x2={RIGHT_X - 4}
+      y2={ROW_B + 16}
+      marker-end={`url(#${id}-arrow)`}
+      class="edge dashed"
+    ></line>
+    <text x="388" y={ROW_B + 8} class="note">
+      stateless: from :443,
+    </text>
+    <text x="388" y={ROW_B + 36} class="note">
+      so it looks like a reply
+    </text>
+  </g>
+
+  <g data-step="4">
+    <path
+      d={`M${WALL_X + 6},${ROW_B + 6} l20,20 M${WALL_X + 26},${ROW_B + 6} l-20,20`}
+      class="cross"
+    ></path>
+    <text x="172" y={ROW_B + 36} class="note">
+      stateful: no record,
+    </text>
+    <text x="172" y={ROW_B + 52} class="note">
+      drop
+    </text>
+  </g>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .side {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .side.mid {
+    text-anchor: middle;
+  }
+
+  .wall {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .addr {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .table {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .table-head {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11px;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .dashed {
+    stroke-dasharray: 5 4;
+  }
+
+  .cross {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+  }
+
+  .msg,
+  .note,
+  .row {
+    fill: currentColor;
+    font-size: 11px;
+  }
+
+  .note {
+    font-family: var(--font-sans);
+  }
+</style>
