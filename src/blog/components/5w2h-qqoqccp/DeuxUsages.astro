@@ -1,0 +1,163 @@
+---
+/**
+ * DeuxUsages - The same seven questions, asked twice. On the left they
+ * describe the outage of 14 October 2025 (QQOQCCP, problem mode). On the
+ * right they plan action A2 (5W2H, action-plan mode). The "pourquoi" row is
+ * the accent: it means the impact on the left and the justification on the
+ * right.
+ */
+const Q_X = 8;
+const A_X = 120;
+const B_X = 424;
+const COL_W = 288;
+const TOP = 56;
+const ROW_H = 40;
+const ROW_GAP = 4;
+
+const rows = [
+  {
+    question: "quoi",
+    left: "TLS refusé entre l'API et le paiement",
+    right: "alerter 30 jours avant chaque expiration",
+  },
+  {
+    question: "pourquoi",
+    left: "impact : 2 h sans paiement",
+    right: "justification : aucune alerte le 14/10",
+    accent: true,
+  },
+  {
+    question: "où",
+    left: "passerelle interne pay-gw",
+    right: "supervision Prometheus existante",
+  },
+  {
+    question: "quand",
+    left: "14/10/2025, de 02:10 à 04:12",
+    right: "au plus tard le 24/04/2026",
+  },
+  {
+    question: "qui",
+    left: "clients de l'API ; vu par l'astreinte",
+    right: "Sacha",
+  },
+  {
+    question: "comment",
+    left: "certificat interne expiré, sans alerte",
+    right: "sonde TLS et règle d'alerte",
+  },
+  {
+    question: "combien",
+    left: "1 certificat, ~1 800 paiements refusés",
+    right: "2 jours-personne",
+  },
+].map((row, index) => ({ ...row, y: TOP + index * (ROW_H + ROW_GAP) }));
+
+const height = TOP + rows.length * (ROW_H + ROW_GAP) + 4;
+---
+
+<svg
+  viewBox={`0 0 720 ${height}`}
+  role="img"
+  aria-label="Les sept questions décrivent la panne du 14 octobre 2025 à gauche et planifient l'action A2 à droite. Quoi : TLS refusé entre l'API et le paiement, contre alerter 30 jours avant chaque expiration. Pourquoi : l'impact, deux heures sans paiement, contre la justification, aucune alerte le 14 octobre. Où : la passerelle interne, contre la supervision Prometheus. Quand : le 14 octobre 2025 de 02:10 à 04:12, contre au plus tard le 24 avril 2026. Qui : les clients de l'API, contre Sacha. Comment : un certificat expiré sans alerte, contre une sonde TLS et une règle d'alerte. Combien : un certificat et environ 1 800 paiements refusés, contre deux jours-personne."
+  class="diagram"
+>
+  <text x={A_X} y="20" class="head">
+    Décrire la panne
+  </text>
+  <text x={A_X} y="38" class="sub">
+    QQOQCCP · regarde en arrière
+  </text>
+  <text x={B_X} y="20" class="head">
+    Planifier l'action A2
+  </text>
+  <text x={B_X} y="38" class="sub">
+    5W2H · regarde en avant
+  </text>
+
+  {rows.map((row) => (
+    <g class={row.accent ? "row accent" : "row"}>
+      <text x={Q_X} y={row.y + ROW_H / 2} class="question">
+        {row.question}
+      </text>
+      <rect
+        x={A_X}
+        y={row.y}
+        width={COL_W}
+        height={ROW_H}
+        rx="4"
+        class="cell"
+      />
+      <text x={A_X + 12} y={row.y + ROW_H / 2} class="answer">
+        {row.left}
+      </text>
+      <rect
+        x={B_X}
+        y={row.y}
+        width={COL_W}
+        height={ROW_H}
+        rx="4"
+        class="cell"
+      />
+      <text x={B_X + 12} y={row.y + ROW_H / 2} class="answer">
+        {row.right}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .head {
+    fill: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .row {
+    color: var(--text-color);
+  }
+
+  .row.accent {
+    color: var(--contrast);
+  }
+
+  .question {
+    fill: currentColor;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+
+  .row:not(.accent) .question {
+    fill: var(--muted);
+  }
+
+  .cell {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .accent .cell {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .answer {
+    fill: currentColor;
+    font-size: 12px;
+    dominant-baseline: middle;
+  }
+</style>
