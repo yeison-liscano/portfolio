@@ -1,0 +1,506 @@
+---
+lang: "fr"
+title: "5W2H (QQOQCCP) : sept questions qui rendent un plan d'action exécutable, et celle qui a trois sens"
+pubDate: 2026-11-02
+description:
+  "Le 5W2H, ou QQOQCCP, oblige chaque action d'un plan à dire quoi, pourquoi,
+  où, quand, qui, comment et combien. L'origine des questions, les deux usages
+  de la grille, les trois sens du pourquoi, un script qui vérifie un plan, et
+  ce que la grille ne fait pas."
+summary:
+  - "Une action est exécutable quand elle répond aux sept questions : quoi,
+    pourquoi, où, quand, qui, comment et combien. « Améliorer la surveillance
+    des certificats, équipe plateforme, T1 » n'en satisfait aucune."
+  - "La même grille décrit un problème (QQOQCCP) ou planifie une action
+    (5W2H). Le pourquoi y désigne l'impact dans le premier cas, la
+    justification dans le second, et la cause dans les 5 Pourquoi."
+  - "Dans le PDCA, le 5W2H vient après l'analyse des causes : le pourquoi de
+    chaque action doit citer la cause qu'elle traite. ISO 9001 exige en plus un
+    critère d'évaluation, que la grille n'a pas."
+  - "La grille ne priorise pas, ne mesure pas la force d'une action et n'a
+    aucune étude contrôlée derrière elle. Avant de clore une réunion, chaque
+    action doit avoir un nom, une date, un coût (ou la date où on le
+    connaîtra) et une cause."
+tags: ["tools"]
+isDraft: false
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import CyclePdca from "./components/5w2h-qqoqccp/CyclePdca.astro";
+import DeuxUsages from "./components/5w2h-qqoqccp/DeuxUsages.astro";
+
+{/* cspell:ignore QQOQCCP QQOQCP Quis quid ubi quibus auxiliis cur quomodo quando Hermagoras Temnos Bleyer Tague Roser Braga Mariani Ballé Ohno Taiichi Shewhart Equixor Sloan Lunney Lueder Lins Christovam Verbeck LacusCurtius Circumstantiae Septem Locus Nicomachean gw Dominique Camille Sacha AUJOURD probleme problemes fromisoformat startswith Unestimated Souza Brasileira Enfermagem Administração Inovação ferramentas qualidade gerenciamento processos industriais metodo cientifico Pdca qqoqccp */}
+
+Mots-clés : 5W2H, QQOQCCP, plan d'action, PDCA, 5 Pourquoi, diagramme
+d'Ishikawa, gestion de la qualité, postmortem
+
+Décembre 2025, fin de la revue stratégique annuelle d'une équipe d'ingénierie.
+En octobre, un certificat expiré a fait refuser environ 1 800 paiements.
+L'objectif est donc clair : « aucune panne due à un certificat expiré en
+2026 ». Le plan d'action tient en une ligne : « Améliorer la surveillance des
+certificats, équipe plateforme, T1 ». Trois mois plus tard, la ligne n'a pas
+bougé. Personne ne savait qui devait commencer, par où, ni avec quel budget. Le
+5W2H, ou QQOQCCP en français, est l'une des grilles les plus répandues contre ce
+problème. Chaque action doit répondre à sept questions : quoi, pourquoi, où,
+quand, qui, comment et combien. Cet article montre leurs deux usages, la
+question qui a trois sens, et ce que la grille ne fait pas. Vous repartirez avec
+un modèle de ligne et un petit script qui signale les cases vides ou floues d'un
+plan.
+
+## Une action sans responsable ni date n'est qu'un souhait
+
+Le scénario de cet article est fictif, mais chacun de ses éléments est courant.
+Le 14 octobre 2025 à 02:10, le certificat <Acronym title="Transport Layer Security">TLS</Acronym> d'une passerelle interne,
+`pay-gw`, expire. Cette passerelle relie l'<Acronym title="Application Programming Interface (interface de programmation)">API</Acronym> publique au service de
+paiement. Aucune alerte ne se déclenche. Pendant deux heures, environ 1 800
+paiements sont refusés, jusqu'à ce que l'astreinte trouve la cause et remplace
+le certificat à 04:12. Le <Term title="Compte rendu écrit d'un incident : son impact, ses causes et les actions de suivi pour éviter qu'il se reproduise.">postmortem</Term> constate que personne ne savait que ce
+certificat existait. En décembre, la revue stratégique en fait un objectif
+pour 2026.
+
+La ligne du plan d'action nomme une intention, une équipe et un trimestre.
+Chacun de ces trois éléments laisse une question ouverte :
+
+- « Améliorer » ne dit pas à quel moment le travail est terminé.
+- « Équipe plateforme » désigne six personnes. Aucune n'est chargée de
+  commencer.
+- « T1 » fixe une période, pas une échéance. Le retard n'apparaît que le 31
+  mars, quand il est trop tard pour réagir.
+- Rien ne dit pourquoi cette action, où, comment, ni avec quel budget.
+
+Le livre <ExternalLink href="https://sre.google/sre-book/postmortem-culture/" preview="Chapitre 15 du livre SRE de Google (2016) : le postmortem sans blâme, ses déclencheurs et ses actions de suivi.">Site Reliability Engineering</ExternalLink>
+de Google définit le postmortem comme le compte rendu écrit d'un incident, qui
+se termine par les actions de suivi destinées à éviter qu'il se reproduise. Ce
+sont ces actions qui se perdent quand elles sont écrites comme la ligne de
+décembre. Qu'est-ce qu'une ligne doit contenir pour qu'on puisse l'exécuter et
+la relancer ? Le 5W2H répond par sept questions. Pourquoi ces sept-là ? La
+réponse commence bien avant la gestion de la qualité.
+
+## Les questions ont 2 300 ans ; le « combien » n'a pas d'origine connue
+
+Au IVe siècle avant notre ère, Aristote se demande dans l'<ExternalLink href="https://classics.mit.edu/Aristotle/nicomachaen.3.iii.html" preview="Le livre III de l'Éthique à Nicomaque, traduction anglaise de W. D. Ross : les circonstances d'un acte qu'une personne peut ignorer.">Éthique à Nicomaque</ExternalLink>
+(livre III, chapitre 1) ce qu'une personne peut ignorer de son propre acte. Il
+en dresse la liste : qui agit, ce qu'elle fait, sur quoi ou sur qui, avec quel
+instrument, en vue de quoi et comment. Vers l'an 95, Quintilien classe dans l'<ExternalLink href="https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Quintilian/Institutio_Oratoria/5B*.html" preview="Le livre V de l'Institution oratoire de Quintilien, traduction anglaise de H. E. Butler (Loeb) : les arguments tirés des circonstances.">Institution oratoire</ExternalLink>
+(V, 10) les arguments « tirés des circonstances » : pourquoi, où, quand, comment
+et par quels moyens un acte a été accompli.
+
+Au XIIIe siècle, Thomas d'Aquin cite dans la <ExternalLink href="https://www.newadvent.org/summa/2007.htm" preview="Somme théologique, I-II, question 7 : les circonstances des actes humains, avec le vers latin des sept circonstances.">Somme théologique</ExternalLink>
+(I-II, q. 7, a. 3) un vers latin qui réunit sept circonstances : _Quis, quid,
+ubi, quibus auxiliis, cur, quomodo, quando_, soit qui, quoi, où, par quels
+moyens, pourquoi, comment et quand. Il l'attribue à Cicéron, tandis que
+Michael Sloan, dans <ExternalLink href="https://doi.org/10.1086/656196" preview="Sloan (2010), Classical Philology : l'Éthique à Nicomaque comme source originale des sept circonstances, plutôt qu'Hermagoras.">Classical Philology</ExternalLink>
+en 2010, fait remonter la liste à Aristote. Personne ne peut en désigner un
+inventeur unique.
+
+En avril 1900, Rudyard Kipling publie « The Elephant's Child » dans le _Ladies'
+Home Journal_. Le conte entre en 1902 dans les <ExternalLink href="https://www.gutenberg.org/files/2781/2781-h/2781-h.htm" preview="Texte intégral des Just So Stories de Kipling (1902), dont le poème qui suit The Elephant's Child.">Just So Stories</ExternalLink>,
+suivi d'un poème qui nomme six de nos sept questions :
+
+> I Keep six honest serving-men:\
+> (They taught me all I knew)\
+> Their names are What and Where and When\
+> And How and Why and Who.
+
+En traduction libre : « J'ai six honnêtes serviteurs (ils m'ont appris tout ce
+que je savais) ; ils s'appellent Quoi, Où, Quand, Comment, Pourquoi et Qui. »
+La seconde strophe parle d'une « petite personne » qui en garde dix millions :
+« un million de Comment, deux millions de Où, et sept millions de Pourquoi ».
+Déjà chez Kipling, le pourquoi est la question qui prend le plus de place.
+
+En 1913, le manuel <ExternalLink href="https://gutenberg.org/files/65884/65884-h/65884-h.htm" preview="Willard G. Bleyer, Newspaper Writing and Editing (1913) : le premier paragraphe d'un article répond à What? Who? When? Where? Why? How?">Newspaper Writing and Editing</ExternalLink>
+de Willard Bleyer demande que le premier paragraphe d'un article de presse
+réponde aux questions _What? Who? When? Where? Why? How?_ Ce sont les « 5W1H »
+du journalisme. Six questions suffisent pour raconter un fait.
+
+Pour planifier, il en manque une. La fiche de l'<Acronym title="Agency for Healthcare Research and Quality (agence fédérale américaine pour la recherche et la qualité en santé)">AHRQ</Acronym> sur le <ExternalLink href="https://digital.ahrq.gov/health-it-tools-and-resources/evaluation-resources/workflow-assessment-health-it-toolkit/all-workflow-tools/5w2h" preview="Fiche de l'agence américaine AHRQ : les sept questions du 5W2H, ses usages, ses avantages et sa limite.">5W2H</ExternalLink>
+ajoute _How much_, combien, et cite comme source _The Quality Toolbox_ de Nancy
+Tague (<Acronym title="American Society for Quality">ASQ</Acronym> Quality Press, 2005). Le second H est la question des
+ressources : temps, argent, personnes. Un journaliste peut s'en passer. Un plan
+d'action, non : c'est cette question qui permet de comparer deux actions. C'est
+aussi la case qui manquait à la ligne de décembre : personne ne savait avec quel
+budget.
+
+Quand, et par qui, ce « combien » a-t-il été ajouté ? Je n'ai trouvé aucune
+source fiable pour le dire. On lit souvent que la grille viendrait de Toyota ou
+de la qualité totale japonaise, mais ces attributions ne renvoient à aucun texte
+primaire.
+
+En français, la grille s'appelle QQOQCCP : qui, quoi, où, quand, comment,
+combien, pourquoi. La <ExternalLink href="https://www.techniques-ingenieur.fr/base-documentaire/genie-industriel-th6/methodes-de-resolution-de-problemes-42592210/la-methode-qqoqccp-un-outil-d-analyse-fic0447/" preview="Fiche pratique FIC0447 de Techniques de l'Ingénieur : la méthode QQOQCCP, un outil d'analyse.">fiche de Techniques de l'Ingénieur</ExternalLink>
+la présente comme une série de questions standard pour clarifier une situation
+mal connue. Le second C est parfois omis, ce qui donne QQOQCP. L'ordre des
+lettres ne compte pas : la fiche de l'AHRQ précise que l'ordre des questions n'a
+pas d'importance.
+
+## Le même tableau sert à décrire un problème ou à planifier une action
+
+La fiche de l'AHRQ énumère plusieurs usages : planifier un projet, améliorer un
+processus, définir un problème soupçonné ou mal cerné. Dans tous les cas, on
+répond à chaque question, et on prévoit comment répondre à celles qui n'ont pas
+encore de réponse. Deux usages dominent, et ils ne regardent pas dans la même
+direction.
+
+**Décrire un problème** consiste à poser les questions sur un fait passé. C'est
+l'étape D2 de la méthode <Term title="Méthode de résolution de problèmes en huit disciplines, de la constitution de l'équipe à la prévention de la récurrence.">8D</Term>. Christoph Roser, professeur et auteur sur le lean,
+précise dans son <ExternalLink href="https://www.allaboutlean.com/8d-d2-and-d3/" preview="AllAboutLean, Christoph Roser : les étapes D2 et D3 du 8D, avec le 5W1H ou 5W2H pour décrire le problème.">guide du 8D</ExternalLink>
+le sens de trois questions. Le pourquoi y désigne l'impact, et pas encore la
+cause racine. Le comment décrit l'écart observé par rapport à l'état normal. Le
+combien quantifie le problème : taux de défauts, réclamations, coût des rebuts.
+
+**Planifier une action** consiste à poser les questions sur un fait futur, une
+ligne par action. Au début de la pandémie de COVID-19, une équipe infirmière
+d'un hôpital universitaire de Rio de Janeiro a d'abord classé les problèmes
+avec un <Term title="Diagramme en arête de poisson qui range les causes possibles d'un problème par catégorie.">diagramme d'Ishikawa</Term>. Elle a ensuite construit son plan avec le
+5W2H : sept actions, arrêtées en six réunions du 16 mars au 31 mai 2020. Le
+cas est décrit par <ExternalLink href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9897221/" preview="Braga et al. (2023), Revista Brasileira de Enfermagem : plan d'action infirmier pendant la COVID-19, construit avec Ishikawa puis 5W2H.">Braga et al. (2023)</ExternalLink>.
+
+La figure applique les deux usages au scénario. À gauche, la grille décrit la
+panne du 14 octobre. À droite, elle planifie l'action A2, l'alerte avant
+expiration.
+
+<Figure caption="Les mêmes sept questions décrivent la panne et planifient l'action A2. Seul le pourquoi change de nature : l'impact à gauche, la justification à droite.">
+  <DeuxUsages />
+</Figure>
+
+Les six autres lignes changent d'objet, pas de nature. Le quand reste une date :
+passée à gauche, échéance à droite. Le combien reste une quantité : des
+paiements refusés à gauche, des jours-personne à droite. Le pourquoi, lui, ne
+répond plus à la même question. Mélanger les deux colonnes produit des plans
+qui décrivent au lieu d'engager. On y lit par exemple « Pourquoi : 2 h sans
+paiement » en face d'une action, sans savoir quelle cause elle traite.
+
+## Le « pourquoi » a trois sens selon le moment où on le pose
+
+Quand on décrit, le pourquoi demande en quoi la situation est un problème : la
+réponse est l'impact. Quand on planifie, il demande pourquoi cette action plutôt
+qu'une autre : la réponse est une justification. Entre les deux, une troisième
+méthode pose la même question plusieurs fois pour trouver la cause : les 5
+Pourquoi.
+
+Le Lean Enterprise Institute rappelle l'exemple classique de Taiichi Ohno, l'un
+des architectes du système de production de Toyota (<ExternalLink href="https://www.lean.org/the-lean-post/articles/five-whys/" preview="Michael Ballé, The Lean Post (2012) : l'exemple de la machine d'Ohno et les pièges des 5 Pourquoi.">Ballé, 2012</ExternalLink>).
+Une machine s'arrête. Pourquoi ? Une surcharge a fait sauter le fusible.
+Pourquoi la surcharge ? Le palier était mal lubrifié. Pourquoi ? La pompe de
+lubrification pompait mal. Pourquoi ? Son axe était usé. Pourquoi ? Il n'y avait
+pas de filtre, et des copeaux de métal sont entrés. Remplacer le fusible
+traiterait le symptôme. Poser un filtre traite la cause.
+
+Appliquée à la panne du 14 octobre, la chaîne donne ceci :
+
+1. Pourquoi les paiements ont-ils échoué ? Le certificat de `pay-gw` avait
+   expiré.
+2. Pourquoi a-t-il expiré ? Personne ne l'a renouvelé.
+3. Pourquoi ? Il ne figurait dans aucun inventaire, et son renouvellement était
+   manuel.
+4. Pourquoi la panne a-t-elle duré deux heures ? Rien ne surveillait la date
+   d'expiration, et l'astreinte a dû chercher la cause.
+
+La chaîne aboutit à trois causes : un certificat hors inventaire, un
+renouvellement manuel et une expiration que rien ne surveillait. Voici la
+réponse à la question ouverte au début : dans un plan d'action, le pourquoi de
+chaque ligne doit citer la cause qu'elle traite. « 2 h sans paiement » justifie
+l'urgence de l'objectif, pas le choix d'une action. Un pourquoi qui ne cite
+aucune cause signale une action qui traite un symptôme, ou rien du tout.
+
+Les 5 Pourquoi ont leurs propres limites. Michael Ballé note que beaucoup de
+séances restent superficielles ou tournent en rond, et que leur valeur dépend de
+l'expertise de ceux qui les mènent. Alan Card, dans <ExternalLink href="https://doi.org/10.1136/bmjqs-2016-005849" preview="Card (2017), BMJ Quality & Safety : une critique des 5 Pourquoi dans l'analyse des causes en santé.">BMJ Quality & Safety</ExternalLink>
+en 2017, avance que la méthode doit « probablement » sa place dans l'analyse des
+causes à son pedigree, à sa simplicité et à sa valeur pédagogique.
+
+## Dans le PDCA, le 5W2H vient après l'analyse des causes, pas avant
+
+Les trois sens du pourquoi correspondent à trois moments d'un même cycle.
+Le <Acronym title="Plan, Do, Check, Act (planifier, faire, vérifier, agir)">PDCA</Acronym> enchaîne quatre phases : planifier un changement, le mettre en
+œuvre, évaluer les résultats, puis standardiser ou recommencer. Le <ExternalLink href="https://www.lean.org/lexicon-terms/pdca/" preview="Lexique du Lean Enterprise Institute : le cycle PDCA, de Shewhart à Deming.">Lean Enterprise Institute</ExternalLink>
+attribue le premier cycle d'amélioration à Walter Shewhart, et son introduction
+au Japon, dans les années 1950, à W. Edwards Deming. La phase Plan contient à
+elle seule les trois usages du pourquoi.
+
+<Figure caption="Dans la phase Plan, on décrit, puis on explique, puis on planifie. Le 5W2H arrive en troisième, quand les causes sont connues.">
+  <Stepper
+    lang="fr"
+    label="Le cycle PDCA et ses outils"
+    steps={[
+      "Décrire le problème avec le QQOQCCP, comme à l'étape D2 du 8D. Le pourquoi y désigne l'impact : deux heures sans paiement.",
+      "Expliquer avec un diagramme d'Ishikawa et les 5 Pourquoi. Le pourquoi y désigne la cause : un certificat hors inventaire, renouvelé à la main, que rien ne surveillait.",
+      "Planifier avec le 5W2H, une ligne par action. Le pourquoi de chaque ligne cite la cause qu'elle traite.",
+      "Faire : exécuter A1, A2 et A3, et suivre chaque ligne jusqu'à son échéance.",
+      "Vérifier : comparer le résultat à un critère fixé d'avance. La grille n'a pas de case pour ce critère, alors qu'ISO 9001 en exige un.",
+      "Agir : standardiser ce qui marche, ou relancer le cycle avec un nouveau problème à décrire.",
+    ]}
+  >
+    <CyclePdca />
+  </Stepper>
+</Figure>
+
+L'hôpital de Rio suit cet ordre : l'Ishikawa d'abord, le 5W2H ensuite. Dans une
+étude de cas industrielle, <ExternalLink href="https://www.revistas.usp.br/rai/article/view/79051" preview="Mariani (2005), RAI, Université de São Paulo : PDCA et outils de la qualité dans un processus industriel, étude de cas.">Mariani (2005)</ExternalLink>
+utilise aussi le 5W2H à l'intérieur d'un PDCA, avec le diagramme de cause à
+effet. Planifier avant d'expliquer revient à choisir des actions avant de
+connaître les causes. La ligne de décembre est née ainsi, d'un objectif et non
+d'une analyse.
+
+Il manque pourtant à la grille une case que la norme exige. La clause 6.2.2 de
+l'<ExternalLink href="https://www.iso.org/standard/62085.html" preview="ISO 9001:2015, Systèmes de management de la qualité : exigences.">ISO 9001:2015</ExternalLink>
+demande, pour chaque objectif qualité, de déterminer ce qui sera fait, les
+ressources nécessaires, le responsable, l'échéance et la manière d'évaluer les
+résultats. Les quatre premiers points correspondent au quoi, au combien, au qui
+et au quand. Le cinquième n'a pas d'équivalent dans le 5W2H. Pour A2, ce
+critère pourrait être : chaque certificat de l'inventaire A1 a une alerte, et un
+certificat de test qui expire dans 29 jours déclenche l'alerte en préproduction.
+
+Le tableau d'actions de l'<ExternalLink href="https://sre.google/sre-book/example-postmortem/" preview="L'exemple de postmortem du livre SRE de Google, avec son tableau d'actions : Action Item, Type, Owner, Bug.">exemple de postmortem</ExternalLink>
+du livre <Acronym title="Site Reliability Engineering">SRE</Acronym> a, lui, quatre colonnes : _Action Item_, _Type_, _Owner_ et _Bug_.
+Il couvre le quoi, le qui et le suivi par un ticket. Le type, « atténuer » ou
+« prévenir », est un pourquoi très court. Le quand et le combien manquent. Si
+votre modèle de postmortem reprend ce tableau, ajoutez deux colonnes :
+l'échéance et l'effort estimé.
+
+## Réécrire le plan ligne par ligne fait apparaître ce qui manque
+
+Le 16 mars 2026, l'équipe réécrit la ligne de décembre. Les trois causes
+deviennent trois actions, et chaque action répond aux sept questions :
+
+| Question | A1                                                 | A2                                                   | A3                                               |
+| -------- | -------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------ |
+| quoi     | Inventorier les certificats TLS de production      | Alerter l'astreinte 30 jours avant chaque expiration | Automatiser le renouvellement des certificats    |
+| pourquoi | Le certificat expiré n'était dans aucun inventaire | L'expiration n'a déclenché aucune alerte             | Le renouvellement était manuel                   |
+| où       | Répartiteurs de charge et passerelles internes     | Supervision Prometheus existante                     | Cluster Kubernetes de production                 |
+| quand    | 3 avril 2026                                       | 24 avril 2026                                        | 30 juin 2026                                     |
+| qui      | Camille                                            | Sacha                                                | Dominique                                        |
+| comment  | Script sur l'API du cloud, export CSV versionné    | Sonde TLS du blackbox exporter, règle d'alerte       | cert-manager avec ACME, d'abord en préproduction |
+| combien  | 3 jours-personne                                   | 2 jours-personne                                     | à définir                                        |
+
+A2 repose sur la métrique `probe_ssl_earliest_cert_expiry` du <ExternalLink href="https://github.com/prometheus/blackbox_exporter" preview="Le blackbox exporter de Prometheus : sondes HTTP, TCP et TLS, dont la date d'expiration du premier certificat.">blackbox exporter</ExternalLink>,
+qui donne la date d'expiration du premier certificat de la chaîne à expirer. A3
+repose sur <ExternalLink href="https://cert-manager.io/docs/" preview="Documentation de cert-manager : émission et renouvellement automatiques de certificats dans Kubernetes.">cert-manager</ExternalLink>,
+qui renouvelle les certificats dans le cluster Kubernetes avec le protocole <Acronym title="Automatic Certificate Management Environment">ACME</Acronym>,
+décrit dans la <ExternalLink href="https://www.rfc-editor.org/rfc/rfc8555.html" preview="RFC 8555 (2019) : le protocole ACME de gestion automatique des certificats.">RFC 8555</ExternalLink>.
+
+Une relecture peut vérifier ce tableau. Un script aussi, au moins pour la forme.
+Le programme ci-dessous applique cinq règles à chaque ligne :
+
+- aucune des sept cases n'est vide ;
+- le quoi ne commence pas par un verbe flou, comme « améliorer » ou
+  « renforcer » ;
+- le qui nomme une personne, pas une équipe ni une liste ;
+- le quand est une date, postérieure au jour de la réécriture ;
+- le combien contient au moins un chiffre.
+
+Le bouton Run l'exécute dans votre navigateur. Vous pouvez modifier le plan et
+le relancer.
+
+```python
+import re
+from datetime import date
+
+# Jour de la réécriture : chaque échéance doit tomber après.
+AUJOURD_HUI = date(2026, 3, 16)
+
+QUESTIONS = ("quoi", "pourquoi", "où", "quand", "qui", "comment", "combien")
+VERBES_FLOUS = ("améliorer", "renforcer", "optimiser", "suivre", "garantir")
+COLLECTIFS = ("équipe", "tous", "direction", " et ", ",", "/")
+
+
+def verifier(action):
+    """Renvoie la liste des problèmes d'une ligne du plan."""
+    problemes = []
+    for question in QUESTIONS:
+        if not action.get(question, "").strip():
+            problemes.append(f"{question} : vide")
+
+    quoi = action.get("quoi", "").lower()
+    if quoi.startswith(VERBES_FLOUS):
+        problemes.append(f"quoi : verbe flou « {quoi.split()[0]} »")
+
+    qui = action.get("qui", "")
+    if qui and any(mot in f" {qui.lower()} " for mot in COLLECTIFS):
+        problemes.append(f"qui : « {qui} » n'est pas une personne")
+
+    quand = action.get("quand", "")
+    if quand:
+        try:
+            if date.fromisoformat(quand) <= AUJOURD_HUI:
+                problemes.append(f"quand : {quand} est déjà passé")
+        except ValueError:
+            problemes.append(f"quand : « {quand} » n'est pas une date")
+
+    combien = action.get("combien", "")
+    if combien and not re.search(r"\d", combien):
+        problemes.append(f"combien : « {combien} » sans chiffre")
+    return problemes
+
+
+PLAN = {
+    "A0": {
+        "quoi": "Améliorer la surveillance des certificats",
+        "qui": "équipe plateforme",
+        "quand": "T1",
+    },
+    "A1": {
+        "quoi": "Inventorier les certificats TLS de production",
+        "pourquoi": "Le certificat expiré n'était dans aucun inventaire",
+        "où": "Répartiteurs de charge et passerelles internes",
+        "quand": "2026-04-03",
+        "qui": "Camille",
+        "comment": "Script sur l'API du cloud, export CSV versionné",
+        "combien": "3 jours-personne",
+    },
+    "A2": {
+        "quoi": "Alerter l'astreinte 30 jours avant chaque expiration",
+        "pourquoi": "L'expiration n'a déclenché aucune alerte",
+        "où": "Supervision Prometheus existante",
+        "quand": "2026-04-24",
+        "qui": "Sacha",
+        "comment": "Sonde TLS du blackbox exporter et règle d'alerte",
+        "combien": "2 jours-personne",
+    },
+    "A3": {
+        "quoi": "Automatiser le renouvellement des certificats",
+        "pourquoi": "Le renouvellement était manuel",
+        "où": "Cluster Kubernetes de production",
+        "quand": "2026-06-30",
+        "qui": "Dominique",
+        "comment": "cert-manager avec ACME, d'abord en préproduction",
+        "combien": "à définir",
+    },
+}
+
+for nom, action in PLAN.items():
+    problemes = verifier(action)
+    print(f"{nom} : {len(problemes)} problème(s)")
+    for probleme in problemes:
+        print(f"  - {probleme}")
+```
+
+Voici sa sortie, avec Python 3.14 :
+
+```text
+A0 : 7 problème(s)
+  - pourquoi : vide
+  - où : vide
+  - comment : vide
+  - combien : vide
+  - quoi : verbe flou « améliorer »
+  - qui : « équipe plateforme » n'est pas une personne
+  - quand : « T1 » n'est pas une date
+A1 : 0 problème(s)
+A2 : 0 problème(s)
+A3 : 1 problème(s)
+  - combien : « à définir » sans chiffre
+```
+
+La ligne de décembre, A0, échoue sur les sept questions : quatre cases vides et
+trois réponses qui n'en sont pas. A1 et A2 passent. A3 échoue sur une seule
+case, la plus facile à remplir pour la forme. Personne ne sait encore combien
+coûte l'automatisation des certificats internes, et c'est une information en
+soi. La correction n'invente pas de chiffre : elle planifie l'estimation. La
+case devient « inconnu ; estimation par Dominique le 15 avril 2026 ». C'est ce
+que recommande la fiche de l'AHRQ : prévoir comment répondre aux questions dont
+on ne connaît pas encore la réponse.
+
+Cette nouvelle case passe la règle du chiffre grâce à la date, pas grâce à un
+coût. Le script vérifie la forme, pas le fond. Une ligne peut passer les cinq
+règles et rester une mauvaise action. C'est aussi la limite de la grille
+elle-même.
+
+## La grille ne priorise pas, et rien ne prouve son effet
+
+La fiche de l'AHRQ ne lui reconnaît qu'un inconvénient : elle n'est pas utile si
+la plupart des réponses sont inconnues. Elle affirme aussi que la grille prend
+en compte tous les aspects d'une situation. Elle en couvre sept. La priorité, le
+risque, les dépendances entre actions et la force d'une action n'en font pas
+partie.
+
+**La grille ne dit pas quelle action est la plus forte.** A2 et A3 passent le
+script avec zéro problème, mais elles ne se valent pas. Le guide <Acronym title="Root Cause Analysis and Action (analyse des causes racines et actions)">RCA²</Acronym>
+de la <ExternalLink href="https://www.ihi.org/library/tools/rca2-improving-root-cause-analyses-and-actions-prevent-harm" preview="RCA² (NPSF, 2015), diffusé par l'IHI : améliorer l'analyse des causes racines et les actions qui préviennent les dommages.">National Patient Safety Foundation</ExternalLink>
+(2015) classe les actions correctives selon une hiérarchie. Les plus fortes
+retirent l'occasion de l'erreur : contraintes techniques, simplification,
+standardisation. Les plus faibles dépendent de quelqu'un qui se souvient et
+obéit : avertissements, nouvelles procédures, formation. L'<ExternalLink href="https://www.health.mn.gov/facilities/patientsafety/adverseevents/toolkit/docs/safetytoolkit_actionhierarchy.pdf" preview="L'outil de hiérarchie des actions de l'IHI, hébergé par le ministère de la Santé du Minnesota.">outil de hiérarchie des actions</ExternalLink>
+demande au moins une action forte ou intermédiaire par cause. L'alerte A2 est un
+avertissement : elle compte sur une astreinte qui lit et agit. A3 supprime
+l'étape humaine. A3 est donc plus forte, et la grille ne le montre pas.
+
+**Les cases se remplissent pour la forme.** Dans le plan de l'hôpital de Rio, la
+colonne _How much_ indique « Unestimated Expense » pour les sept actions. Aucune
+n'a de coût. L'article ne mesure pas non plus de résultat, et ses auteurs
+reconnaissent l'absence de cadre méthodologique structuré, puisqu'il s'agit d'un
+retour d'expérience.
+
+**Aucune étude contrôlée ne mesure son effet.** Je n'ai trouvé aucune étude qui
+compare des équipes avec et sans 5W2H. La littérature disponible se compose de
+retours d'expérience et d'études de cas uniques, comme celles de Braga et de
+Mariani. La grille est sans doute utile, mais personne ne l'a démontré.
+
+**La grille ne choisit pas l'objectif.** « Aucune panne due à un certificat
+expiré » vient du postmortem et de la revue stratégique. Le 5W2H décline cet
+objectif en actions. Il ne dit pas s'il valait mieux investir ailleurs. Une
+grille parfaite exécute aussi bien un mauvais objectif qu'un bon. Pour mettre à
+l'épreuve les hypothèses d'un objectif, le registre de prémisses de l'article
+sur le <InternalLink slug="metodo-cientifico-en-software-y-seguridad">método científico</InternalLink> (en espagnol) propose une grille voisine :
+une ligne par affirmation, et le résultat qui la réfuterait.
+
+**Les réponses coûtent plus cher que les cases.** La fiche de Techniques de
+l'Ingénieur avertit de ne pas sous-estimer le temps de recueil des informations.
+Écrire sept cases prend quelques minutes. Trouver le coût réel de A3 demande une
+estimation, et donc une action de plus dans le plan.
+
+## Une action exécutable nomme une personne, une date et un coût
+
+Une action est exécutable quand la personne nommée peut commencer le lendemain
+sans poser de question. La ligne de décembre ne répondait de façon exploitable à
+aucune des sept questions. Réécrite, elle devient trois lignes. Chacune nomme
+une personne, une date et un effort, ou la date à laquelle on le connaîtra. Son
+pourquoi cite une cause trouvée par l'analyse. Rien ne garantit que les trois
+actions réussiront. Mais chacune a désormais quelqu'un à relancer, une date où
+l'on saura, et un coût que l'on peut comparer aux autres.
+
+La question qui a trois sens est le pourquoi : l'impact quand on décrit, la
+cause quand on explique, la justification quand on planifie. Dans un plan, il
+doit renvoyer à une cause.
+
+À retenir, et à appliquer dès la prochaine réunion : avant de la clore, relisez
+chaque action et demandez qui, quand, combien, et quelle cause elle traite. Si
+une réponse manque, la première action à écrire est celle qui la trouvera, avec
+un nom et une date.
+
+## Références
+
+- **Origines des questions :** Aristote, <ExternalLink href="https://classics.mit.edu/Aristotle/nicomachaen.3.iii.html" preview="Éthique à Nicomaque, livre III, traduction de W. D. Ross, MIT Internet Classics Archive.">Éthique à Nicomaque, livre III</ExternalLink>,
+  trad. W. D. Ross ; Quintilien, <ExternalLink href="https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Quintilian/Institutio_Oratoria/5B*.html" preview="Institution oratoire, livre V, traduction de H. E. Butler (Loeb), LacusCurtius.">Institution oratoire, livre V</ExternalLink>,
+  trad. H. E. Butler (Loeb, 1920-1922) ; Thomas d'Aquin, <ExternalLink href="https://www.newadvent.org/summa/2007.htm" preview="Somme théologique, I-II, question 7, New Advent.">Somme théologique, I-II, q. 7</ExternalLink> ;
+  M. C. Sloan, <ExternalLink href="https://doi.org/10.1086/656196" preview="Classical Philology 105(3), 2010, p. 236-251.">« Aristotle's Nicomachean Ethics as the Original Locus for the Septem Circumstantiae »</ExternalLink>,
+  _Classical Philology_, 2010.
+- **Kipling et le journalisme :** R. Kipling, <ExternalLink href="https://www.gutenberg.org/files/2781/2781-h/2781-h.htm" preview="Just So Stories (1902), Project Gutenberg.">Just So Stories</ExternalLink>
+  (1902) ; Kipling Society, <ExternalLink href="https://www.kiplingsociety.co.uk/?p=5567" preview="Notes de Lisa Lewis sur The Elephant's Child.">notes sur The Elephant's Child</ExternalLink> ;
+  W. G. Bleyer, <ExternalLink href="https://gutenberg.org/files/65884/65884-h/65884-h.htm" preview="Newspaper Writing and Editing (1913), Project Gutenberg.">Newspaper Writing and Editing</ExternalLink>
+  (1913), chapitre IV.
+- **La méthode :** AHRQ, <ExternalLink href="https://digital.ahrq.gov/health-it-tools-and-resources/evaluation-resources/workflow-assessment-health-it-toolkit/all-workflow-tools/5w2h" preview="Fiche 5W2H de l'AHRQ, d'après Tague, The Quality Toolbox (ASQ, 2005).">5W2H</ExternalLink>,
+  d'après N. Tague, _The Quality Toolbox_, 2e éd., ASQ Quality Press, 2005 ; I.
+  Equixor, <ExternalLink href="https://www.techniques-ingenieur.fr/base-documentaire/genie-industriel-th6/methodes-de-resolution-de-problemes-42592210/la-methode-qqoqccp-un-outil-d-analyse-fic0447/" preview="Techniques de l'Ingénieur, fiche FIC0447 (2016).">La méthode QQOQCCP, un outil d'analyse</ExternalLink>,
+  Techniques de l'Ingénieur, fiche FIC0447 ; C. Roser, <ExternalLink href="https://www.allaboutlean.com/8d-d2-and-d3/" preview="AllAboutLean : les étapes D2 et D3 du 8D.">The Eight Disciplines Problem Solving (8D): D2 and D3</ExternalLink>,
+  AllAboutLean (source secondaire).
+- **Études de cas :** Braga, Lins, Christovam et de Souza, <ExternalLink href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9897221/" preview="Revista Brasileira de Enfermagem 76 (suppl. 1), 2023.">« Quality management in the COVID-19 pandemic: nursing action plan »</ExternalLink>,
+  _Revista Brasileira de Enfermagem_, 2023 ; C. A. Mariani, <ExternalLink href="https://www.revistas.usp.br/rai/article/view/79051" preview="RAI, Revista de Administração e Inovação 2(2), Université de São Paulo.">« Método PDCA e ferramentas da qualidade no gerenciamento de processos industriais »</ExternalLink>,
+  _RAI_, 2005.
+- **Causes, cycle et force des actions :** M. Ballé, <ExternalLink href="https://www.lean.org/the-lean-post/articles/five-whys/" preview="The Lean Post, Lean Enterprise Institute, 2012.">Five whys</ExternalLink>,
+  Lean Enterprise Institute, 2012 ; A. J. Card, <ExternalLink href="https://doi.org/10.1136/bmjqs-2016-005849" preview="BMJ Quality & Safety 26(8), 2017, p. 671-677.">« The problem with '5 whys' »</ExternalLink>,
+  _BMJ Quality & Safety_, 2017 ; Lean Enterprise Institute, <ExternalLink href="https://www.lean.org/lexicon-terms/pdca/" preview="Lexique du Lean Enterprise Institute : PDCA.">PDCA</ExternalLink> ;
+  norme <ExternalLink href="https://www.iso.org/standard/62085.html" preview="ISO 9001:2015, clause 6.2 : objectifs qualité et planification des actions pour les atteindre.">ISO 9001:2015</ExternalLink>,
+  clause 6.2.2 ; NPSF et IHI, <ExternalLink href="https://www.ihi.org/library/tools/rca2-improving-root-cause-analyses-and-actions-prevent-harm" preview="RCA² : Improving Root Cause Analyses and Actions to Prevent Harm (2015).">RCA²: Improving Root Cause Analyses and Actions to Prevent Harm</ExternalLink>
+  (2015), et son <ExternalLink href="https://www.health.mn.gov/facilities/patientsafety/adverseevents/toolkit/docs/safetytoolkit_actionhierarchy.pdf" preview="L'outil de hiérarchie des actions de l'IHI.">outil de hiérarchie des actions</ExternalLink>.
+- **Logiciel :** J. Lunney et S. Lueder, <ExternalLink href="https://sre.google/sre-book/postmortem-culture/" preview="Site Reliability Engineering, chapitre 15 (2016).">Postmortem Culture: Learning from Failure</ExternalLink>
+  et <ExternalLink href="https://sre.google/sre-book/example-postmortem/" preview="Site Reliability Engineering, annexe : exemple de postmortem.">Example Postmortem</ExternalLink>,
+  _Site Reliability Engineering_, Google, 2016 ; Prometheus, <ExternalLink href="https://github.com/prometheus/blackbox_exporter" preview="Le dépôt du blackbox exporter de Prometheus.">blackbox exporter</ExternalLink> ;
+  documentation de <ExternalLink href="https://cert-manager.io/docs/" preview="Documentation de cert-manager.">cert-manager</ExternalLink> ;
+  R. Barnes et al., <ExternalLink href="https://www.rfc-editor.org/rfc/rfc8555.html" preview="RFC 8555 : Automatic Certificate Management Environment (ACME), 2019.">RFC 8555</ExternalLink>
+  (2019).

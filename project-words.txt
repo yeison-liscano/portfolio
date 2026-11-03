@@ -1,3 +1,4 @@
+AHRQ
 ASCII
 ASGI
 Academiae
@@ -81,6 +82,7 @@ IMREAD
 IPVS
 IRR
 Investopedia
+Ishikawa
 JSON-RPC
 Jésus
 Kaehler
@@ -126,6 +128,7 @@ Muijrers
 Multigrafo
 Multigrafos
 NGFW
+NPSF
 NPV
 Nacional
 Napoléon
@@ -140,6 +143,7 @@ OSPF
 Oligopolio
 Ollama
 OpenStax
+PDCA
 PERMA
 PKCE
 POP3
@@ -163,6 +167,8 @@ Pseudografos
 PyPI
 Pydantic
 Pyodide
+QQOQCCP
+QQOQCP
 QUIC
 Radboud
 RBAC
@@ -250,6 +256,7 @@ bipartiteness
 biyecciones
 biyección
 biyectiva
+blackbox
 blockquote
 boton
 builtins1

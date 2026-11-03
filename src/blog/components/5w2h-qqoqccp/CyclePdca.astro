@@ -1,0 +1,221 @@
+---
+// cspell:ignore Pdca pdca
+/**
+ * CyclePdca - Where each tool sits in the PDCA cycle. The Plan phase splits
+ * into three moves: describe (QQOQCCP, why = impact), explain (Ishikawa and
+ * 5 Whys, why = cause) and plan (5W2H, why = justification). Do, Check and
+ * Act close the loop. Each box and the arrow into it is one step for
+ * <Stepper>.
+ */
+const id = "cycle-pdca";
+
+const BOX_W = 200;
+const BOX_H = 80;
+const COLS = [12, 268, 524];
+const ROW_TOP = 48;
+const ROW_BOTTOM = 200;
+
+const boxes = [
+  {
+    step: 1,
+    x: COLS[0],
+    y: ROW_TOP,
+    title: "1. Décrire",
+    tool: "QQOQCCP, 8D D2",
+    note: "pourquoi = impact",
+  },
+  {
+    step: 2,
+    x: COLS[1],
+    y: ROW_TOP,
+    title: "2. Expliquer",
+    tool: "Ishikawa, 5 Pourquoi",
+    note: "pourquoi = cause",
+  },
+  {
+    step: 3,
+    x: COLS[2],
+    y: ROW_TOP,
+    title: "3. Planifier",
+    tool: "5W2H, une ligne par action",
+    note: "pourquoi = justification",
+  },
+  {
+    step: 4,
+    x: COLS[2],
+    y: ROW_BOTTOM,
+    title: "4. Faire",
+    tool: "A1, A2, A3",
+    note: "suivi ligne par ligne",
+  },
+  {
+    step: 5,
+    x: COLS[1],
+    y: ROW_BOTTOM,
+    title: "5. Vérifier",
+    tool: "critère d'évaluation",
+    note: "absent de la grille",
+  },
+  {
+    step: 6,
+    x: COLS[0],
+    y: ROW_BOTTOM,
+    title: "6. Agir",
+    tool: "standardiser",
+    note: "ou relancer le cycle",
+  },
+];
+
+const midTop = ROW_TOP + BOX_H / 2;
+const midBottom = ROW_BOTTOM + BOX_H / 2;
+const arrows = [
+  { step: 2, x1: COLS[0] + BOX_W, y1: midTop, x2: COLS[1] - 4, y2: midTop },
+  { step: 3, x1: COLS[1] + BOX_W, y1: midTop, x2: COLS[2] - 4, y2: midTop },
+  {
+    step: 4,
+    x1: COLS[2] + BOX_W / 2,
+    y1: ROW_TOP + BOX_H,
+    x2: COLS[2] + BOX_W / 2,
+    y2: ROW_BOTTOM - 4,
+  },
+  {
+    step: 5,
+    x1: COLS[2],
+    y1: midBottom,
+    x2: COLS[1] + BOX_W + 4,
+    y2: midBottom,
+  },
+  {
+    step: 6,
+    x1: COLS[1],
+    y1: midBottom,
+    x2: COLS[0] + BOX_W + 4,
+    y2: midBottom,
+  },
+  {
+    step: 6,
+    x1: COLS[0] + BOX_W / 2,
+    y1: ROW_BOTTOM,
+    x2: COLS[0] + BOX_W / 2,
+    y2: ROW_TOP + BOX_H + 4,
+  },
+];
+---
+
+<svg
+  viewBox="0 0 736 316"
+  role="img"
+  aria-label="Le cycle PDCA. La phase Plan se divise en trois temps : décrire le problème avec le QQOQCCP, où le pourquoi désigne l'impact ; expliquer avec Ishikawa et les 5 Pourquoi, où il désigne la cause ; planifier avec le 5W2H, où il désigne la justification. Viennent ensuite faire, vérifier avec un critère d'évaluation absent de la grille, et agir, qui standardise ou relance le cycle."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x={COLS[0]} y="20" class="phase">
+    PLAN
+  </text>
+  <line
+    x1={COLS[0]}
+    y1="30"
+    x2={COLS[2] + BOX_W}
+    y2="30"
+    class="bracket"
+  ></line>
+  <text x={COLS[0]} y="308" class="phase">
+    FAIRE · VÉRIFIER · AGIR
+  </text>
+
+  {arrows.map((arrow) => (
+    <line
+      data-step={arrow.step}
+      x1={arrow.x1}
+      y1={arrow.y1}
+      x2={arrow.x2}
+      y2={arrow.y2}
+      marker-end={`url(#${id}-arrow)`}
+      class="edge"
+    />
+  ))}
+
+  {boxes.map((box) => (
+    <g data-step={box.step}>
+      <rect
+        x={box.x}
+        y={box.y}
+        width={BOX_W}
+        height={BOX_H}
+        rx="4"
+        class="box"
+      />
+      <text x={box.x + 14} y={box.y + 24} class="title">
+        {box.title}
+      </text>
+      <text x={box.x + 14} y={box.y + 46} class="tool">
+        {box.tool}
+      </text>
+      <text x={box.x + 14} y={box.y + 66} class="note">
+        {box.note}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .phase {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  .bracket {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .title {
+    fill: currentColor;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .tool {
+    fill: currentColor;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .note {
+    fill: currentColor;
+    font-size: 11px;
+    opacity: 0.8;
+  }
+</style>
