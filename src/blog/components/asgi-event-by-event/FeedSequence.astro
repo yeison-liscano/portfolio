@@ -1,0 +1,259 @@
+---
+/**
+ * FeedSequence - The traced WebSocket experiment as a sequence diagram.
+ * Two calls of the same ASGI app run at once: call A holds the browser's
+ * WebSocket, call B serves the warehouse's POST. B puts the update on A's
+ * queue, and A's push task sends it to the browser with no request behind
+ * it. Times come from the trace. Each group is one step for <Stepper>.
+ */
+// cspell:ignore nowait
+const id = "feed-sequence";
+
+const COLUMNS = [
+  { x: 120, name: "browser", sub: "WebSocket client" },
+  { x: 300, name: "app call A", sub: "scope: websocket" },
+  { x: 480, name: "app call B", sub: "scope: http" },
+  { x: 640, name: "warehouse", sub: "HTTP client" },
+];
+const [browser, callA, callB, warehouse] = COLUMNS.map((c) => c.x);
+const BOX_W = 120;
+const BOX_H = 44;
+const BOTTOM = 388;
+
+interface Message {
+  y: number;
+  from: number;
+  to: number;
+  label: string;
+  time?: string;
+  dashed?: boolean;
+  push?: boolean;
+}
+
+const steps: Message[][] = [
+  [
+    {
+      y: 88,
+      from: browser,
+      to: callA,
+      label: "websocket.connect",
+      time: "0.1",
+    },
+    {
+      y: 116,
+      from: callA,
+      to: browser,
+      label: "websocket.accept",
+      time: "0.1",
+    },
+  ],
+  [
+    {
+      y: 152,
+      from: browser,
+      to: callA,
+      label: "websocket.receive",
+      time: "1.1",
+    },
+    { y: 180, from: callA, to: browser, label: "websocket.send", time: "1.1" },
+  ],
+  [
+    {
+      y: 216,
+      from: warehouse,
+      to: callB,
+      label: "http.request",
+      time: "2.0",
+    },
+    {
+      y: 244,
+      from: callB,
+      to: callA,
+      label: "queue.put_nowait",
+      dashed: true,
+    },
+    {
+      y: 272,
+      from: callB,
+      to: warehouse,
+      label: "http.response.*",
+      time: "2.1",
+    },
+  ],
+  [
+    {
+      y: 308,
+      from: callA,
+      to: browser,
+      label: "websocket.send",
+      time: "2.2",
+      push: true,
+    },
+  ],
+  [
+    {
+      y: 344,
+      from: browser,
+      to: callA,
+      label: "websocket.disconnect",
+      time: "2.9",
+    },
+  ],
+];
+---
+
+<svg
+  viewBox="0 0 720 400"
+  role="img"
+  aria-label="Sequence of the traced WebSocket experiment. The browser connects and call A accepts. The browser sends hello and call A answers. The warehouse posts a new status to call B, which puts it on call A's queue and answers 202. Call A's push task sends the update to the browser, with no request behind it. The browser disconnects with code 1000."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="8" y="30" class="side">
+    ms
+  </text>
+
+  {COLUMNS.map((column) => (
+    <g>
+      <rect
+        x={column.x - BOX_W / 2}
+        y="8"
+        width={BOX_W}
+        height={BOX_H}
+        rx="4"
+        class="box"
+      />
+      <text x={column.x} y="26" class="name">
+        {column.name}
+      </text>
+      <text x={column.x} y="44" class="sub">
+        {column.sub}
+      </text>
+      <line
+        x1={column.x}
+        y1={8 + BOX_H}
+        x2={column.x}
+        y2={BOTTOM}
+        class="lifeline"
+      />
+    </g>
+  ))}
+
+  {steps.map((messages, index) => (
+    <g data-step={index + 1}>
+      {messages.map((message) => (
+        <g class:list={{ push: message.push }}>
+          {message.time && (
+            <text x="8" y={message.y + 4} class="time">
+              {message.time}
+            </text>
+          )}
+          <line
+            x1={message.from}
+            y1={message.y}
+            x2={message.to + (message.to > message.from ? -4 : 4)}
+            y2={message.y}
+            class:list={["message", { dashed: message.dashed }]}
+            marker-end={`url(#${id}-arrow)`}
+          />
+          <text
+            x={(message.from + message.to) / 2}
+            y={message.y - 6}
+            class="label"
+          >
+            {message.label}
+          </text>
+        </g>
+      ))}
+    </g>
+  ))}
+
+  <g data-step="5">
+    <text x={callA + 8} y="370" class="note">
+      unsubscribes, cancels the push task
+    </text>
+  </g>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .sub,
+  .side {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .sub {
+    text-anchor: middle;
+  }
+
+  .lifeline {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .message {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .dashed {
+    stroke-dasharray: 5 3;
+  }
+
+  .push .message {
+    stroke-width: 2.5;
+  }
+
+  .push .label {
+    font-weight: 700;
+  }
+
+  .label,
+  .time,
+  .note {
+    fill: currentColor;
+    font-size: 11px;
+  }
+
+  .label {
+    text-anchor: middle;
+  }
+
+  .note {
+    font-family: var(--font-sans);
+  }
+</style>

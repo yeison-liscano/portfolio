@@ -1,0 +1,815 @@
+---
+lang: "en"
+title: "ASGI Event by Event: How scope, receive and send Keep a Connection Open, and Why an Async WSGI Would Not"
+pubDate: 2026-11-02
+description:
+  "A raw ASGI app traced under Uvicorn: what scope, receive and send carry, how
+  a request body arrives in pieces, how the app notices a client leave, how a
+  WebSocket pushes, and why wrapped WSGI code ran one request at a time."
+summary:
+  - "WSGI hands an application one environ and takes back one iterable, so
+    nothing reaches it after it returns, and an async version would keep that
+    single way in. ASGI calls the application once per connection, with
+    receive and send for events in both directions while the connection
+    lives."
+  - "Every ASGI message is a dict whose type names its shape. A request body
+    can come in several http.request events, so read until more_body is false,
+    and only then wait for http.disconnect."
+  - "A WebSocket push needs a second coroutine: one awaits receive(), the
+    other awaits the source of updates and calls send(). Lifespan events open
+    and close shared resources once per event loop."
+  - "asgiref's WsgiToAsgi keeps WSGI code off the event loop, but by default
+    on one shared thread: three one-second requests took 3.05 s. One
+    ThreadSensitiveContext per request brought them down to 1.06 s."
+tags: ["python", "web"]
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import Timeline from "../components/blog/Timeline.astro";
+import CallShapes from "./components/asgi-event-by-event/CallShapes.astro";
+import FeedSequence from "./components/asgi-event-by-event/FeedSequence.astro";
+
+{/* cspell:ignore asgiref Godwin httpx nowait pprint Hypercorn Daphne Granian WsgiToAsgi wsgi bytestrings rstrip startswith threadpool Fette Melnikov */}
+
+Keywords: ASGI, WSGI, scope, receive, send, Uvicorn, WebSocket, long polling,
+lifespan, asgiref
+
+An order page should show "shipped" the moment the warehouse marks order 42 as
+shipped. To do that, the server has to send a message long after the browser
+asked, on a connection that stays open.
+A <Acronym title="Web Server Gateway Interface">WSGI</Acronym> application
+cannot do this, because it is a function that takes one request and returns
+one response. Making that function `async` would not fix it either, and
+the <ExternalLink href="https://asgi.readthedocs.io/en/latest/introduction.html" preview="The ASGI introduction: why WSGI's single callable cannot carry WebSockets, and how scope, receive and send replace it.">ASGI introduction</ExternalLink>
+explains why. This post builds the feature on
+raw <Acronym title="Asynchronous Server Gateway Interface">ASGI</Acronym>,
+with no framework, runs it under Uvicorn, and prints every event that passes
+between the server and the application. You will see what `scope`, `receive`
+and `send` carry, how a request body arrives in pieces, and how the
+application learns that a client has left. You will also see what happens to
+old WSGI code on the same server, and why three one-second WSGI requests took
+three seconds.
+
+The <InternalLink slug="wsgi-vs-asgi-protocols">WSGI vs ASGI post</InternalLink>
+showed a hello-world application for each interface, and when to choose each
+one. This post goes one level down, to the messages themselves. Every trace
+below is real output from Python 3.13.9, Uvicorn 0.54.0 with its h11 HTTP
+implementation, asgiref 3.13.0, httpx 0.28.1 and websockets 17.4. It ran on
+one machine, over localhost, with one worker process. A real deployment adds
+a network, several workers and a message broker, and the sections say where
+that changes the result.
+
+## WSGI hands the application one request and takes back one response
+
+The WSGI specification, <Acronym title="Python Enhancement Proposal">PEP</Acronym> <ExternalLink href="https://peps.python.org/pep-3333/" preview="PEP 3333 (2010): the WSGI specification, with the environ and start_response callable and the iterable response.">3333</ExternalLink>,
+defines the application as "simply a callable object that accepts two
+arguments": `environ`, a dict that describes the request, and
+`start_response`, a function that sets the status and headers. The server
+"invokes the application callable once for each request", and the
+application returns "an iterable yielding zero or more bytestrings". Every
+input arrives before the call starts, and every output leaves through the
+return value.
+
+The order page needs two things this shape cannot give. The first is
+a <Term title="A request that the server holds open until it has news for the client, or until a timeout.">long poll</Term>
+over <Acronym title="Hypertext Transfer Protocol">HTTP</Acronym>: the browser
+asks for the next status change, and the server answers only when there is
+one. In WSGI, the call must stay running for the whole wait, and
+nothing in the interface tells it that the browser has given up. The second
+is a <Term title="A protocol that upgrades one HTTP connection into a two-way channel, so client and server can send each other messages at any time.">WebSocket</Term>.
+After the handshake, the browser sends frames whenever it wants. A call that
+has already received its `environ` has no way to get them.
+
+Would an `async` WSGI help? Picture one:
+
+```py
+# A hypothetical async WSGI: not a real interface.
+async def application(environ):
+    ...  # everything the client will send is already in environ
+    return [b"..."]  # everything the server will send leaves here
+```
+
+The `async` lets the server run other requests on
+its <Term title="A loop that runs many tasks on one thread: it switches to another task whenever the current one waits for I/O.">event loop</Term>
+while this one waits, but the application still has one way in and one way
+out. The ASGI introduction puts it
+this way: "Even if we made this callable asynchronous, it still only has a
+single path to provide a request, so protocols that have multiple incoming
+events (like receiving WebSocket frames) can't trigger this."
+The <ExternalLink href="https://asgi.readthedocs.io/en/latest/specs/main.html" preview="The core ASGI 3.0 specification: the application signature, the connection scope, events, middleware and error handling.">ASGI specification</ExternalLink>
+gives the same reason in its rationale: WSGI's design "is irrevocably tied to
+the HTTP-style request/response cycle".
+
+<Figure caption="A WSGI call gets the whole request when it starts and gives back the whole response when it returns. An ASGI call lasts as long as the connection, and events cross in both directions while it runs, including a message the app sends when nothing asked for it.">
+  <CallShapes />
+</Figure>
+
+The figure raises three questions that the rest of the post answers with a
+running server. How does an application read a request that is still
+arriving? How does it learn that the browser has gone? And can the old WSGI
+code of the same project live on the new server, at the same speed?
+
+## An ASGI application is called once per connection, with three arguments
+
+ASGI started in Django Channels. Andrew Godwin proposed it
+on <ExternalLink href="https://mail.python.org/pipermail/web-sig/2016-March/005437.html" preview="Andrew Godwin on the Web-SIG mailing list, March 2016: the first public proposal of ASGI, based on Django Channels.">the Web-SIG list in March 2016</ExternalLink>.
+He argued for "a clean break from WSGI to a new structure (and NOT calling it
+'WSGI 2')". Version 3.0, the current one, dates from March 2019. It retired an
+older style in which the application was split into two callables. Today the
+whole interface is one line of the specification:
+
+```text
+coroutine application(scope, receive, send)
+```
+
+The specification defines the three arguments:
+
+- `scope`: "a dictionary that contains at least a `type` key specifying the
+  protocol that is incoming". It describes the connection.
+- `receive`: "an awaitable callable that will yield a new event dictionary
+  when one is available".
+- `send`: "an awaitable callable taking a single event dictionary as a
+  positional argument that will return once the send has been completed or
+  the connection has been closed".
+
+"The application is called once per 'connection'," the specification goes on.
+"With HTTP it is one request, whereas for a WebSocket it is a single WebSocket
+connection." To see what a server actually passes, this application prints its
+arguments and answers `204 No Content`. The output below leaves out a
+readiness probe and shortens the module paths:
+
+```py
+# scope_dump.py
+from pprint import pprint
+
+
+async def app(scope, receive, send):
+    if scope["type"] != "http":
+        raise RuntimeError(f"unsupported scope type: {scope['type']}")
+    pprint(scope)
+    print(receive, send, sep="\n")
+    await send({"type": "http.response.start", "status": 204, "headers": []})
+    await send({"type": "http.response.body"})
+```
+
+```bash
+uvicorn scope_dump:app --port 8044
+curl -H "accept: application/json" "http://127.0.0.1:8044/orders/42?fields=status"
+```
+
+```text
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+{'asgi': {'spec_version': '2.3', 'version': '3.0'},
+ 'client': ('127.0.0.1', 55899),
+ 'headers': [(b'host', b'127.0.0.1:8044'),
+             (b'user-agent', b'curl/8.7.1'),
+             (b'accept', b'application/json')],
+ 'http_version': '1.1',
+ 'method': 'GET',
+ 'path': '/orders/42',
+ 'query_string': b'fields=status',
+ 'raw_path': b'/orders/42',
+ 'root_path': '',
+ 'scheme': 'http',
+ 'server': ('127.0.0.1', 8044),
+ 'state': {},
+ 'type': 'http'}
+<bound method RequestResponseCycle.receive of <...h11_impl.RequestResponseCycle object at 0x10a5356d0>>
+<bound method RequestResponseCycle.send of <...h11_impl.RequestResponseCycle object at 0x10a5356d0>>
+```
+
+Four details in that output come back later:
+
+- **The body is missing.** The scope holds the method, the path, the query and
+  the headers, but the specification leaves out "the HTTP request body, as
+  this is streamed in via events".
+- **The types are exact.** The path is a `str`, decoded. The query string and
+  the headers are `bytes`, as the client sent them. Header names are
+  lowercase.
+- **Two versions are given.** `version` is the ASGI version, 3.0.
+  `spec_version` is the version of the HTTP message format that this code path
+  of Uvicorn implements, 2.3.
+  The <ExternalLink href="https://asgi.readthedocs.io/en/latest/specs/www.html" preview="The ASGI HTTP and WebSocket message format, version 2.5: every scope key and event, and the mapping to WSGI.">HTTP and WebSocket format</ExternalLink>
+  is at 2.5. The difference matters below, in the section on disconnects.
+- **`receive` and `send` belong to one request.** They are two methods of the
+  same `RequestResponseCycle` object, which Uvicorn creates for each request.
+
+The first log lines are a result of the `raise`. Before the first request,
+Uvicorn called the application with a `lifespan` scope. The application
+raised, as the specification asks: "Applications should actively reject any
+protocol that they do not understand with an Exception". Uvicorn then went on
+without lifespan events. The lifespan section below accepts that scope.
+
+## Every event is a dict, and its `type` key names its shape
+
+Each event is a plain dict. Its `type` is "namespaced as
+`protocol.message_type`", so `http.request` belongs to the HTTP protocol and
+`websocket.send` to the WebSocket protocol. These are the core events of the
+three protocols:
+
+| Protocol  | From `receive()`                                                 | To `send()`                                                                         |
+| --------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| HTTP      | `http.request`, `http.disconnect`                                | `http.response.start`, `http.response.body`                                         |
+| WebSocket | `websocket.connect`, `websocket.receive`, `websocket.disconnect` | `websocket.accept`, `websocket.send`, `websocket.close`                             |
+| Lifespan  | `lifespan.startup`, `lifespan.shutdown`                          | `lifespan.startup.complete` or `.failed`, `lifespan.shutdown.complete` or `.failed` |
+
+Because every event passes through two callables, a wrapper around them sees
+all the traffic. The specification calls such a wrapper middleware: "code that
+plays the role of both server and application". This one replaces `receive`
+and `send` with versions that print each event before passing it on. `<-`
+marks an event that `receive()` returned, `->` an event given to `send()`, and
+`**` a new call of the application:
+
+```py
+# tracing.py
+import threading
+import time
+
+_start = _last = time.monotonic()
+
+
+def clock():
+    """Milliseconds since the experiment began, after a second of silence."""
+    global _start, _last
+    now = time.monotonic()
+    if now - _last > 1:
+        _start = now
+    _last = now
+    return (now - _start) * 1000
+
+
+def log(arrow, text):
+    print(f"{clock():6.1f} ms {arrow} {text}", flush=True)
+
+
+def show(event):
+    fields = " ".join(f"{k}={v!r}" for k, v in event.items() if k != "type")
+    return f"{event['type']} {fields}".rstrip()
+
+
+def trace(app):
+    async def traced(scope, receive, send):
+        async def traced_receive():
+            event = await receive()
+            log("<-", show(event))
+            return event
+
+        async def traced_send(event):
+            log("->", show(event))
+            await send(event)
+
+        parts = [scope["type"], "scope", scope.get("method"), scope.get("path")]
+        if scope.get("client"):
+            parts.append(f"port {scope['client'][1]}")
+        parts.append(f"in {threading.current_thread().name}")
+        log("**", " ".join(p for p in parts if p))
+        await app(scope, traced_receive, traced_send)
+
+    return traced
+```
+
+The orders application routes on `scope["type"]` first and on the path second.
+It is about a hundred lines, and the sections below show its parts:
+
+```py
+# orders.py (routing)
+async def app(scope, receive, send):
+    if scope["type"] == "lifespan":
+        await lifespan(scope, receive, send)
+    elif scope["type"] == "websocket":
+        await order_feed(scope, receive, send)
+    elif scope["type"] != "http":
+        raise RuntimeError(f"unsupported scope type: {scope['type']}")
+    elif scope["path"] == "/orders/42/status":
+        await update_status(scope, receive, send)
+    elif scope["path"] == "/orders/42/next":
+        await wait_for_update(scope, receive, send)
+    elif scope["path"].startswith("/legacy"):
+        await legacy(scope, receive, send)
+    else:
+        await respond(send, 404, {"error": "not found"})
+
+
+traced = trace(app)
+```
+
+```bash
+uvicorn orders:traced --port 8042 --no-access-log
+```
+
+## A body can arrive in several events, so read until `more_body` is false
+
+The warehouse reports a status change with a `POST` to `/orders/42/status`. To
+show how a body arrives, the test client sends this one in three pieces, 100 ms
+apart. httpx sends a body that it reads from a generator with
+`Transfer-Encoding: chunked`:
+
+```py
+async def body():
+    for piece in (b'{"order": 42, ', b'"status": ', b'"packed"}'):
+        yield piece
+        await asyncio.sleep(0.1)
+
+await client.post("http://127.0.0.1:8042/orders/42/status", content=body())
+```
+
+```text
+   0.0 ms ** http scope POST /orders/42/status port 55985 in MainThread
+   0.1 ms <- http.request body=b'{"order": 42, ' more_body=True
+ 106.7 ms <- http.request body=b'"status": ' more_body=True
+ 211.5 ms <- http.request body=b'"packed"}' more_body=True
+ 313.6 ms <- http.request body=b'' more_body=False
+ 314.0 ms -> http.response.start status=202 headers=[(b'content-type', b'application/json')]
+ 314.4 ms -> http.response.body body=b'{"listeners": 0}'
+```
+
+Uvicorn removed the chunk framing and passed each piece on as an
+`http.request` event. The specification gives the rule for `more_body`: "If
+`True`, the consuming application should wait until it gets a chunk with this
+set to `False`." The last event is empty. It arrived when the client's
+generator finished and the client sent the final zero-length chunk, about 100
+ms after the last piece. Only then does the server know that the body is
+complete. The handler reads every event and joins the pieces:
+
+```py
+async def read_body(receive):
+    body = b""
+    while True:
+        event = await receive()
+        if event["type"] == "http.disconnect":
+            raise ConnectionError("client left before the body ended")
+        body += event.get("body", b"")
+        if not event.get("more_body", False):
+            return body
+
+
+async def respond(send, status, payload):
+    await send({
+        "type": "http.response.start",
+        "status": status,
+        "headers": [(b"content-type", b"application/json")],
+    })
+    await send({"type": "http.response.body", "body": json.dumps(payload).encode()})
+
+
+async def update_status(scope, receive, send):
+    update = json.loads(await read_body(receive))
+    publish(update)
+    await respond(send, 202, {"listeners": len(subscribers)})
+```
+
+The response has the same two-part shape. `http.response.start` carries the
+status and the headers. The specification says it "needs to be followed by at
+least one response content message", and the server may hold it back until
+the first `http.response.body`. An `http.response.body` without `more_body`
+ends the response. `{"listeners": 0}` means that nobody was waiting for order
+42 yet. The next section adds a listener.
+
+The client port also says something. The next two requests in the lab reused
+port 55985, so httpx kept the
+same <Acronym title="Transmission Control Protocol">TCP</Acronym> connection
+open for them. Each request
+still got its own call and its own scope. The HTTP format states that an HTTP
+connection scope lasts one request, "even if the underlying socket is still
+open and serving multiple requests".
+
+## `receive()` is also how the application learns the client has left
+
+The long poll is `GET /orders/42/next`. The handler subscribes to updates and
+waits for whichever comes first: the next update, or the browser leaving. The
+event for the second case is `http.disconnect`, which the format describes as
+"mainly useful for long-polling, where you may want to trigger cleanup code if
+the connection closes early". The application gets it from `receive()`, so the
+handler waits on two tasks at once with `asyncio.wait`.
+
+My first version did exactly that and failed. The client got
+`500 Internal Server Error`, and the trace showed why:
+
+```text
+   0.0 ms ** http scope GET /orders/42/next in MainThread
+   0.1 ms <- http.request body=b'' more_body=False
+ERROR:    ASGI callable returned without starting response.
+```
+
+The first `receive()` of an HTTP call returns the request body, even for a
+`GET` with no body: an empty `http.request`. That event finished the
+"disconnect" task at once. The handler took it as the browser leaving,
+returned without a response, and Uvicorn answered 500 for it. The format says
+when `http.disconnect` comes: when "receive is called after a response has
+been sent or after the HTTP connection has been closed". Until then,
+`receive()` hands over the body. A handler that waits for a disconnect must
+first read the body to the end. The fix is one line, `read_body` before the
+wait:
+
+```py
+async def wait_for_update(scope, receive, send):
+    await read_body(receive)  # the first event is the request body
+    queue = asyncio.Queue()
+    subscribers.add(queue)
+    update = asyncio.create_task(queue.get())
+    disconnect = asyncio.create_task(receive())
+    try:
+        done, _ = await asyncio.wait(
+            {update, disconnect}, return_when=asyncio.FIRST_COMPLETED
+        )
+        if update in done:
+            await respond(send, 200, update.result())
+    finally:
+        subscribers.discard(queue)
+        update.cancel()
+        disconnect.cancel()
+```
+
+`subscribers` is a set of `asyncio.Queue` objects, and `publish` puts each
+update on every queue in it. With the fix, two runs show both endings. In the
+first, the warehouse posts "shipped" 300 ms after the browser started waiting.
+In the second, the browser gives up after 0.5 s:
+
+```text
+   0.0 ms ** http scope GET /orders/42/next port 55985 in MainThread
+   0.2 ms <- http.request body=b'' more_body=False
+ 303.1 ms ** http scope POST /orders/42/status port 55986 in MainThread
+ 303.2 ms <- http.request body=b'{"order":42,"status":"shipped"}' more_body=False
+ 303.3 ms -> http.response.start status=202 headers=[(b'content-type', b'application/json')]
+ 303.4 ms -> http.response.body body=b'{"listeners": 1}'
+ 303.5 ms -> http.response.start status=200 headers=[(b'content-type', b'application/json')]
+ 303.7 ms -> http.response.body body=b'{"order": 42, "status": "shipped"}'
+
+   0.0 ms ** http scope GET /orders/42/next port 55985 in MainThread
+  16.4 ms <- http.request body=b'' more_body=False
+ 502.1 ms <- http.disconnect
+```
+
+In the first run, the POST's call and the waiting GET's call ran at the same
+time, on one thread, and the update crossed from one to the other in less
+than a millisecond. In the second, `http.disconnect` came 502 ms after the
+request, when the client's 0.5 s timeout closed the socket. The handler
+cleaned up without sending anything.
+
+Sending after a disconnect is the other half of the question. Since version
+2.4 of the format, "If `send()` is called on a closed connection the server
+should raise a server-specific subclass of `OSError`". This Uvicorn path
+reports 2.3, and
+its <ExternalLink href="https://github.com/Kludex/uvicorn/blob/main/uvicorn/protocols/http/h11_impl.py" preview="Uvicorn source: the h11 HTTP protocol, which builds the HTTP scope and handles disconnects.">h11 code</ExternalLink>
+returns from `send` without doing anything once the client is gone. Its
+WebSocket code reports 2.4 and raises `ClientDisconnected`, a subclass of
+`OSError`. An application that must work on any server should handle both
+behaviors.
+
+## A WebSocket needs a second coroutine to listen and push at once
+
+The long poll answers once and then the browser must ask again. A WebSocket
+keeps one connection for the whole session. Its scope "lives as long as the
+socket itself - if the application dies the socket should be closed, and
+vice-versa". The first event is `websocket.connect`, and the application must
+answer it with `websocket.accept` or `websocket.close` before any
+`websocket.receive` can arrive. A close at this point makes the server reject
+the handshake with HTTP 403.
+
+After that, the connection has two sources of events. The browser can send a
+frame at any time, which arrives through `receive()`, and the warehouse can
+change a status at any time, which arrives through the queue.
+One <Term title="A function defined with async def. It pauses at each await and lets other code run on the event loop until it resumes.">coroutine</Term>
+cannot wait on both in turn, so the handler starts a second one. The
+introduction describes this pattern: ASGI "allows for a background coroutine
+so the application can do other things (such as listening for events on an
+external trigger, like a Redis queue)".
+
+```py
+async def order_feed(scope, receive, send):
+    await receive()  # websocket.connect
+    await send({"type": "websocket.accept"})
+    queue = asyncio.Queue()
+    subscribers.add(queue)
+
+    async def push_updates():
+        while True:
+            update = await queue.get()
+            await send({"type": "websocket.send", "text": json.dumps(update)})
+
+    pusher = asyncio.create_task(push_updates())
+    try:
+        while True:
+            event = await receive()
+            if event["type"] == "websocket.disconnect":
+                break
+            await send({"type": "websocket.send", "text": f"ack {event['text']}"})
+    finally:
+        subscribers.discard(queue)
+        pusher.cancel()
+```
+
+The test client opens the socket, sends `hello`, has the warehouse post
+"delivered", reads both messages and closes:
+
+```text
+   0.0 ms ** websocket scope /orders/42/feed port 55990 in MainThread
+   0.1 ms <- websocket.connect
+   0.1 ms -> websocket.accept
+   1.1 ms <- websocket.receive text='hello'
+   1.1 ms -> websocket.send text='ack hello'
+   2.0 ms ** http scope POST /orders/42/status port 55986 in MainThread
+   2.0 ms <- http.request body=b'{"order":42,"status":"delivered"}' more_body=False
+   2.1 ms -> http.response.start status=202 headers=[(b'content-type', b'application/json')]
+   2.1 ms -> http.response.body body=b'{"listeners": 1}'
+   2.2 ms -> websocket.send text='{"order": 42, "status": "delivered"}'
+   2.9 ms <- websocket.disconnect code=1000 reason=''
+```
+
+<Figure caption="Two calls of the same application run at once. Call A holds the browser's WebSocket, and call B serves the warehouse's POST. B puts the update on A's queue, and A's push task sends it to the browser. No request from the browser is behind that message.">
+  <Stepper
+    label="Events of the WebSocket order feed"
+    steps={[
+      "The browser opens a WebSocket. Uvicorn calls the app with a websocket scope, and the first receive() returns websocket.connect. Call A answers websocket.accept and subscribes a queue.",
+      "The browser sends hello. Call A's receive loop gets websocket.receive and answers with websocket.send.",
+      "The warehouse posts the new status. Call B, with an http scope, reads the body, puts the update on every subscribed queue and answers 202 with one listener.",
+      "Call A's push task takes the update from its queue and sends it with websocket.send, 0.2 ms after the POST arrived. The browser never asked for it.",
+      "The browser closes the socket. receive() returns websocket.disconnect with code 1000, and call A unsubscribes its queue and cancels the push task.",
+    ]}
+  >
+    <FeedSequence />
+  </Stepper>
+</Figure>
+
+The `websocket.send` at 2.2 ms is the message that WSGI has no slot for. It
+came from the application with no request behind it. Code 1000 is "a normal
+closure" in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc6455" preview="RFC 6455 (2011): the WebSocket protocol, with its HTTP upgrade handshake, framing and close codes.">RFC 6455</ExternalLink>.
+
+The lab takes one shortcut here. The set of queues lives in the memory of one
+process, so it works only because Uvicorn ran one worker. With
+`--workers 4`, a POST served by one worker would never reach a WebSocket held
+by another. The introduction's example, a Redis queue, is what fills that gap
+in production: each worker subscribes to a channel outside the process.
+
+## Lifespan events give the application a start and an end of its own
+
+Every scope so far belonged to one request or one socket. A connection pool,
+or the subscriber to that Redis channel, belongs to the whole process.
+The <ExternalLink href="https://asgi.readthedocs.io/en/latest/specs/lifespan.html" preview="The ASGI lifespan protocol, version 2.0: startup and shutdown events, and the state shared with each request.">lifespan protocol</ExternalLink>
+gives the application a call for that: its messages "allow for an application
+to initialise and shutdown in the context of a running event loop". Uvicorn
+makes this call at startup, with a `lifespan` scope:
+
+```py
+async def lifespan(scope, receive, send):
+    while True:
+        event = await receive()
+        if event["type"] == "lifespan.startup":
+            await send({"type": "lifespan.startup.complete"})
+        elif event["type"] == "lifespan.shutdown":
+            await send({"type": "lifespan.shutdown.complete"})
+            return
+```
+
+```text
+INFO:     Waiting for application startup.
+  66.1 ms ** lifespan scope in MainThread
+  66.3 ms <- lifespan.startup
+  66.5 ms -> lifespan.startup.complete
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8042 (Press CTRL+C to quit)
+...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+   0.0 ms <- lifespan.shutdown
+   0.1 ms -> lifespan.shutdown.complete
+INFO:     Application shutdown complete.
+```
+
+The server "must wait for this message before it starts processing
+connections", so a pool opened before `lifespan.startup.complete` is ready
+for the first request. Shutdown comes "when the server has stopped accepting
+connections and closed all active connections". Lifespan runs "once per event
+loop", so with four workers each process opens its own pool.
+
+To share an object with the requests, the application puts it in
+`scope["state"]`, and the server passes "a shallow copy of the namespace" into
+each request's scope.
+That is the empty `'state': {}` in the scope dump. The `scope_dump.py` example
+shows the other path: when an application rejects the lifespan scope, the
+server "must continue but not send any lifespan events".
+
+## WSGI code runs on a thread beside the event loop, one request at a time
+
+The project also has reports written for WSGI years ago. The introduction
+promises they can stay: ASGI "is also designed to be a superset of WSGI", and
+"a threadpool can be used to run the synchronous WSGI applications away from
+the async event loop". asgiref, the reference library of the ASGI project,
+provides the wrapper `WsgiToAsgi`, which the router above mounts under
+`/legacy`:
+
+```py
+# legacy.py
+import threading
+
+
+def legacy_wsgi_app(environ, start_response):
+    thread = threading.current_thread().name
+    start_response("200 OK", [("content-type", "text/plain")])
+    line = f"WSGI {environ['REQUEST_METHOD']} {environ['PATH_INFO']} in {thread}\n"
+    return [line.encode()]
+
+
+# orders.py
+legacy = WsgiToAsgi(legacy_wsgi_app)
+```
+
+```text
+   0.0 ms ** http scope GET /legacy/orders port 55986 in MainThread
+   0.3 ms <- http.request body=b'' more_body=False
+   1.8 ms -> http.response.start status=200 headers=[(b'content-type', b'text/plain')]
+   2.2 ms -> http.response.body body=b'WSGI GET /legacy/orders in ThreadPoolExecutor-0_0\n' more_body=True
+   2.4 ms -> http.response.body
+```
+
+The ASGI call ran on `MainThread`, where the event loop runs. The WSGI
+function ran on `ThreadPoolExecutor-0_0`, so a blocking call inside it does
+not stop the loop. The wrapper read the whole body first, then turned the
+returned list into one `http.response.body` with `more_body=True` and a final
+empty one.
+
+Then a report that takes one second, with `time.sleep(1)` standing in for a
+blocking database query, served alone through `WsgiToAsgi`. Three browsers ask
+for it at the same moment:
+
+```py
+# slow_legacy.py
+import threading
+import time
+
+from asgiref.wsgi import WsgiToAsgi
+
+
+def slow_report(environ, start_response):
+    started = time.monotonic()
+    time.sleep(1)  # a blocking database query
+    thread = threading.current_thread().name
+    start_response("200 OK", [("content-type", "text/plain")])
+    return [f"{thread} started at {started:.2f}\n".encode()]
+
+
+app = WsgiToAsgi(slow_report)
+```
+
+```text
+request 1: done at 1.03 s, ThreadPoolExecutor-0_0 started at 92103.07
+request 2: done at 2.04 s, ThreadPoolExecutor-0_0 started at 92104.08
+request 3: done at 3.05 s, ThreadPoolExecutor-0_0 started at 92105.08
+all three: 3.05 s
+```
+
+The requests ran one after the other, on the same thread. The cause is in
+asgiref's source. <ExternalLink href="https://github.com/django/asgiref/blob/main/asgiref/wsgi.py" preview="asgiref source: WsgiToAsgi, the adapter that runs a WSGI application under an ASGI server.">`wsgi.py`</ExternalLink>
+runs the WSGI application through `@sync_to_async` with its defaults,
+and <ExternalLink href="https://github.com/django/asgiref/blob/main/asgiref/sync.py" preview="asgiref source: SyncToAsync and AsyncToSync, with the rules for thread-sensitive code.">`sync.py`</ExternalLink>
+sets `thread_sensitive=True` by default. In an async program, its docstring
+explains, thread-sensitive code runs in "a dedicated single sub-thread that
+all sync code runs in, one after the other". The default exists for code that
+is not thread-safe, and the docstring gives SQLite connections as an example.
+The "threadpool" of the introduction is real, but a pool of one thread.
+
+Django's own ASGI handler avoids this.
+Its <ExternalLink href="https://github.com/django/django/blob/main/django/core/handlers/asgi.py" preview="Django source: the ASGI handler, which opens a ThreadSensitiveContext for each request.">source</ExternalLink>
+opens an `async with ThreadSensitiveContext():` block around each request, so
+each request gets its own sync thread. The same three lines of wrapping work
+for the report:
+
+```py
+# slow_legacy_ctx.py
+from asgiref.sync import ThreadSensitiveContext
+
+from slow_legacy import app as wrapped
+
+
+async def app(scope, receive, send):
+    async with ThreadSensitiveContext():
+        await wrapped(scope, receive, send)
+```
+
+```text
+request 2: done at 1.06 s, ThreadPoolExecutor-3_0 started at 92130.82
+request 3: done at 1.06 s, ThreadPoolExecutor-4_0 started at 92130.82
+request 1: done at 1.06 s, ThreadPoolExecutor-2_0 started at 92130.82
+all three: 1.06 s
+```
+
+<Figure caption="Three requests reach a WSGI report that blocks for one second. Under WsgiToAsgi's defaults they share one thread and finish at 3.05 s. With one ThreadSensitiveContext per request, each gets its own thread, and all three finish at 1.06 s.">
+  <Timeline
+    label="Three WSGI requests take 3.05 s on one shared thread and 1.06 s with one context per request"
+    max={3500}
+    tick={500}
+    unit="ms"
+    legend={{
+      wait: "blocked in time.sleep(1)",
+      queue: "waiting for the one sync thread",
+    }}
+    groups={[
+      {
+        title: "WsgiToAsgi, default: one sync thread",
+        rows: [
+          {
+            label: "request 1",
+            segments: [{ start: 0, end: 1030, kind: "wait" }],
+          },
+          {
+            label: "request 2",
+            segments: [
+              { start: 0, end: 1030, kind: "queue" },
+              { start: 1030, end: 2040, kind: "wait" },
+            ],
+          },
+          {
+            label: "request 3",
+            segments: [
+              { start: 0, end: 2040, kind: "queue" },
+              { start: 2040, end: 3050, kind: "wait" },
+            ],
+          },
+        ],
+      },
+      {
+        title: "One ThreadSensitiveContext per request",
+        rows: [
+          {
+            label: "request 1",
+            segments: [{ start: 0, end: 1060, kind: "wait" }],
+          },
+          {
+            label: "request 2",
+            segments: [{ start: 0, end: 1060, kind: "wait" }],
+          },
+          {
+            label: "request 3",
+            segments: [{ start: 0, end: 1060, kind: "wait" }],
+          },
+        ],
+      },
+    ]}
+  />
+</Figure>
+
+The context only gives each request a thread. It does not make the WSGI code
+safe to run in parallel. A report that shares a database connection between
+threads, or keeps state in globals, was safe only because of the single
+thread. If the report already ran on a WSGI server with several threads, it
+is safe here too. If it has only ever run on one thread, keep the default, or
+keep serving it with a WSGI server.
+
+## Async was never the missing piece; a way in for later events was
+
+Back to the title. An `async` WSGI would still receive everything in one
+`environ` at the start and give everything back in one return value. The order
+page needed three things that shape has no slot for, and the traces showed
+each one:
+
+- **Events after the call starts.** The pieces of a chunked body, the frames
+  of a WebSocket, and the `http.disconnect` of a browser that gave up all
+  arrived through `receive()` while the call was running.
+- **Messages with no request behind them.** The `websocket.send` at 2.2 ms
+  came from a queue, not from the browser.
+- **A start and an end on the event loop.** Lifespan let the application set
+  up on the running loop before the server accepted a connection, and close
+  down after the last one closed.
+
+`async` changes how a server waits. `receive` and `send` change what an
+application can hear and say while it waits. That is the reason ASGI could not
+be a small update to WSGI.
+
+The takeaway fits in one small middleware. When an ASGI application, or the
+framework above it, behaves in a way you cannot explain, put a tracing
+middleware like the one above in front of it and read the events. Both
+surprises in this post showed up in a trace before they had an explanation:
+the empty `http.request` that ended a long poll, and the single
+`ThreadPoolExecutor-0_0` that ran every WSGI request.
+
+## References
+
+- **ASGI specification:** the <ExternalLink href="https://asgi.readthedocs.io/en/latest/introduction.html" preview="Why WSGI's single callable cannot carry WebSockets, and how ASGI's scope, receive and send replace it.">introduction</ExternalLink>; the <ExternalLink href="https://asgi.readthedocs.io/en/latest/specs/main.html" preview="The core ASGI 3.0 specification.">ASGI specification, version 3.0</ExternalLink>;
+  the <ExternalLink href="https://asgi.readthedocs.io/en/latest/specs/www.html" preview="The HTTP and WebSocket message format, version 2.5 (2024).">HTTP and WebSocket message format, version 2.5</ExternalLink>;
+  the <ExternalLink href="https://asgi.readthedocs.io/en/latest/specs/lifespan.html" preview="The lifespan protocol, version 2.0.">lifespan protocol, version 2.0</ExternalLink>.
+  The source of all four is in the <ExternalLink href="https://github.com/django/asgiref" preview="The asgiref repository: the reference ASGI library and the specification sources.">asgiref repository</ExternalLink>.
+- **WSGI and WebSocket:** <ExternalLink href="https://peps.python.org/pep-3333/" preview="PEP 3333: Python Web Server Gateway Interface v1.0.1 (Eby, 2010).">PEP 3333</ExternalLink>
+  (Eby, 2010); <ExternalLink href="https://www.rfc-editor.org/rfc/rfc6455" preview="RFC 6455: The WebSocket Protocol (Fette and Melnikov, 2011).">RFC 6455</ExternalLink>
+  (Fette and Melnikov, 2011).
+- **History:** Andrew Godwin, <ExternalLink href="https://mail.python.org/pipermail/web-sig/2016-March/005437.html" preview="The first public proposal of ASGI, on the Web-SIG mailing list (March 2016).">"Inviting feedback on my proposed 'ASGI' spec"</ExternalLink>,
+  Web-SIG, 9 March 2016; the version history at the end of the ASGI
+  specification.
+- **Source code read for this post:** asgiref <ExternalLink href="https://github.com/django/asgiref/blob/main/asgiref/wsgi.py" preview="asgiref: WsgiToAsgi.">`wsgi.py`</ExternalLink>
+  and <ExternalLink href="https://github.com/django/asgiref/blob/main/asgiref/sync.py" preview="asgiref: SyncToAsync, AsyncToSync and ThreadSensitiveContext.">`sync.py`</ExternalLink>
+  (version 3.13.0); Uvicorn <ExternalLink href="https://github.com/Kludex/uvicorn/blob/main/uvicorn/protocols/http/h11_impl.py" preview="Uvicorn: the h11 HTTP protocol.">`h11_impl.py`</ExternalLink>
+  and <ExternalLink href="https://github.com/Kludex/uvicorn/blob/main/uvicorn/protocols/websockets/websockets_impl.py" preview="Uvicorn: the WebSocket protocol built on the websockets library.">`websockets_impl.py`</ExternalLink>
+  (version 0.54.0); Django's <ExternalLink href="https://github.com/django/django/blob/main/django/core/handlers/asgi.py" preview="Django: the ASGI request handler.">ASGI handler</ExternalLink>.
+- **Servers and frameworks:** the ASGI project's <ExternalLink href="https://asgi.readthedocs.io/en/latest/implementations.html" preview="The ASGI project's list of servers, frameworks and tools that implement ASGI.">list of implementations</ExternalLink>,
+  which includes the servers Uvicorn, Hypercorn, Daphne and Granian, and the
+  frameworks Django, Starlette and FastAPI.
+- **On this blog:** the <InternalLink slug="wsgi-vs-asgi-protocols">WSGI vs ASGI post</InternalLink>,
+  for hello-world applications and when to choose each interface, and
+  the <InternalLink slug="concurrency-and-multithreading">concurrency post</InternalLink>,
+  for threads and event loops.

@@ -1,0 +1,199 @@
+---
+/**
+ * CallShapes - One WSGI call against one ASGI call, on a time axis. The WSGI
+ * call gets the whole request as environ when it starts and gives back the
+ * whole response as an iterable when it returns; after that, nothing can
+ * reach it. The ASGI call lasts as long as the connection: events come in
+ * through receive and go out through send while it runs, including a push
+ * that no request asked for (the accent).
+ */
+const id = "call-shapes";
+
+const START = 136;
+const WSGI = { title: 22, server: 52, app: 124 };
+const ASGI = { title: 184, server: 214, app: 286 };
+
+interface Arrow {
+  x: number;
+  dir: "in" | "out";
+  label: string;
+  accent?: boolean;
+}
+
+const wsgiArrows: Arrow[] = [
+  { x: START, dir: "in", label: "environ" },
+  { x: 312, dir: "out", label: "iterable" },
+];
+
+const asgiArrows: Arrow[] = [
+  { x: 152, dir: "in", label: "connect" },
+  { x: 212, dir: "out", label: "accept" },
+  { x: 296, dir: "in", label: "receive" },
+  { x: 352, dir: "out", label: "send" },
+  { x: 488, dir: "out", label: "send (push)", accent: true },
+  { x: 664, dir: "in", label: "disconnect" },
+];
+
+const lanes = [
+  { lane: WSGI, arrows: wsgiArrows },
+  { lane: ASGI, arrows: asgiArrows },
+];
+---
+
+<svg
+  viewBox="0 0 720 332"
+  role="img"
+  aria-label="Top: a WSGI call receives environ when it starts and returns an iterable when it ends; after it returns, later events have no way in. Bottom: an ASGI call lasts the whole connection. While it runs, connect, receive and disconnect events come in, and accept and send events go out, including a push that no request asked for."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="8" y={WSGI.title} class="title">
+    WSGI: one call per request
+  </text>
+  <text x="8" y={ASGI.title} class="title">
+    ASGI: one call per connection
+  </text>
+
+  {[WSGI, ASGI].map((lane) => (
+    <g>
+      <text x="8" y={lane.server + 4} class="side">
+        server
+      </text>
+      <text x="8" y={lane.app + 4} class="side">
+        app
+      </text>
+      <line x1="96" y1={lane.server} x2="712" y2={lane.server} class="rail" />
+      <line x1="96" y1={lane.app} x2="712" y2={lane.app} class="rail" />
+    </g>
+  ))}
+
+  <rect
+    x={START}
+    y={WSGI.app - 8}
+    width={312 - START}
+    height="16"
+    rx="3"
+    class="call"
+  ></rect>
+  <text x={(START + 312) / 2} y={WSGI.app + 30} class="sig">
+    app(environ, start_response)
+  </text>
+  <text x="336" y={WSGI.app - 14} class="note">
+    returned: later events have no way in
+  </text>
+
+  <rect
+    x={START}
+    y={ASGI.app - 8}
+    width={704 - START}
+    height="16"
+    rx="3"
+    class="call"
+  ></rect>
+  <text x="420" y={ASGI.app + 30} class="sig">
+    app(scope, receive, send)
+  </text>
+  <text x="712" y={ASGI.app + 30} class="note end">
+    time →
+  </text>
+
+  {lanes.map(({ lane, arrows }) =>
+    arrows.map((arrow) => (
+      <g class:list={{ accent: arrow.accent }}>
+        <line
+          x1={arrow.x}
+          y1={arrow.dir === "in" ? lane.server + 4 : lane.app - 10}
+          x2={arrow.x}
+          y2={arrow.dir === "in" ? lane.app - 10 : lane.server + 4}
+          class="event"
+          marker-end={`url(#${id}-arrow)`}
+        />
+        <text x={arrow.x} y={lane.server - 10} class="label">
+          {arrow.label}
+        </text>
+      </g>
+    )),
+  )}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .title {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .side {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .rail {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .call {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1;
+  }
+
+  .sig {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11px;
+  }
+
+  .end {
+    text-anchor: end;
+  }
+
+  .event {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .accent .event {
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .accent .label {
+    fill: var(--contrast);
+    font-weight: 600;
+  }
+</style>
