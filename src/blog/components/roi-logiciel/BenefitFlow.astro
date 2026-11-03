@@ -1,0 +1,93 @@
+<svg
+  viewBox="0 0 600 340"
+  role="img"
+  aria-label="Cas fictif : 600 heures libérées sont réparties en 200 heures de sous-traitance évitées et 400 heures de prestations supplémentaires. Ces usages distincts produisent 45 000 euros de gains sur douze mois."
+  class="flow"
+>
+  <text x="300" y="18" class="muted">
+    Cas fictif · douze mois
+  </text>
+  <rect x="160" y="38" width="280" height="52" rx="4" />
+  <text x="300" y="69">
+    Automatisation → 600 h libérées
+  </text>
+
+  <path d="M300 90 V110 H145 V148 M300 110 H455 V148" />
+  <path d="M140 142 L145 148 L150 142 M450 142 L455 148 L460 142" />
+  <text x="75" y="133" class="muted">
+    200 h réaffectées
+  </text>
+  <text x="525" y="133" class="muted">
+    400 h réaffectées
+  </text>
+
+  <rect x="16" y="154" width="258" height="76" rx="4" />
+  <text x="145" y="178">
+    Sous-traitance évitée
+  </text>
+  <text x="145" y="201" class="muted">
+    200 h × 75 € de dépense évitée
+  </text>
+  <text x="145" y="220">
+    15 000 €
+  </text>
+
+  <rect x="326" y="154" width="258" height="76" rx="4" />
+  <text x="455" y="178">
+    Prestations en plus
+  </text>
+  <text x="455" y="201" class="muted">
+    400 h × 75 € de marge
+  </text>
+  <text x="455" y="220">
+    30 000 €
+  </text>
+
+  <path d="M145 230 V254 H300 V258 M455 230 V254 H300 M300 278 V282" />
+  <path d="M295 276 L300 282 L305 276" />
+  <text x="300" y="273" class="muted">
+    Addition de deux usages distincts
+  </text>
+  <rect x="160" y="288" width="280" height="42" rx="4" class="total" />
+  <text x="300" y="314" class="total-label">
+    Gains retenus : 45 000 €
+  </text>
+</svg>
+
+<style>
+  .flow {
+    min-width: 500px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  rect {
+    fill: var(--code-background);
+    stroke: var(--line);
+  }
+
+  path {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.5;
+  }
+
+  text {
+    fill: var(--text-color);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+
+  .muted {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .total {
+    stroke: var(--contrast);
+  }
+
+  .total-label {
+    fill: var(--contrast);
+  }
+</style>

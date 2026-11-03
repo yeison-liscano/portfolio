@@ -1,0 +1,196 @@
+---
+import { evaluate, initialCosts, money, percent } from "./model";
+
+interface Props {
+  id?: string;
+}
+const { id = "roi-case" } = Astro.props;
+const result = evaluate(initialCosts, 100);
+---
+
+<roi-logiciel-explorer>
+  <p class="assumptions">Cas fictif · douze mois · gains prévus : 45 000 €</p>
+  <div class="controls" hidden>
+    <div class="control">
+      <label for={`${id}-realization`}>
+        Gains réalisés
+        <output data-out="realization" for={`${id}-realization`}>
+          100 %
+        </output>
+      </label>
+      <input
+        id={`${id}-realization`}
+        data-in="realization"
+        type="range"
+        min="0"
+        max="120"
+        step="5"
+        value="100"
+      />
+    </div>
+    <div class="control">
+      <label for={`${id}-costs`}>
+        Coûts totaux
+        <output data-out="costs" for={`${id}-costs`}>
+          {money(initialCosts)}
+        </output>
+      </label>
+      <input
+        id={`${id}-costs`}
+        data-in="costs"
+        type="range"
+        min="15000"
+        max="60000"
+        step="1000"
+        value={initialCosts}
+      />
+    </div>
+    <button type="button" data-reset>
+      Réinitialiser
+    </button>
+  </div>
+  <div class="results" aria-live="polite" aria-atomic="true">
+    <p>
+      Gains retenus{" "}
+      <strong data-out="benefits">{money(result.benefits)}</strong>
+    </p>
+    <p>
+      Gain net <strong data-out="net">{money(result.net)}</strong>
+    </p>
+    <p class="roi">
+      ROI sur douze mois <strong data-out="roi">{percent(result.roi)}</strong>
+    </p>
+  </div>
+  <p class="note">
+    Le taux multiplie les deux postes de gains dans la même proportion. 100 %
+    correspond à la prévision ; 120 % la dépasse de 20 %. Ce réglage ne mesure
+    ni une probabilité ni l’adoption du logiciel.
+  </p>
+</roi-logiciel-explorer>
+
+<script>
+  import { evaluate, initialCosts, money, percent } from "./model";
+
+  class RoiExplorer extends HTMLElement {
+    connectedCallback() {
+      this.querySelector<HTMLElement>(".controls")?.removeAttribute("hidden");
+      this.addEventListener("input", this.update);
+      this.querySelector("[data-reset]")?.addEventListener("click", () => {
+        const costs = this.querySelector<HTMLInputElement>('[data-in="costs"]');
+        const realization = this.querySelector<HTMLInputElement>(
+          '[data-in="realization"]',
+        );
+        if (costs) costs.value = String(initialCosts);
+        if (realization) realization.value = "100";
+        this.update();
+      });
+    }
+
+    private write(name: string, value: string) {
+      const output = this.querySelector(`[data-out="${name}"]`);
+      if (output) output.textContent = value;
+    }
+
+    private update = () => {
+      const costs = Number(
+        this.querySelector<HTMLInputElement>('[data-in="costs"]')?.value ??
+          initialCosts,
+      );
+      const realization = Number(
+        this.querySelector<HTMLInputElement>('[data-in="realization"]')
+          ?.value ?? 100,
+      );
+      const result = evaluate(costs, realization);
+      this.write("costs", money(costs));
+      this.write("realization", percent(realization));
+      this.write("benefits", money(result.benefits));
+      this.write("net", money(result.net));
+      this.write("roi", percent(result.roi));
+    };
+  }
+
+  if (!customElements.get("roi-logiciel-explorer")) {
+    customElements.define("roi-logiciel-explorer", RoiExplorer);
+  }
+</script>
+
+<style>
+  roi-logiciel-explorer {
+    display: grid;
+    gap: 20px;
+    font-family: var(--font-sans);
+  }
+
+  .assumptions,
+  .note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .controls:not([hidden]) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+  }
+
+  .control {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  label,
+  .results p {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 0;
+  }
+
+  output,
+  strong {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input {
+    width: 100%;
+    accent-color: var(--contrast);
+  }
+
+  button {
+    justify-self: start;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 8px 12px;
+    background: var(--code-background);
+    color: var(--text-color);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  input:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--contrast);
+    outline-offset: 4px;
+  }
+
+  .results {
+    display: grid;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .roi strong {
+    color: var(--contrast);
+  }
+
+  @media (max-width: 480px) {
+    .controls:not([hidden]) {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

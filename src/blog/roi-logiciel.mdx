@@ -1,0 +1,305 @@
+---
+title: "ROI logiciel : mesurer les gains sans surestimer les économies"
+pubDate: 2026-11-02
+lang: "fr"
+description:
+  "Mesurer le retour sur investissement d’un produit ou service logiciel : coûts,
+  marge, temps libéré et attribution des gains. Un cas chiffré et un simulateur
+  montrent les hypothèses qui changent la décision."
+tags: ["finance", "programming"]
+summary:
+  - "Définir le point de vue, la période et le scénario de référence avant de calculer le ROI."
+  - "Compter les coûts du changement et distinguer marge, économies et capacité disponible."
+  - "Vérifier les gains attribuables au logiciel sans compter deux fois les mêmes heures."
+  - "Tester plusieurs scénarios et suivre les résultats après le lancement."
+isDraft: false
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import BenefitFlow from "./components/roi-logiciel/BenefitFlow.astro";
+import RoiExplorer from "./components/roi-logiciel/RoiExplorer.astro";
+
+{/* cspell:ignore FinOps OpenStax Kohavi Dahlquist Rainford metodo cientifico */}
+
+Mots-clés : retour sur investissement, logiciel, coûts, marge, productivité,
+mesure des gains
+
+Une équipe envisage un logiciel pour automatiser son support client. Dans ce
+cas fictif, la première année coûte 30 000 €. Le projet promet de libérer du
+temps et de mieux servir les clients. Mais quelles améliorations deviennent
+des gains financiers, et lesquelles restent de la capacité disponible ? Nous
+allons mesurer le retour sur investissement, ou <Acronym title="Return on Investment, retour sur investissement">ROI</Acronym>, en comptant les coûts et les gains
+attribuables au logiciel. Nous comparerons aussi le point de vue du client
+avec celui du fournisseur.
+
+## Le même logiciel a un ROI différent pour le client et le fournisseur
+
+L’équipe achète un outil, mais son éditeur vend un produit. Leurs calculs
+portent sur des investissements différents. Un prestataire qui déploie cet
+outil pour ses clients doit encore choisir un autre périmètre.
+
+| Acteur      | Décision évaluée                               | Gains à examiner                               | Coûts à examiner                                      |
+| ----------- | ---------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------- |
+| Client      | Acheter ou développer un outil                 | Dépenses évitées, marge supplémentaire         | Achat, intégration, ressources internes, exploitation |
+| Éditeur     | Investir dans un produit ou une fonctionnalité | Revenus supplémentaires attribuables au projet | Développement, acquisition, hébergement, support      |
+| Prestataire | Créer une offre ou améliorer sa production     | Prestations supplémentaires, coûts évités      | Outillage, formation, réalisation, maintenance        |
+
+L’abonnement payé par le client est un coût pour lui et un revenu pour
+l’éditeur. Une marge élevée par abonnement ne prouve pas que le développement
+du produit a déjà été rentabilisé. Il faut aussi couvrir l’investissement et
+les autres coûts du périmètre choisi.
+
+Pour l’article, nous suivrons le **ROI du client sur les douze premiers mois**.
+Le fournisseur pourra reprendre la méthode avec ses propres flux. Cette
+distinction de points de vue est notre cadrage du cas, pas une norme comptable.
+
+## La formule exige une période et un scénario de référence
+
+Nous utiliserons un ROI simple de projet, sans actualisation :
+
+```text
+ROI sur la période = (B − C) / C × 100
+
+B = gains financiers supplémentaires attribuables au changement
+C = coûts supplémentaires nécessaires pour obtenir ces gains
+```
+
+Les coûts doivent être positifs pour calculer ce ratio. Un gain de 45 000 €
+pour un coût de 30 000 € laisse 15 000 € nets : le ROI est de 50 %.
+Les 45 000 € sont les gains avant déduction des coûts du projet. Les appeler
+« bénéfice net » puis retirer encore ces coûts les compterait deux fois.
+
+Le manuel <ExternalLink href="https://openstax.org/books/contemporary-mathematics/pages/6-6-methods-of-savings" preview="OpenStax définit le ROI simple et montre que ce ratio ne renseigne pas sur la durée de l’investissement.">OpenStax</ExternalLink> présente ce principe du rendement net
+rapporté à l’investissement. Notre formule précise son application au projet.
+Un ROI de 50 % sur douze mois ne signifie pas 50 % par an pour toujours.
+
+L’équipe doit ensuite décrire le <Term title="Situation estimée sur la même période si le changement étudié n’avait pas eu lieu.">scénario de référence</Term>.
+Ici, elle conserve son outil actuel et sous-traite une partie du support.
+Le coût et les résultats de cette option servent de comparaison.
+Le <ExternalLink href="https://www.gov.uk/government/publications/the-green-book--2/the-green-book-2026" preview="Le Green Book britannique explique le scénario de référence, la comparaison des options et l’analyse de sensibilité.">Green Book</ExternalLink> formalise cette comparaison avec la poursuite
+de l’existant. Ses règles d’évaluation publique ne fixent pas notre seuil de
+rentabilité d’entreprise.
+
+Avant de remplir la formule, écrivons donc : « Comparer l’achat à la poursuite
+de l’existant, du lancement à la fin du douzième mois, du point de vue du
+client. » Cette phrase empêche de comparer des gains sur trois ans à des coûts
+sur un seul an.
+
+## Le coût dépasse l’achat ou le développement initial
+
+La licence ne représente qu’une partie du changement. Pour notre équipe, le
+budget fictif de la première année est le suivant :
+
+| Poste supplémentaire par rapport à l’existant |      Montant |
+| --------------------------------------------- | -----------: |
+| Intégration                                   |      6 000 € |
+| Migration des données                         |      2 000 € |
+| Formation et temps de démarrage               |      2 000 € |
+| Abonnement annuel                             |     12 000 € |
+| Usage et hébergement supplémentaires          |      4 000 € |
+| Maintenance et support supplémentaires        |      4 000 € |
+| **Total sur douze mois**                      | **30 000 €** |
+
+Les trois premiers postes totalisent 10 000 € au démarrage. Les trois suivants
+représentent 20 000 € sur l’année. Nous supposons que le tarif d’abonnement
+n’inclut pas les postes facturés séparément. Dans un contrat réel, il faut
+vérifier cette frontière.
+
+Le coût de formation inclut les ressources internes mobilisées. Même avec des
+salaires inchangés, leur temps a un coût d’opportunité. Ce budget économique
+ne décrit donc pas uniquement des sorties de trésorerie supplémentaires.
+L’article sur les <InternalLink slug="economia-básica">concepts économiques</InternalLink>, en espagnol, explique cette distinction et celle
+entre résultat et trésorerie.
+
+Pour un développement interne, ajouter le travail de conception, de test, de
+sécurité et d’exploitation nécessaire au changement. Pour une prestation,
+inclure le pilotage et les reprises prévues au contrat. Prévoir aussi les
+coûts de sortie si l’horizon couvre le remplacement de l’outil.
+
+Les dépenses déjà engagées et irréversibles ne changent pas entre les options.
+Les factures futures évitables, elles, comptent. Déclarer les règles
+d’allocation des coûts partagés rend le calcul vérifiable. Le cadre
+de la <ExternalLink href="https://www.finops.org/framework/capabilities/unit-economics/" preview="La FinOps Foundation relie les dépenses technologiques aux unités métier et explicite le périmètre des coûts.">FinOps Foundation</ExternalLink> aide à relier ces dépenses aux unités métier,
+comme le coût par dossier résolu.
+
+## Les gains reposent sur la marge et les économies réellement obtenues
+
+Le pilote de notre cas fictif suggère 600 heures de support libérées par an.
+Multiplier ces heures par un taux salarial donne une valorisation de capacité.
+Cela ne prouve pas que l’entreprise dépensera moins.
+
+Le <ExternalLink href="https://www.gov.uk/government/publications/the-government-efficiency-framework/the-government-efficiency-framework--2" preview="Ce cadre distingue les économies qui réduisent les dépenses et les gains de productivité sans baisse de dépenses.">Government Efficiency Framework</ExternalLink> distingue précisément ces deux
+résultats. L’équipe peut traiter davantage de demandes avec les mêmes salaires,
+sans réduction de sa masse salariale. Ce gain peut être utile ; il faut
+indiquer comment il sera utilisé.
+
+L’équipe répartit les 600 heures entre deux usages distincts :
+
+- **200 heures remplacent de la sous-traitance évitable**, facturée 75 €
+  l’heure. L’économie prévue est de 15 000 €. Elle exige une baisse réelle
+  des achats, sans minimum contractuel qui maintiendrait la facture.
+- **400 heures permettent des prestations supplémentaires de support payant**.
+  Chaque heure vendue apporte 75 € de marge après les coûts variables de
+  réalisation. La marge supplémentaire prévue est de 30 000 €.
+
+Les 75 € de marge du second poste sont déjà nets des coûts variables concernés.
+Ils excluent les coûts du logiciel, comptés dans les 30 000 € du projet.
+Nous supposons une demande suffisante pour vendre ces prestations et une
+qualité de service maintenue. Sans ventes supplémentaires, cette marge reste
+une prévision.
+
+Le schéma montre où les heures deviennent des gains financiers. La somme
+200 + 400 épuise les 600 heures disponibles : aucune heure n’est réutilisée
+dans les deux branches.
+
+<Figure caption="Les 45 000 € de gains supposent deux usages distincts des 600 heures libérées et la réalisation de chacun.">
+  <BenefitFlow />
+</Figure>
+
+**Une heure libérée doit avoir un usage avant d’avoir un gain financier.**
+Ajouter une « économie salariale » pour ces mêmes 600 heures compterait à
+nouveau leur valeur, alors que les salaires restent inchangés.
+Une meilleure satisfaction client peut aussi compter dans la décision.
+Elle restera un résultat séparé tant que sa traduction financière n’est pas
+étayée.
+
+## Une amélioration doit pouvoir être attribuée au logiciel
+
+Le tableau financier ne prouve pas que le logiciel produit les gains annoncés.
+Une baisse des tickets peut venir d’un changement de clientèle. Une hausse des
+prestations peut venir d’une campagne commerciale.
+
+Avant le déploiement, l’équipe définit une période d’observation et des mesures :
+
+- Temps de traitement par dossier, à complexité comparable.
+- Dépenses de sous-traitance réellement évitées.
+- Volume supplémentaire vendu et marge correspondante.
+- Qualité : réouvertures, erreurs et satisfaction des clients.
+
+Quand c’est possible, répartir aléatoirement des groupes comparables entre
+l’ancien et le nouveau fonctionnement. Un <Term title="Expérience comparant deux variantes avec une répartition aléatoire pour estimer leur effet sur un résultat.">test A/B</Term> aide à isoler
+l’effet du changement. Les chercheurs de <ExternalLink href="https://www.microsoft.com/en-us/research/publication/online-experimentation-at-microsoft/" preview="Des chercheurs de Microsoft expliquent comment les expériences contrôlées évaluent l’effet des modifications sur les utilisateurs.">Microsoft Research</ExternalLink> décrivent
+ce principe pour les produits numériques. Il faut aussi vérifier que les
+groupes ne se contaminent pas et que l’échantillon permet une conclusion utile.
+
+Certains déploiements ne permettent pas cette expérience. Une comparaison avec
+une équipe témoin ou un déploiement progressif peut aider, avec ses limites.
+Un simple avant/après reste vulnérable aux changements de volume, de saison
+ou d’organisation. Le billet sur le <InternalLink slug="metodo-cientifico-en-software-y-seguridad">raisonnement expérimental en logiciel</InternalLink>,
+en espagnol, explique pourquoi documenter ces autres explications.
+
+Le pilote mesure un effet opérationnel dans certaines conditions. Le ROI
+prévisionnel extrapole cet effet sur douze mois. Le ROI réalisé utilise les
+coûts et les gains observés sur la période écoulée. Il faut conserver ces
+trois niveaux séparés : une extrapolation ne devient pas une mesure parce
+qu’elle apparaît dans un tableau.
+
+## Le cas chiffré révèle les hypothèses qui font basculer le ROI
+
+Sous les hypothèses centrales, les gains atteignent 45 000 € et les coûts
+30 000 €. Le résultat économique net est de 15 000 €, soit un ROI simple
+de 50 % sur douze mois. Il ne s’agit pas d’une mesure de rentabilité observée
+dans une entreprise.
+
+Voici le calcul exécuté en Python. Les scénarios font varier les gains retenus
+et les coûts. Ils illustrent des hypothèses, sans leur attribuer de probabilité.
+
+```python
+planned_benefits = 200 * 75 + 400 * 75
+scenarios = [
+    ("Prudent", 0.40, 36_000),
+    ("Central", 1.00, 30_000),
+    ("Favorable", 1.20, 30_000),
+]
+
+for name, realization, costs in scenarios:
+    benefits = planned_benefits * realization
+    net = benefits - costs
+    roi = net / costs * 100
+    print(f"{name}: gains={benefits:.0f} EUR, "
+          f"coûts={costs:.0f} EUR, net={net:.0f} EUR, ROI={roi:.0f} %")
+
+break_even = 30_000 / planned_benefits * 100
+print(f"Part des gains prévus nécessaire pour couvrir les coûts: "
+      f"{break_even:.1f} %")
+```
+
+Sortie obtenue :
+
+```text
+Prudent: gains=18000 EUR, coûts=36000 EUR, net=-18000 EUR, ROI=-50 %
+Central: gains=45000 EUR, coûts=30000 EUR, net=15000 EUR, ROI=50 %
+Favorable: gains=54000 EUR, coûts=30000 EUR, net=24000 EUR, ROI=80 %
+Part des gains prévus nécessaire pour couvrir les coûts: 66.7 %
+```
+
+À coût constant de 30 000 €, il faut réaliser environ deux tiers des gains
+prévus pour couvrir les coûts. Si seules les économies de sous-traitance se
+réalisent, les gains tombent à 15 000 € et le ROI à −50 %.
+La demande de prestations supplémentaires devient donc une hypothèse à tester
+avant de généraliser l’outil.
+
+Le simulateur permet d’explorer cette fragilité. Son taux fait varier les deux
+postes de gains ensemble ; une analyse réelle doit aussi les tester séparément.
+
+<Figure caption="Avec 30 000 € de coûts, réaliser 100 % des 45 000 € prévus donne un ROI de 50 % ; en réaliser 60 % donne −10 %.">
+  <RoiExplorer />
+</Figure>
+
+## La décision dépend aussi du délai, du risque et des résultats observés
+
+Le ROI décrit un rendement relatif. Il ne dit pas quand l’investissement sera
+récupéré. Le <Term title="Temps nécessaire pour que les flux nets cumulés compensent l’investissement initial.">délai de récupération</Term> répond à cette autre question.
+
+Dans une variante entièrement exprimée en trésorerie, supposons que les
+10 000 € de démarrage soient décaissés au lancement. Les 20 000 € récurrents et
+les 45 000 € de gains sont payés et encaissés régulièrement pendant douze mois,
+sans délai ni variation. Le flux net mensuel est alors
+`(45 000 − 20 000) / 12`, soit
+environ 2 083 €. Le délai simple est `10 000 / 2 083`, environ 4,8 mois.
+
+Cette estimation exige des flux de trésorerie réels. Elle change si
+l’abonnement est payé d’avance, si les ventes démarrent tard ou si une partie
+des coûts valorise du temps interne sans décaissement supplémentaire.
+Diviser les 30 000 € de coûts annuels par les gains mensuels mélangerait
+investissement initial et dépenses déjà réparties dans le temps.
+
+Le délai simple ignore les gains après récupération et la valeur temporelle
+de l’argent, comme le rappelle <ExternalLink href="https://openstax.org/books/principles-finance-2e/pages/16-1-payback-period-method" preview="OpenStax explique le délai de récupération et ses limites face à l’actualisation et aux flux ultérieurs.">OpenStax</ExternalLink>.
+Sur plusieurs années, examiner aussi la <Acronym title="Valeur actuelle nette : somme des flux futurs ramenés à aujourd’hui, investissement compris.">VAN</Acronym>.
+Le billet sur la <InternalLink slug="time-value-of-money">valeur temporelle de l’argent</InternalLink>, en anglais,
+en développe le calcul. Un ROI élevé sur un petit projet ne garantit pas
+davantage de valeur totale qu’un ROI plus faible sur un projet plus grand.
+
+Notre équipe dispose maintenant d’une décision à instruire : valider la demande
+de prestations, vérifier que la sous-traitance est évitable et mesurer les
+coûts du pilote. Le scénario central seul ne suffit pas. Aucun pourcentage
+universel ne remplace ces vérifications.
+
+Avant votre prochain achat ou développement, remplissez cette fiche :
+
+| Question               | Réponse à écrire avant de lancer le projet                         |
+| ---------------------- | ------------------------------------------------------------------ |
+| Pour qui ?             | Client, éditeur ou prestataire                                     |
+| Par rapport à quoi ?   | Option de référence et résultats attendus sans changement          |
+| Sur quelle période ?   | Dates, montée en charge et durée retenue                           |
+| À quel coût ?          | Postes supplémentaires, ressources internes et règles d’allocation |
+| Pour quels gains ?     | Dépenses évitées, marge supplémentaire et capacité séparée         |
+| Avec quelles preuves ? | Mesures, comparaison, responsable de chaque gain                   |
+| Quand réviser ?        | Date du bilan, hypothèses à vérifier et critères de poursuite      |
+
+**Commencez par le gain le moins certain : écrivez la preuve qui vous ferait
+le compter, puis cherchez cette preuve avant de financer le déploiement.**
+
+## Références
+
+- OpenStax, Donna Kirk, 2023. Voir <ExternalLink href="https://openstax.org/books/contemporary-mathematics/pages/6-6-methods-of-savings" preview="Définition du ROI simple et distinction entre rendement et durée.">Contemporary Mathematics, Methods of Savings</ExternalLink>.
+- HM Treasury, édition 2026. Voir <ExternalLink href="https://www.gov.uk/government/publications/the-green-book--2/the-green-book-2026" preview="Guide institutionnel de comparaison des options, des coûts, des bénéfices et des incertitudes.">The Green Book</ExternalLink>.
+- Ronny Kohavi et ses coauteurs, Microsoft Research, 2009. Voir <ExternalLink href="https://www.microsoft.com/en-us/research/publication/online-experimentation-at-microsoft/" preview="Publication sur les expériences contrôlées appliquées aux produits numériques.">Online Experimentation at Microsoft</ExternalLink>.
+- Government Finance Function et HM Treasury, version 2025. Voir <ExternalLink href="https://www.gov.uk/government/publications/the-government-efficiency-framework/the-government-efficiency-framework--2" preview="Cadre de distinction et de justification des économies et des gains de productivité.">The Government Efficiency Framework</ExternalLink>.
+- FinOps Foundation, consulté le 2 novembre 2026. Voir <ExternalLink href="https://www.finops.org/framework/capabilities/unit-economics/" preview="Cadre de mesure des coûts technologiques par unité métier.">Unit Economics</ExternalLink>.
+- OpenStax, Julie Dahlquist et Rainford Knight, 2026. Voir <ExternalLink href="https://openstax.org/books/principles-finance-2e/pages/16-1-payback-period-method" preview="Présentation du délai de récupération et de ses limites.">Principles of Finance, Payback Period Method</ExternalLink>.
