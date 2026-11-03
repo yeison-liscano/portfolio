@@ -1,0 +1,297 @@
+---
+// cspell:ignore Chaine chaine
+/**
+ * ChaineArbre - The Memorial example twice. Left: the chain told in a 2018
+ * supplier training, seven facts and one action on the lights. Right: the
+ * tree the 1990-1995 record supports. Its main column follows the chain,
+ * with one more link (water in the marble) and birds and spiders merged.
+ * The record adds air pollutants and cracks (joined by AND), the tourists'
+ * constraint that blocked the lighting fix, and the other lever the Park
+ * Service tried, with little effect on cleaning. Each group is
+ * one step for <Stepper>.
+ */
+const id = "chaine-arbre";
+
+const ROWS = [52, 108, 164, 220, 276, 332, 388];
+const BOX_H = 32;
+const LEFT_X = 8;
+const LEFT_W = 208;
+const MAIN_X = 256;
+const MAIN_W = 176;
+const SIDE_X = 456;
+const SIDE_W = 176;
+
+const chain = [
+  "mémorial qui se dégrade",
+  "lavages plus fréquents",
+  "plus de fientes",
+  "plus d'oiseaux",
+  "plus d'araignées",
+  "plus de moucherons",
+  "éclairage du monument",
+];
+
+const main = [
+  "pierre qui s'érode",
+  "eau dans le marbre",
+  "lavages à grande eau",
+  "fientes et insectes",
+  "oiseaux et araignées",
+  "moucherons au crépuscule",
+  "projecteurs au crépuscule",
+];
+
+const leftMid = LEFT_X + LEFT_W / 2;
+const mainMid = MAIN_X + MAIN_W / 2;
+const sideMid = SIDE_X + SIDE_W / 2;
+const links = ROWS.slice(1).map((y, index) => ({
+  from: y - 2,
+  to: ROWS[index] + BOX_H + 4,
+}));
+const junctions = [ROWS[0] + BOX_H + 12, ROWS[1] + BOX_H + 12];
+---
+
+<svg
+  viewBox="0 0 720 488"
+  role="img"
+  aria-label="À gauche, la chaîne racontée en formation : le mémorial se dégrade parce qu'il est lavé plus souvent, à cause de plus de fientes, d'oiseaux, d'araignées et de moucherons, attirés par l'éclairage ; action : allumer une heure plus tard. À droite, l'arbre documenté : la même colonne principale, mais la pierre s'érode parce que l'eau entre dans le marbre ET que l'air apporte des polluants, et l'eau entre parce que les lavages se font à grande eau ET que le marbre est fissuré. Les touristes, qui veulent photographier le mémorial éclairé, bloquent l'action sur les projecteurs. En parallèle, le Park Service agit sur une autre branche : fils, pics et filets contre les oiseaux et les araignées, avec peu d'effet sur le nettoyage."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x={LEFT_X} y="18" class="head">
+    Chaîne racontée
+  </text>
+  <text x={LEFT_X} y="36" class="sub">
+    formation, 2018
+  </text>
+  <text x={MAIN_X} y="18" class="head">
+    Arbre documenté
+  </text>
+  <text x={MAIN_X} y="36" class="sub">
+    archives, 1990-1995
+  </text>
+
+  <g data-step="1">
+    {chain.map((label, index) => (
+      <>
+        <rect
+          x={LEFT_X}
+          y={ROWS[index]}
+          width={LEFT_W}
+          height={BOX_H}
+          rx="4"
+          class="box"
+        />
+        <text x={leftMid} y={ROWS[index] + BOX_H / 2} class="label">
+          {label}
+        </text>
+      </>
+    ))}
+    {links.map((link) => (
+      <line
+        x1={leftMid}
+        y1={link.from}
+        x2={leftMid}
+        y2={link.to}
+        marker-end={`url(#${id}-arrow)`}
+        class="edge"
+      />
+    ))}
+    <line
+      x1={leftMid}
+      y1={ROWS[6] + BOX_H}
+      x2={leftMid}
+      y2="444"
+      class="edge dashed"
+    ></line>
+    <rect
+      x={LEFT_X}
+      y="444"
+      width={LEFT_W}
+      height={BOX_H}
+      rx="4"
+      class="box dashed"
+    ></rect>
+    <text x={leftMid} y={444 + BOX_H / 2} class="label">
+      action : allumer 1 h plus tard
+    </text>
+
+    {main.map((label, index) => (
+      <>
+        <rect
+          x={MAIN_X}
+          y={ROWS[index]}
+          width={MAIN_W}
+          height={BOX_H}
+          rx="4"
+          class="box"
+        />
+        <text x={mainMid} y={ROWS[index] + BOX_H / 2} class="label">
+          {label}
+        </text>
+      </>
+    ))}
+    {links.map((link) => (
+      <line
+        x1={mainMid}
+        y1={link.from}
+        x2={mainMid}
+        y2={link.to}
+        marker-end={`url(#${id}-arrow)`}
+        class="edge"
+      />
+    ))}
+  </g>
+
+  <g data-step="2">
+    <rect
+      x={SIDE_X}
+      y={ROWS[1]}
+      width={SIDE_W}
+      height={BOX_H}
+      rx="4"
+      class="box"
+    ></rect>
+    <text x={sideMid} y={ROWS[1] + BOX_H / 2} class="label">
+      polluants de l'air
+    </text>
+    <rect
+      x={SIDE_X}
+      y={ROWS[2]}
+      width={SIDE_W}
+      height={BOX_H}
+      rx="4"
+      class="box"
+    ></rect>
+    <text x={sideMid} y={ROWS[2] + BOX_H / 2} class="label">
+      fissures du marbre
+    </text>
+    {junctions.map((y, index) => (
+      <>
+        <line
+          x1={sideMid}
+          y1={ROWS[index + 1]}
+          x2={sideMid}
+          y2={y}
+          class="edge"
+        />
+        <line x1={mainMid} y1={y} x2={sideMid} y2={y} class="edge" />
+        <text x={(mainMid + sideMid) / 2} y={y - 5} class="and">
+          ET
+        </text>
+      </>
+    ))}
+  </g>
+
+  <g data-step="3">
+    <text x={SIDE_X} y={ROWS[6] - 8} class="note">
+      bloque l'action choisie
+    </text>
+    <rect
+      x={SIDE_X}
+      y={ROWS[6]}
+      width={SIDE_W + 24}
+      height={BOX_H}
+      rx="4"
+      class="box dashed"
+    ></rect>
+    <text x={SIDE_X + (SIDE_W + 24) / 2} y={ROWS[6] + BOX_H / 2} class="label">
+      touristes : photos de nuit
+    </text>
+    <line
+      x1={SIDE_X - 2}
+      y1={ROWS[6] + BOX_H / 2}
+      x2={MAIN_X + MAIN_W + 4}
+      y2={ROWS[6] + BOX_H / 2}
+      marker-end={`url(#${id}-arrow)`}
+      class="edge dashed"
+    ></line>
+  </g>
+
+  <g data-step="4">
+    <line
+      x1={MAIN_X + MAIN_W + 4}
+      y1={ROWS[4] + BOX_H / 2}
+      x2={SIDE_X - 6}
+      y2={ROWS[4] + BOX_H / 2}
+      class="edge dashed"
+    ></line>
+    <text x={SIDE_X} y={ROWS[4] + 12} class="note">
+      en parallèle :
+    </text>
+    <text x={SIDE_X} y={ROWS[4] + 28} class="note">
+      filets, pics, fils
+    </text>
+    <text x={SIDE_X} y={ROWS[4] + 44} class="note">
+      peu d'effet
+    </text>
+  </g>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .head {
+    fill: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.25;
+  }
+
+  .dashed {
+    stroke-dasharray: 5 4;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.25;
+  }
+
+  .label {
+    fill: currentColor;
+    font-size: 12px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .and {
+    fill: currentColor;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: currentColor;
+    font-size: 11px;
+  }
+</style>

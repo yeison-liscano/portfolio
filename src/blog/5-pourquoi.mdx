@@ -1,0 +1,478 @@
+---
+lang: "fr"
+title: "5 Pourquoi : le cas d'école du Jefferson Memorial n'a pas la fin qu'on raconte, et comment chercher plus d'une cause"
+pubDate: 2026-11-03
+description:
+  "Le cas d'école des 5 Pourquoi, les moucherons du Jefferson Memorial,
+  confronté aux archives ; deux postmortems réels, GitLab et AWS ; l'arbre des
+  causes de l'INRS ; des règles pour savoir quand s'arrêter, et un script qui
+  vérifie une analyse."
+summary:
+  - "Le cas d'école du Jefferson Memorial s'est surtout joué au Lincoln
+    Memorial. L'eau du lavage menaçait la pierre plus que les fientes, et
+    l'éclairage retardé, essayé quelques semaines, a été abandonné après les
+    plaintes des touristes."
+  - "Une chaîne de pourquoi ne retient qu'une cause par maillon. La question de
+    l'INRS, « a-t-il fallu autre chose ? », transforme la chaîne en arbre et
+    fait apparaître les autres leviers."
+  - "GitLab a appliqué les 5 Pourquoi sans s'arrêter à l'erreur humaine, et AWS
+    a corrigé l'outil, pas la personne. Une analyse ne s'arrête ni sur une
+    personne ni sur un manque."
+  - "Le nombre de pourquoi ne mesure rien. Une analyse se juge à la force des
+    actions qu'elle produit, et la plupart des analyses de causes en produisent
+    de faibles."
+tags: ["tools"]
+isDraft: false
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import ChaineArbre from "./components/5-pourquoi/ChaineArbre.astro";
+
+{/* cspell:ignore Chaine chaine qqoqccp Nexteer Helfferich Messersmith Minoura Teruyuki Taiichi Ohno Graban Allspaw Dekker Kellogg Lehman KaiZone Deseret NCPS Marx Paradies TapRooT Fairbanks fientes moucherons DMARC HUMAIN NEGATIF uniques maillons */}
+
+Mots-clés : 5 Pourquoi, analyse des causes racines, arbre des causes, INRS,
+postmortem, erreur humaine, Jefferson Memorial, Toyota
+
+Dans les formations aux 5 Pourquoi, un exemple revient sans cesse. Les pierres
+du Jefferson Memorial s'abîment. Pourquoi ? On les lave trop souvent. Pourquoi ?
+À cause des fientes d'oiseaux, attirés par des araignées, elles-mêmes attirées
+par des moucherons, qui viennent pour les projecteurs. On allume donc les
+lumières une heure plus tard, et le problème disparaît. Les archives racontent
+autre chose. L'essai a surtout eu lieu au Lincoln Memorial, l'eau du nettoyage
+menaçait davantage la pierre, et l'éclairage retardé a été abandonné après les
+plaintes des touristes.
+
+Une seule chaîne de pourquoi avait caché plusieurs causes et une contrainte.
+L'enjeu dépasse les monuments : dans un grand centre hospitalier, 302 analyses
+de causes ont surtout produit des actions faibles, et plusieurs types
+d'événements se sont répétés. Cet article reprend le cas, puis le compare à deux
+postmortems réels, celui de GitLab et celui d'AWS, et à l'arbre des causes de
+l'INRS. Vous repartirez avec des règles pour savoir quand s'arrêter, et un
+script qui signale les pourquoi qui s'arrêtent sur une personne ou sur un
+« manque ».
+
+## Le cas d'école tient en une chaîne, une action et un chiffre
+
+En septembre 2018, un équipementier automobile, Nexteer, publie un support de
+formation aux 5 Pourquoi pour ses fournisseurs. En annexe, une diapositive
+intitulée « A good example » raconte l'histoire du <ExternalLink href="https://www.nexteer.com/wp-content/uploads/5-Why-Training-Nexteer-Supplier-Version-17-Sept-18.pdf" preview="Support de formation de Nexteer (2018) aux 5 Pourquoi à trois branches, avec en annexe l'exemple du Jefferson Memorial.">Jefferson Memorial</ExternalLink>.
+Le National Park Service remarque que le monument se dégrade plus vite que les
+autres. Les gardes mènent un 5 Pourquoi et obtiennent cette chaîne :
+
+1. Le mémorial se dégrade plus vite, parce qu'il est lavé plus souvent.
+2. Il est lavé plus souvent, parce qu'il reçoit plus de fientes.
+3. Il reçoit plus de fientes, parce que plus d'oiseaux viennent.
+4. Plus d'oiseaux viennent, parce que plus d'araignées vivent autour.
+5. Plus d'araignées vivent autour, parce que plus d'insectes volent au
+   crépuscule.
+6. Plus d'insectes volent au crépuscule, parce que l'éclairage les attire.
+
+La diapositive se demande ensuite s'il faut aller plus loin. Pourquoi la lumière
+attire-t-elle les insectes ? La réponse ne serait pas « within their control »,
+donc on s'arrête. Elle envisage aussi de s'arrêter plus tôt : enduire la pierre
+d'un produit hydrofuge pour supporter les lavages, ou traiter les araignées aux
+pesticides. C'est possible, juge-t-elle, mais d'autres causes restent à
+considérer. Les gardes retiennent l'éclairage. Action : allumer une heure plus
+tard. Résultat annoncé : « Bird dropping problem reduced by 90%! »
+
+L'histoire plaît parce que chaque réponse appelle la suivante, que l'action est
+gratuite et que le résultat est un chiffre. Elle compte d'ailleurs six
+pourquoi, pas cinq, ce qui n'a pas d'importance : le <ExternalLink href="https://www.lean.org/lexicon-terms/5-whys/" preview="Lexique du Lean Enterprise Institute : les 5 Pourquoi, avec l'exemple de la machine d'Ohno (1988, p. 17).">lexique du Lean Enterprise Institute</ExternalLink>,
+qui cite Taiichi Ohno, précise que « the specific number five is not the
+point ». L'exemple de la machine d'Ohno est raconté dans l'article sur
+le <InternalLink slug="5w2h-qqoqccp">5W2H</InternalLink>. Mais trois questions restent ouvertes. Qui a mesuré ces 90 % ?
+Qu'a-t-on essayé d'autre ? Et pourquoi une seule cause à chaque maillon ?
+
+## Les archives montrent d'autres causes, un autre mémorial, un essai abandonné
+
+En avril 1990, une dépêche <Acronym title="Associated Press">AP</Acronym> reprise par le <ExternalLink href="https://www.deseret.com/1990/4/17/18856959/toxic-effects-of-nature-are-aging-lincoln-and-jefferson/" preview="Deseret News, 17 avril 1990 : l'étude à 2 millions de dollars sur le vieillissement des mémoriaux Lincoln et Jefferson.">Deseret News</ExternalLink>
+annonce une étude à 2 millions de dollars, commandée par le National Park
+Service à des consultants privés. Elle porte sur le vieillissement des deux
+mémoriaux, Lincoln et Jefferson, et recense plusieurs menaces. Le moucheron
+n'est que l'une d'elles.
+
+En mai 1992, Carla Helfferich raconte la suite dans une <ExternalLink href="https://www.gi.alaska.edu/alaska-science-forum/unfortunately-ecological-abe" preview="Alaska Science Forum, université d'Alaska à Fairbanks (1992) : moucherons, araignées et oiseaux du Lincoln Memorial, et l'essai d'éclairage retardé.">chronique scientifique</ExternalLink>
+de l'université d'Alaska à Fairbanks. Le monument est cette fois le Lincoln
+Memorial. Les projecteurs attirent des nuées de moucherons au crépuscule. Les
+araignées s'en nourrissent, et les oiseaux mangent les araignées. Les équipes de
+nettoyage doivent laver fientes, toiles et moucherons écrasés, et l'eau du
+lavage fait entrer dans le marbre les polluants de l'air. Le Park Service laisse
+alors les projecteurs éteints une heure de plus. Le nombre de moucherons morts
+sur la statue baisse de 90 %.
+
+Joel Gross a reconstitué toute l'affaire en 2014, dans une <ExternalLink href="https://thekaizone.com/2014/08/5-whys-folklore-the-truth-behind-a-monumental-mystery/" preview="Joel Gross, The KaiZone (2014) : la légende du Jefferson Memorial confrontée aux rapports et aux articles de l'époque.">enquête</ExternalLink>
+qu'Alan Card cite dans sa critique des 5 Pourquoi. Selon Gross, le rapport des
+consultants désigne une menace principale : le grand volume d'eau utilisé au
+nettoyage. L'eau pénètre dans les inclusions du marbre et du calcaire, et fait
+progresser les fissures.
+
+L'essai d'éclairage dure six semaines, les lundis, mercredis et vendredis, avec
+85 % de moucherons en moins. En janvier 1992, le Park Service étudie encore un
+changement permanent. En septembre 1995, l'idée est abandonnée, à cause du
+« nombre écrasant de plaintes de touristes venus prendre des photos ».
+
+Le même article de 1995 décrit les autres mesures prises en cinq ans : des fils,
+des pics, des filets et du plastique transparent, contre les oiseaux, les
+araignées et les moucherons. Selon Gross, elles ont peu réduit le nettoyage.
+
+Les sources ne s'accordent ni sur l'année de l'essai ni sur le chiffre : 90 %
+selon la chronique de 1992, 85 % selon Gross. Elles s'accordent sur l'essentiel,
+résumé dans ce tableau :
+
+| Point             | Version racontée   | Archives                                            |
+| ----------------- | ------------------ | --------------------------------------------------- |
+| Lieu              | Jefferson Memorial | Surtout le Lincoln Memorial                         |
+| Menace            | Lavages fréquents  | L'eau du lavage qui pénètre la pierre fissurée      |
+| Ce qui est mesuré | Fientes, −90 %     | Moucherons morts, −85 % ou −90 %                    |
+| Statut            | Solution           | Essai de six semaines                               |
+| Suite             | Problème réglé     | Abandonné en 1995, après les plaintes des touristes |
+
+Personne n'a mesuré une baisse de 90 % des fientes. Et l'action retenue n'a
+jamais été appliquée durablement.
+
+## Une chaîne de pourquoi choisit une branche et cache les autres
+
+La chaîne racontée n'est pas fausse : chacun de ses maillons est plausible, et
+l'essai a bien réduit les moucherons. Son défaut est ce qu'elle laisse de côté.
+À chaque pourquoi, elle ne retient qu'une réponse. Or la pierre ne s'abîme pas
+seulement parce qu'on la lave : il faut aussi que l'eau entre dans le marbre, et
+qu'elle y apporte des polluants. La figure compare les deux lectures, étape par
+étape.
+
+<Figure caption="La chaîne racontée suit la colonne principale de l'arbre. Les archives ajoutent deux conjonctions, une contrainte qui bloque l'action choisie, et un autre levier essayé en parallèle.">
+  <Stepper
+    lang="fr"
+    label="Le cas du mémorial, de la chaîne à l'arbre"
+    steps={[
+      "La chaîne racontée en formation : sept faits, une seule branche, et une action sur l'éclairage. L'arbre documenté suit la même colonne, avec un maillon de plus, l'eau dans le marbre, et les oiseaux et les araignées réunis.",
+      "Les archives ajoutent deux branches. La pierre s'érode parce que l'eau entre dans le marbre ET que l'air apporte des polluants. L'eau entre parce qu'on lave à grande eau ET que le marbre est fissuré.",
+      "Une contrainte bloque l'action choisie : les touristes veulent photographier le mémorial éclairé.",
+      "En parallèle, le Park Service agit sur une autre branche : fils, pics et filets contre les oiseaux et les araignées, avec peu d'effet sur le nettoyage.",
+    ]}
+  >
+    <ChaineArbre />
+  </Stepper>
+</Figure>
+
+Ce que la chaîne ne voit pas a deux origines. D'abord, elle cherche une cause
+et s'arrête dès qu'elle en tient une. La fiche de l'<ExternalLink href="https://www.ihi.org/library/tools/5-whys-finding-root-cause" preview="Institute for Healthcare Improvement : l'outil des 5 Pourquoi, et le rappel qu'un problème peut avoir plusieurs causes racines.">IHI</ExternalLink>
+sur les 5 Pourquoi rappelle pourtant qu'un problème peut avoir plusieurs causes
+racines. Ensuite, elle se construit en salle, par déduction. Teruyuki Minoura,
+ancien dirigeant de Toyota, cité par <ExternalLink href="https://taproot.com/teruyuki-minoura-toyota-exec-talks-about-problems-with-5-whys/" preview="TapRooT (2007) cite Teruyuki Minoura, ancien dirigeant de Toyota, sur les 5 Pourquoi menés par déduction plutôt que par observation.">TapRooT</ExternalLink>
+d'après une page de Toyota aujourd'hui retirée, le dit sans détour. Ohno
+demandait de poser « pourquoi ? » cinq fois. Mais seule l'observation sur le
+terrain permet de répondre, et les équipes « reel off five causes as quick as a
+flash by deduction ». Les consultants des mémoriaux, eux, avaient examiné la
+pierre. C'est ainsi qu'ils ont trouvé l'eau.
+
+Même l'exemple d'Ohno n'échappe pas à la critique. Mark Graban montre en 2026,
+sur le <ExternalLink href="https://www.leanblog.org/2026/04/ohno-5-whys-actually-seven/" preview="Mark Graban, Lean Blog (2026) : l'exemple canonique d'Ohno compte en fait sept pourquoi et s'arrête trop tôt.">Lean Blog</ExternalLink>,
+que la chaîne de la machine compte en réalité sept pourquoi, et qu'elle s'arrête
+trop tôt : pourquoi n'y avait-il pas de filtre ?
+
+## GitLab et AWS ont corrigé les conditions, pas la personne
+
+Le 31 janvier 2017, un ingénieur de GitLab supprime le répertoire de données de
+la base principale, au lieu de celui de la base secondaire. GitLab.com reste
+indisponible environ 18 heures. Le <ExternalLink href="https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/" preview="Le postmortem de GitLab (10 février 2017) : deux chaînes de 5 Pourquoi, l'une sur la panne, l'autre sur la restauration.">postmortem</ExternalLink>,
+publié le 10 février, contient une section intitulée « The 5 Whys ». Elle
+traite deux problèmes, et donc deux chaînes.
+
+La première explique la panne en cinq pourquoi. Le répertoire a été supprimé par
+accident. Il fallait le vider parce que la réplication s'était arrêtée et que
+reconstruire la base secondaire exigeait un répertoire vide, une étape ni
+automatisée ni bien documentée. La réplication s'était arrêtée à cause d'un pic
+de charge. Le pic venait de deux choses à la fois : une hausse du spam, et un
+traitement qui supprimait un employé de GitLab et ses données. L'employé avait
+été signalé pour abus par un troll, dans un système où il était trop facile
+d'ignorer les détails d'un signalement.
+
+La seconde chaîne explique pourquoi la restauration a pris plus de 18 heures, en
+huit pourquoi. Les sauvegardes `pg_dump` échouaient sans bruit : elles
+utilisaient PostgreSQL 9.2 contre une base en 9.6. Les courriels d'échec étaient
+rejetés faute de signature <Acronym title="Domain-based Message Authentication, Reporting and Conformance">DMARC</Acronym>. Le dernier pourquoi aboutit à une
+cause organisationnelle : la procédure de sauvegarde n'avait pas de responsable,
+donc personne ne la testait.
+
+GitLab ne s'arrête pas à l'erreur de l'ingénieur, qui n'est que le premier
+pourquoi. Et ses actions visent chacune une cause de la chaîne :
+
+| Pourquoi du postmortem                                    | Action de GitLab                                           |
+| --------------------------------------------------------- | ---------------------------------------------------------- |
+| Répertoire du primaire supprimé par accident              | Invite de commande plus distincte d'un hôte à l'autre      |
+| Reconstruction du secondaire ni automatisée ni documentée | Documentation et runbooks de réplication                   |
+| Sauvegardes `pg_dump` en échec silencieux                 | Surveillance des sauvegardes avec Prometheus               |
+| Procédure de sauvegarde jamais testée, sans responsable   | Tests automatiques de restauration, un responsable désigné |
+
+Un mois plus tard, le 28 février 2017, le service S3 d'AWS tombe dans la région
+us-east-1. Le <ExternalLink href="https://aws.amazon.com/message/41926/" preview="Le résumé officiel d'AWS sur la panne S3 du 28 février 2017 : une commande mal saisie, et des correctifs portés sur l'outil.">résumé d'AWS</ExternalLink>
+décrit le déclencheur sans nommer de coupable : « an authorized S3 team member
+using an established playbook executed a command ». Il ajoute : « one of the
+inputs to the command was entered incorrectly ». AWS n'utilise pas les 5
+Pourquoi. Mais
+ses correctifs portent sur les conditions, pas sur la personne : l'outil retire
+désormais la capacité plus lentement, et refuse de descendre sous le minimum
+requis par chaque sous-système. AWS ajoute : « This will prevent an incorrect
+input from triggering a similar event in the future », et vérifie ses autres
+outils. Une chaîne qui s'arrêterait à « une entrée mal saisie » n'aurait produit
+aucune de ces actions.
+
+## S'arrêter sur une personne ou sur un manque ferme l'analyse
+
+Deux règles reviennent dans les méthodes sérieuses. La première interdit de
+s'arrêter sur une personne. Le centre de sécurité des patients des anciens
+combattants américains (<Acronym title="Veterans Affairs National Center for Patient Safety">VA NCPS</Acronym>) a formulé cinq règles de causalité. Un <ExternalLink href="https://nj.gov/health/healthcarequality/documents/ps/rca_training.pdf" preview="Formation du département de la Santé du New Jersey (2008) aux analyses de causes, qui reprend les cinq règles de causalité du VA.">support de formation du New Jersey</ExternalLink>
+les reprend, dont celle-ci : toute erreur humaine doit avoir une cause
+antérieure.
+Le <ExternalLink href="https://navigator.betsylehmancenterma.gov/pages/the-5-rules-of-causation" preview="Betsy Lehman Center (Massachusetts) : l'origine des cinq règles de causalité du VA, adaptées d'un rapport de la FAA.">Betsy Lehman Center</ExternalLink>
+précise que ces règles viennent d'un rapport de David Marx pour la <Acronym title="Federal Aviation Administration">FAA</Acronym>, en 1999.
+GitLab respecte cette règle ; une chaîne arrêtée à la commande mal saisie d'AWS
+la violerait.
+
+La seconde interdit les causes formulées comme un manque. La règle 2 du VA
+exclut les descriptions négatives des énoncés de cause. L'INRS dit la même chose
+en français. Dans son guide <ExternalLink href="https://www.inrs.fr/dam/inrs/CataloguePapier/ED/TI-ED-6163.pdf" preview="INRS, ED 6163 (3e édition, 2025) : la méthode de l'arbre des causes pour analyser un accident du travail.">ED 6163</ExternalLink>,
+un fait n'est « ni une interprétation, ni une opinion, ni un jugement de valeur,
+ni un « fait négatif » (absence de…, manque de…) ». Un fait négatif décrit ce
+qu'il aurait fallu faire : « Il s'agit donc de bien différencier la cause du
+remède. » Le guide donne des exemples. « Il ne faisait pas attention » devient
+« Il parlait avec un collègue ». « Il roulait trop vite » devient « Il roulait à
+30 km/h ».
+
+Le postmortem de GitLab contient justement un fait négatif : une étape « ni
+automatisée ni documentée ». La formule désigne déjà le remède, automatiser et
+documenter, au lieu du fait : un ingénieur reconstruisait la base secondaire à
+la main. Le remède est peut-être le bon, mais la formulation empêche d'en
+envisager un autre.
+
+Derrière ces deux règles, il y a une idée plus large. Richard Cook l'écrit en
+titre de la septième thèse de <ExternalLink href="https://how.complexsystems.fail/" preview="Richard Cook (1998) : dix-huit thèses sur la façon dont les systèmes complexes tombent en panne.">How Complex Systems Fail</ExternalLink>
+(1998) : « Post-accident attribution to a 'root cause' is fundamentally wrong. »
+Une panne demande plusieurs défaillances à la fois. Sidney Dekker, cité par John
+Allspaw, le résume ainsi : « Cause is something we construct, not find. »
+
+## L'arbre des causes remplace « pourquoi ? » par « qu'a-t-il fallu ? »
+
+En France, l'<Acronym title="Institut national de recherche et de sécurité">INRS</Acronym> promeut depuis les années soixante-dix une méthode d'analyse des
+accidents du travail qui ne pose jamais la question « pourquoi ? ». Son guide
+part d'un constat : « Les accidents du travail ne résultent jamais d'une cause
+unique : ils sont la conséquence d'une combinaison de facteurs. » L'analyse
+recherche « une compréhension objective du processus de l'accident et non la
+recherche de responsabilités ».
+
+L'arbre se construit à partir du dommage, avec deux questions pour chaque fait :
+
+- « Qu'a-t-il fallu pour que le fait (Y) apparaisse ? »
+- « (X) a-t-il été nécessaire à lui seul pour que (Y) apparaisse ? Ou, en
+  d'autres termes, a-t-il fallu autre chose ? »
+
+La seconde question est celle qui manque à la chaîne du mémorial. Elle
+transforme chaque maillon en nœud, relié à ses causes par un enchaînement, une <Term title="Plusieurs faits nécessaires ensemble pour produire un même fait : le ET de la figure.">conjonction</Term>
+ou une disjonction. Le guide en tire une conséquence pratique : « il suffit de
+supprimer un seul fait pour que l'accident ne se reproduise pas ». Un arbre
+offre donc plusieurs leviers, et « aucune proposition ne doit être rejetée a
+priori ». Au mémorial, l'arbre aurait mis côte à côte l'éclairage, le lavage
+et les oiseaux, avant que les touristes ne tranchent.
+
+John Allspaw arrive au même endroit par l'informatique. Dans <ExternalLink href="https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/" preview="John Allspaw (2014) : remplacer « pourquoi ? » par « comment ? » pour décrire les conditions d'un incident.">The Infinite Hows</ExternalLink>
+(2014), il observe que « pourquoi ? » mène trop facilement à « qui ? ». Il
+propose de demander « comment ? », parce que cette question décrit « (at least
+some) of the conditions that allowed an event to take place ». « Qu'a-t-il
+fallu ? » et « comment ? » cherchent des conditions, pas un coupable ni un
+motif.
+
+## Un script repère les pourquoi qui s'arrêtent trop tôt
+
+Ces règles sont assez mécaniques pour qu'un script en vérifie une partie. Le
+programme ci-dessous représente une analyse comme un arbre : chaque fait pointe
+vers ses causes. Il signale quatre choses :
+
+- les maillons qui n'ont qu'une seule cause, où il faut demander « a-t-il fallu
+  autre chose ? » ;
+- les faits négatifs (« pas », « ni », « aucun », « absence », « manque »…) ;
+- les jugements (« trop », « mal », « mauvais », « insuffisant ») ;
+- les erreurs humaines sans cause antérieure, selon la règle 3 du VA.
+
+Il l'applique à quatre analyses : la chaîne racontée du mémorial, une chaîne
+naïve sur la panne de S3, construite pour l'exemple, la première chaîne de
+GitLab, et l'arbre documenté du mémorial. Le bouton Run l'exécute dans votre
+navigateur.
+
+```python
+import re
+
+NEGATIF = re.compile(r"\b(pas|ni|aucun|aucune|absence|manque|sans|jamais)\b")
+HUMAIN = re.compile(r"par accident|erreur humaine|inattention|négligence|oubli")
+JUGEMENT = re.compile(r"\b(trop|mal|mauvais|insuffisant)\b")
+
+
+def verifier(nom, arbre):
+    """Vérifie une analyse : chaque clé est un fait, sa valeur ses causes."""
+    faits = set(arbre) | {c for causes in arbre.values() for c in causes}
+    maillons = [fait for fait in faits if arbre.get(fait)]
+    uniques = [fait for fait in maillons if len(arbre[fait]) == 1]
+    print(f"{nom} : {len(faits)} faits")
+    print(f"  ! une seule cause : {len(uniques)} maillons sur {len(maillons)}")
+    for fait in sorted(faits):
+        if NEGATIF.search(fait):
+            print(f"  ! fait négatif : « {fait} »")
+        if JUGEMENT.search(fait):
+            print(f"  ! jugement : « {fait} »")
+        if HUMAIN.search(fait) and not arbre.get(fait):
+            print(f"  ! s'arrête sur une erreur humaine : « {fait} »")
+
+
+def chaine(*faits):
+    """Transforme une chaîne de pourquoi en arbre à une seule branche."""
+    return {effet: [cause] for effet, cause in zip(faits, faits[1:])}
+
+
+verifier("Mémorial, version racontée", chaine(
+    "Le mémorial se dégrade plus vite",
+    "Il est lavé plus souvent",
+    "Il reçoit plus de fientes",
+    "Plus d'oiseaux viennent",
+    "Plus d'araignées vivent autour",
+    "Plus d'insectes volent au crépuscule",
+    "L'éclairage attire les insectes",
+))
+
+verifier("S3, chaîne naïve", chaine(
+    "S3 indisponible dans us-east-1",
+    "Plus de serveurs retirés que prévu",
+    "Une entrée mal saisie, par erreur humaine",
+))
+
+verifier("GitLab, problème 1", {
+    "GitLab.com indisponible environ 18 heures": [
+        "Répertoire du primaire supprimé par accident"],
+    "Répertoire du primaire supprimé par accident": [
+        "Secondaire à reconstruire, étape ni automatisée ni documentée"],
+    "Secondaire à reconstruire, étape ni automatisée ni documentée": [
+        "Réplication arrêtée par un pic de charge"],
+    "Réplication arrêtée par un pic de charge": [
+        "Hausse du spam", "Suppression en cours d'un employé"],
+    "Suppression en cours d'un employé": [
+        "Signalement d'un troll, détails trop faciles à ignorer"],
+})
+
+verifier("Mémorial, arbre documenté", {
+    "Pierre qui s'érode": ["Eau infiltrée dans le marbre", "Polluants de l'air"],
+    "Eau infiltrée dans le marbre": ["Lavages à grande eau", "Fissures du marbre"],
+    "Lavages à grande eau": ["Fientes et insectes à nettoyer"],
+    "Fientes et insectes à nettoyer": ["Oiseaux et araignées"],
+    "Oiseaux et araignées": ["Moucherons au crépuscule"],
+    "Moucherons au crépuscule": ["Projecteurs allumés au crépuscule"],
+})
+```
+
+Voici sa sortie, avec Python 3.14 :
+
+```text
+Mémorial, version racontée : 7 faits
+  ! une seule cause : 6 maillons sur 6
+S3, chaîne naïve : 3 faits
+  ! une seule cause : 2 maillons sur 2
+  ! jugement : « Une entrée mal saisie, par erreur humaine »
+  ! s'arrête sur une erreur humaine : « Une entrée mal saisie, par erreur humaine »
+GitLab, problème 1 : 7 faits
+  ! une seule cause : 4 maillons sur 5
+  ! fait négatif : « Secondaire à reconstruire, étape ni automatisée ni documentée »
+  ! jugement : « Signalement d'un troll, détails trop faciles à ignorer »
+Mémorial, arbre documenté : 9 faits
+  ! une seule cause : 4 maillons sur 6
+```
+
+La chaîne racontée du mémorial passe toutes les règles de forme. Elle n'a ni
+manque, ni jugement, ni coupable. Son seul défaut est structurel : six maillons
+sur six n'ont qu'une cause. C'est pourquoi elle semble si propre. La chaîne
+naïve de S3 cumule les défauts : elle juge (« mal saisie ») et s'arrête sur
+l'erreur humaine. GitLab, lui, continue après l'accident, et l'un de ses
+maillons a deux causes. Il garde un fait négatif et un jugement, que la
+reformulation de l'INRS corrigerait.
+
+Le script vérifie la forme, pas la vérité. Une analyse peut passer toutes les
+règles et rester fausse. Ses expressions régulières se trompent aussi dans les
+deux sens. Elles signalent « le pas de vis est usé », où « pas » est un nom, et
+laissent passer « défaut de formation », un manque formulé sans négation. Le
+script dit où regarder, pas quoi conclure.
+
+## Une analyse se juge à la force de ses actions, pas au nombre de pourquoi
+
+Une analyse de causes sert à choisir des actions. C'est donc sur ces actions
+qu'il faut la juger. En 2017, Kellogg et ses coauteurs ont examiné 302 analyses
+de causes, menées en huit ans dans un grand centre hospitalier universitaire.
+Leur étude est parue dans <ExternalLink href="https://pubmed.ncbi.nlm.nih.gov/27940638/" preview="Kellogg et al. (2017), BMJ Quality & Safety : 302 analyses de causes, des solutions surtout faibles, des événements qui se répètent.">BMJ Quality & Safety</ExternalLink>.
+Sur 731 solutions proposées, les plus fréquentes étaient la formation (20 %),
+un changement de processus (19,6 %) et le rappel d'une règle (15,2 %). Ce sont
+des actions faibles, et plusieurs types d'événements se sont répétés malgré des
+analyses successives. La hiérarchie des actions de <Acronym title="Root Cause Analysis and Action (analyse des causes racines et actions)">RCA²</Acronym>, présentée dans
+l'article sur le <InternalLink slug="5w2h-qqoqccp" hash="la-grille-ne-priorise-pas-et-rien-ne-prouve-son-effet">5W2H</InternalLink>, classe ces actions parmi les plus faibles.
+
+GitLab et AWS ont choisi des actions plus fortes : un outil qui refuse les
+retraits dangereux, des tests automatiques de restauration, un responsable
+nommé. Au mémorial, l'éclairage retardé était une action forte, puisqu'elle
+supprimait une condition. Elle a échoué sur une contrainte que l'analyse n'avait
+pas cherchée. Les fils et les filets, qui laissaient la condition en place, ont
+peu changé le nettoyage.
+
+De ces cas et de ces sources, on peut tirer des règles d'arrêt :
+
+- **Le nombre ne compte pas.** On s'arrête quand on atteint un fait sur lequel
+  agir, que ce soit au troisième pourquoi ou au huitième.
+- **Écrire des faits.** Pas de manque, pas de jugement : « il parlait avec un
+  collègue », pas « il ne faisait pas attention ».
+- **Ne jamais s'arrêter sur une personne.** Toute erreur humaine a une cause
+  antérieure, comme la commande de GitLab ou l'outil d'AWS.
+- **Demander à chaque maillon : a-t-il fallu autre chose ?** C'est ce qui
+  transforme la chaîne en arbre.
+- **Vérifier chaque réponse sur place.** Les consultants des mémoriaux ont
+  trouvé l'eau en examinant la pierre, pas en déduisant.
+- **Chercher les contraintes avant de choisir.** Une action qui supprime une
+  cause peut se heurter à un autre objectif, comme les photos des touristes.
+
+## Au mémorial, il manquait une question, pas un pourquoi de plus
+
+Le cas d'école n'a pas la fin qu'on raconte. Les moucherons ont bien diminué,
+pendant un essai de quelques semaines mené surtout au Lincoln Memorial, puis la
+solution a été abandonnée. La pierre, elle, souffrait surtout de l'eau. Chaque
+pourquoi de la chaîne était juste. Ce qui manquait, c'est la question suivante,
+« a-t-il fallu autre chose ? », qui aurait montré l'eau, les fissures, les
+polluants et les touristes avant de choisir l'éclairage.
+
+À retenir, et à appliquer au prochain postmortem : à chaque pourquoi, demandez
+aussi « a-t-il fallu autre chose ? », et n'arrêtez jamais l'analyse sur une
+personne ou sur un manque. Chaque cause retenue devient ensuite une ligne d'un
+plan d'action <InternalLink slug="5w2h-qqoqccp">5W2H</InternalLink>, qui la cite dans sa colonne « pourquoi ».
+
+## Références
+
+- **Le cas du mémorial :** Nexteer, <ExternalLink href="https://www.nexteer.com/wp-content/uploads/5-Why-Training-Nexteer-Supplier-Version-17-Sept-18.pdf" preview="Support de formation de Nexteer aux 5 Pourquoi (2018).">Supplier 3L5Y Training</ExternalLink>
+  (2018) ; Associated Press, <ExternalLink href="https://www.deseret.com/1990/4/17/18856959/toxic-effects-of-nature-are-aging-lincoln-and-jefferson/" preview="Deseret News, 17 avril 1990.">« Toxic effects of nature are aging Lincoln and Jefferson memorials »</ExternalLink>,
+  _Deseret News_, 1990 ; C. Helfferich, <ExternalLink href="https://www.gi.alaska.edu/alaska-science-forum/unfortunately-ecological-abe" preview="Alaska Science Forum, université d'Alaska à Fairbanks, 1992.">« Unfortunately ecological Abe »</ExternalLink>,
+  Alaska Science Forum, 1992 ; J. Gross, <ExternalLink href="https://thekaizone.com/2014/08/5-whys-folklore-the-truth-behind-a-monumental-mystery/" preview="The KaiZone, 2014 (source secondaire).">« 5 Whys Folklore: The Truth Behind a Monumental Mystery »</ExternalLink>,
+  The KaiZone, 2014 (source secondaire, qui cite le _New York Times_ de janvier
+  1992 et le _Chicago Tribune_ de septembre 1995).
+- **La méthode et ses critiques :** Lean Enterprise Institute, <ExternalLink href="https://www.lean.org/lexicon-terms/5-whys/" preview="Lexique du Lean Enterprise Institute : 5 Whys.">5 Whys</ExternalLink>,
+  d'après T. Ohno, _Toyota Production System_, Productivity Press, 1988, p. 17 ;
+  IHI, <ExternalLink href="https://www.ihi.org/library/tools/5-whys-finding-root-cause" preview="Institute for Healthcare Improvement : 5 Whys, Finding the Root Cause.">5 Whys: Finding the Root Cause</ExternalLink> ;
+  M. Paradies, <ExternalLink href="https://taproot.com/teruyuki-minoura-toyota-exec-talks-about-problems-with-5-whys/" preview="TapRooT, 2007 (source secondaire).">« Teruyuki Minoura (Toyota exec) talks about problems with 5 Whys »</ExternalLink>,
+  TapRooT, 2007 (source secondaire) ; M. Graban, <ExternalLink href="https://www.leanblog.org/2026/04/ohno-5-whys-actually-seven/" preview="Lean Blog, 2026.">« Ohno's 5 Whys Example Is Actually Seven Whys »</ExternalLink>,
+  Lean Blog, 2026 ; A. J. Card, <ExternalLink href="https://doi.org/10.1136/bmjqs-2016-005849" preview="BMJ Quality & Safety 26(8), 2017, p. 671-677.">« The problem with '5 whys' »</ExternalLink>,
+  _BMJ Quality & Safety_, 2017.
+- **Postmortems :** GitLab, <ExternalLink href="https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/" preview="GitLab, 10 février 2017.">« Postmortem of database outage of January 31 »</ExternalLink>,
+  2017 ; Amazon Web Services, <ExternalLink href="https://aws.amazon.com/message/41926/" preview="AWS, 2017.">« Summary of the Amazon S3 Service Disruption in the Northern Virginia (US-EAST-1) Region »</ExternalLink>, 2017.
+- **Causalité et erreur humaine :** New Jersey Department of Health, <ExternalLink href="https://nj.gov/health/healthcarequality/documents/ps/rca_training.pdf" preview="Formation aux analyses de causes, 2008.">RCA training</ExternalLink>
+  (2008), qui reprend les règles du VA NCPS ; Betsy Lehman Center, <ExternalLink href="https://navigator.betsylehmancenterma.gov/pages/the-5-rules-of-causation" preview="Betsy Lehman Center : The 5 rules of causation.">« The 5 rules of causation »</ExternalLink> ;
+  R. I. Cook, <ExternalLink href="https://how.complexsystems.fail/" preview="How Complex Systems Fail, 1998.">How Complex Systems Fail</ExternalLink>
+  (1998) ; J. Allspaw, <ExternalLink href="https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/" preview="Kitchen Soap, 2014.">« The Infinite Hows (or, the Dangers Of The Five Whys) »</ExternalLink>,
+  2014, qui cite S. Dekker.
+- **Arbre des causes :** INRS, <ExternalLink href="https://www.inrs.fr/dam/inrs/CataloguePapier/ED/TI-ED-6163.pdf" preview="INRS, ED 6163, 3e édition, 2025.">La méthode de l'arbre des causes. L'analyse de l'accident du travail</ExternalLink>,
+  ED 6163, 3e édition, 2025.
+- **Force des actions :** K. M. Kellogg et al., <ExternalLink href="https://pubmed.ncbi.nlm.nih.gov/27940638/" preview="BMJ Quality & Safety 26(5), 2017, p. 381-387.">« Our current approach to root cause analysis: is it contributing to our failure to improve patient safety? »</ExternalLink>,
+  _BMJ Quality & Safety_, 2017.

@@ -79,6 +79,7 @@ Hopcroft
 ICMP
 IMAP
 IMREAD
+INRS
 IPVS
 IRR
 Investopedia
