@@ -1,0 +1,281 @@
+---
+lang: "fr"
+title: "PDCA et IA : vérifier les gains avant de généraliser"
+pubDate: 2026-11-03
+description:
+  "Appliquer le PDCA à un projet d’intelligence artificielle : diagnostic,
+  hypothèse, pilote, indicateurs et décision. Un cas de support montre pourquoi
+  un gain de temps peut cacher une dégradation du service."
+tags: ["tools", "ai"]
+summary:
+  - "Planifier fixe le problème, la référence et les critères de décision avant de choisir une solution d’IA."
+  - "Faire transforme le processus et précise les responsabilités de l’équipe, les contrôles et le retour au fonctionnement précédent."
+  - "Vérifier compare le temps, la qualité et les coûts, en tenant compte des différences entre demandes et entre utilisateurs."
+  - "Agir peut conduire à généraliser, corriger ou arrêter ; les résultats du pilote deviennent les questions du cycle suivant."
+isDraft: false
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import CycleSupport from "./components/pdca-ia/CycleSupport.astro";
+
+{/* cspell:ignore pdca PDSA Brynjolfsson RMF reopened qqoqccp */}
+
+Mots-clés : PDCA, intelligence artificielle, amélioration continue, diagnostic,
+mesure de référence, pilote, qualité de service
+
+Un assistant d’<Acronym title="Intelligence artificielle">IA</Acronym> peut accélérer la rédaction des réponses tout en
+augmentant les erreurs ou le temps de relecture. Pour une équipe de support,
+le résultat se mesure sur l’ensemble du traitement d’une demande. À partir
+d’un pilote fictif, nous suivrons le cycle <Acronym title="Plan, Do, Check, Act : planifier, faire, vérifier, agir">PDCA</Acronym> pour établir une référence,
+tester une hypothèse, répartir les responsabilités et décider si les résultats
+justifient un déploiement plus large.
+
+## Le PDCA transforme une amélioration supposée en hypothèse à tester
+
+Notre équipe veut réduire le temps consacré aux demandes de support. Elle
+envisage un assistant qui prépare des réponses à partir de sa documentation.
+Le projet commence par une question : cette assistance permettra-t-elle de
+traiter les demandes plus vite, tout en maintenant la qualité ?
+
+Le PDCA donne une structure à cette investigation. La fiche de l’<Acronym title="American Society for Quality, association professionnelle de la qualité">ASQ</Acronym> décrit
+quatre étapes : planifier un changement, le tester à petite échelle, analyser
+les résultats, puis agir selon ce qu’on a appris. Si l’essai réussit, on peut
+étendre le changement et préparer de nouvelles améliorations. Sinon, on révise
+le plan. Voir la <ExternalLink href="https://asq.org/quality-resources/pdca-cycle" preview="L’ASQ décrit les quatre étapes du PDCA, l’essai à petite échelle et la décision de généraliser ou de recommencer.">définition du PDCA</ExternalLink>.
+
+Le cycle aide à organiser l’apprentissage. Il ne fournit ni les indicateurs
+adaptés à chaque projet ni une preuve automatique d’efficacité. L’ASQ précise
+d’ailleurs qu’il faut choisir séparément la manière d’analyser les données.
+
+Une nuance historique compte : le <ExternalLink href="https://deming.org/explore/pdsa/" preview="Le Deming Institute explique le PDSA et l’accent mis par Deming sur les prédictions, l’étude des résultats et l’apprentissage.">Deming Institute</ExternalLink>
+rappelle que Deming privilégiait le <Acronym title="Plan, Do, Study, Act : planifier, faire, étudier, agir">PDSA</Acronym>.
+Le mot « étudier » insiste sur la comparaison entre prédiction et observation,
+puis sur la révision de l’explication. Cette exigence est utile pour notre
+pilote : nous devons écrire ce qui nous ferait changer d’avis.
+
+## Planifier commence par un diagnostic et une mesure de référence
+
+Avant de choisir un modèle, l’équipe observe le parcours d’une demande.
+Où le temps passe-t-il ? Dans la recherche d’information, la rédaction,
+l’attente d’un autre service ou la correction d’une première réponse ?
+Une réponse rédigée plus vite ne raccourcira pas nécessairement une attente
+de validation.
+
+Le billet sur les <InternalLink slug="5-pourquoi">5 Pourquoi</InternalLink> explique comment explorer plusieurs causes et
+vérifier les faits. Ici, nous retenons une hypothèse de travail : la recherche
+dans la documentation et la rédaction occupent une part du temps sur laquelle
+l’équipe peut agir.
+
+La <Term title="Mesure du fonctionnement actuel, avec un périmètre et une méthode explicites, utilisée pour comparer les résultats futurs.">mesure de référence</Term>, ou baseline, décrit ce fonctionnement avant
+le changement. Il faut conserver les définitions, les dates et les catégories
+de demandes. Dans notre exemple, le périmètre couvre uniquement les demandes
+simples sur l’utilisation du produit. Les litiges et les opérations sensibles
+restent hors du pilote.
+
+L’équipe formule alors son hypothèse : **l’assistance réduira d’au moins 20 %
+le temps humain moyen par demande, sans augmenter les réouvertures à sept
+jours.** Elle fixe aussi un plafond de coût par demande. Ces seuils sont des
+choix illustratifs du cas, à adapter au service réel.
+
+| Indicateur   | Définition conservée pendant l’essai                                           | Référence fictive | Cible du pilote |
+| ------------ | ------------------------------------------------------------------------------ | ----------------- | --------------- |
+| Temps humain | Temps cumulé de recherche, rédaction, relecture et reprises, par demande       | 12 min            | Au plus 9,6 min |
+| Réouvertures | Part des demandes closes puis rouvertes dans les sept jours                    | 4 %               | Au plus 4 %     |
+| Coût complet | Travail humain et coûts alloués de l’outil et de son exploitation, par demande | 2,40 €            | Au plus 2,40 €  |
+
+La mesure du temps inclut les reprises pendant la fenêtre de suivi. Il faut
+donc attendre cette fenêtre pour finaliser le bilan. Le taux de réouverture
+reste imparfait : un client peut abandonner malgré une mauvaise réponse.
+Une revue d’un échantillon de conversations et les retours des agents
+complètent ce signal.
+
+Une fois l’hypothèse écrite, la grille <Acronym title="Qui, quoi, où, quand, comment, combien, pourquoi">QQOQCCP</Acronym> aide à transformer le pilote en
+actions exécutables : qui prépare les données, où l’essai se déroule, quand
+il se termine et avec quelles ressources. Le billet sur le <InternalLink slug="5w2h-qqoqccp">QQOQCCP</InternalLink>
+en détaille les deux usages.
+
+## Faire exige de repenser le processus et les responsabilités
+
+Dans l’ancien fonctionnement, l’agent cherche une page, rédige une réponse et
+l’envoie. Avec l’assistant, le parcours proposé devient : sélectionner les
+informations autorisées, produire un brouillon avec ses sources, vérifier ces
+sources, corriger la réponse, puis l’envoyer. Une demande hors périmètre
+rejoint le traitement habituel.
+
+C’est le sens opérationnel que nous donnons ici à l’approche « AI First » :
+repenser le travail à partir des capacités et des limites de l’IA. Cette
+approche est un choix de conception, pas une exigence du PDCA. Le diagnostic
+peut aussi conduire à améliorer la documentation ou la recherche sans IA.
+
+L’équipe commence sur un petit périmètre, après des essais hors production.
+Elle forme les agents à vérifier les réponses et leur laisse la possibilité
+de refuser une suggestion. Elle définit les responsabilités :
+
+- Le responsable du support possède les critères de qualité et décide de
+  l’extension du pilote.
+- L’équipe technique gère l’intégration, les versions et le retour au
+  fonctionnement précédent.
+- Les agents vérifient les réponses avant envoi et signalent les erreurs.
+- Une personne désignée coordonne l’analyse des résultats et le suivi des
+  incidents.
+
+Le cadre de gestion des risques de l’IA du <Acronym title="National Institute of Standards and Technology, institut américain de normalisation et de technologie">NIST</Acronym> recommande de documenter
+les rôles et les interactions entre personnes et systèmes. Il invite aussi à
+évaluer si une solution d’IA est appropriée. Nous nous appuyons sur son <ExternalLink href="https://airc.nist.gov/airmf-resources/airmf/5-sec-core/" preview="Le NIST décrit la gouvernance, le contexte, les mesures et le suivi des risques d’un système d’IA tout au long de son utilisation.">AI Risk Management Framework 1.0</ExternalLink>,
+publié en 2023 et en cours de révision au moment de la rédaction.
+Ses quatre fonctions ne sont pas des étapes ordonnées du PDCA.
+
+Notre pilote conserve les versions du modèle, des consignes et de la
+documentation. L’équipe enregistre les corrections avec les précautions
+adaptées aux données des clients. Elle prévoit aussi comment désactiver
+l’assistance sans interrompre le support. Ce sont nos choix pour rendre
+l’essai interprétable et réversible.
+
+Le schéma relie chaque phase à une trace concrète. La décision de la dernière
+case dépend de l’ensemble des critères fixés dans la première.
+
+<Figure caption="Dans ce cas simulé, le temps baisse de 12 à 9 minutes, mais les réouvertures passent de 4 à 7 % : l’équipe corrige le pilote avant de l’étendre.">
+  <CycleSupport />
+</Figure>
+
+## Vérifier mesure le service rendu et les effets sur chaque groupe
+
+À la fin de l’essai, l’équipe veut savoir si le changement tient sa promesse.
+Le nombre de brouillons acceptés renseigne sur l’utilisation de l’outil.
+Il ne suffit pas à mesurer la résolution des demandes.
+
+Voici un bilan entièrement simulé. Chaque colonne représente 1 000 demandes
+du périmètre retenu, suivies pendant sept jours après leur clôture. Ces données
+sont construites pour illustrer une décision ; elles ne proviennent pas
+d’une entreprise.
+
+| Indicateur                | Référence simulée    | Pilote simulé        | Lecture du résultat                |
+| ------------------------- | -------------------- | -------------------- | ---------------------------------- |
+| Temps humain moyen        | 12 min               | 9 min                | Baisse de 25 %, cible atteinte     |
+| Réouvertures à sept jours | 40 / 1 000, soit 4 % | 70 / 1 000, soit 7 % | Hausse de 3 points, critère manqué |
+| Coût complet par demande  | 2,40 €               | 2,10 €               | Sous le plafond fixé               |
+
+Le calcul suivant vérifie les deux écarts qui commandent la décision.
+
+```python
+reference_minutes, pilot_minutes = 12, 9
+reference_reopened, pilot_reopened = 40, 70
+requests_per_group = 1_000
+
+reduction = (reference_minutes - pilot_minutes) / reference_minutes
+delta = (pilot_reopened - reference_reopened) / requests_per_group
+
+print(f"Réduction du temps : {reduction:.0%}")
+print(f"Écart de réouverture : {delta * 100:+.1f} points")
+print("Critères descriptifs temps et qualité :",
+      "atteints" if reduction >= 0.20 and delta <= 0 else "non atteints")
+```
+
+Sortie obtenue en exécutant ce calcul sur les données simulées :
+
+```text
+Réduction du temps : 25%
+Écart de réouverture : +3.0 points
+Critères descriptifs temps et qualité : non atteints
+```
+
+**Le gain de temps ne suffit pas à autoriser l’extension.** Les critères ont
+été fixés ensemble : atteindre la cible de temps ne compense pas une hausse
+des réouvertures. Le calcul décrit
+les écarts ; il n’établit pas leur cause et ne quantifie pas leur incertitude.
+La composition des demandes ou l’expérience des agents peuvent avoir changé.
+
+Quand c’est possible, une répartition aléatoire entre deux fonctionnements
+comparables aide à estimer l’effet du changement. Sinon, il faut documenter
+les autres explications et limiter la portée des conclusions. Le guide du
+Trésor britannique sur la <ExternalLink href="https://www.gov.uk/government/publications/the-magenta-book/quality-in-policy-impact-evaluation-qpie-html" preview="Ce complément au Magenta Book distingue l’évolution observée d’un indicateur de l’effet attribuable à une intervention.">qualité de l’évaluation d’impact</ExternalLink>
+développe cette distinction entre suivi et attribution.
+Un petit échantillon sans dégradation visible ne prouve pas non plus que la
+qualité est maintenue. Le protocole doit prévoir une durée et un volume
+adaptés à la précision recherchée.
+
+Les résultats doivent aussi être examinés par catégorie de demande et par
+expérience des agents. L’étude <ExternalLink href="https://academic.oup.com/qje/article/140/2/889/7990658" preview="Une étude du déploiement d’une assistance IA auprès de 5 172 agents de support mesure des gains de productivité très variables selon l’expérience.">Generative AI at Work</ExternalLink>,
+publiée en 2025, analyse le déploiement progressif d’une assistance auprès de
+5 172 agents. Elle estime une hausse moyenne de 15 % des demandes résolues
+par heure. Les moins expérimentés améliorent vitesse et qualité. Les plus
+expérimentés gagnent peu en vitesse et connaissent une légère baisse de qualité.
+Ce résultat concerne un contexte précis. Il ne fixe aucune cible universelle
+et n’évalue pas l’efficacité du PDCA.
+
+Enfin, la fréquence de suivi dépend de l’indicateur. Une exposition de données
+demande une réaction rapide. Une réouverture à sept jours exige du recul.
+Le NIST prévoit des revues et un suivi après déploiement avec des fréquences
+définies. Pour notre cas, nous proposons des alertes sur les incidents, une
+revue hebdomadaire des conversations et un bilan à l’échéance prévue.
+
+## Agir conduit à généraliser, corriger ou arrêter
+
+Le bilan simulé ne justifie pas une généralisation. L’équipe conserve le
+périmètre limité et examine les demandes rouvertes. Les brouillons
+répondent-ils à une partie seulement du problème ? Les sources sont-elles
+périmées ? La clôture intervient-elle trop tôt ? Ce sont des hypothèses à
+vérifier sur les conversations, pas des causes déjà établies.
+
+Si les vérifications révèlent des sources périmées, le cycle suivant peut
+porter sur leur mise à jour et leur sélection. Si elles révèlent des réponses
+incomplètes, il peut tester un contrôle avant clôture. Changer de modèle
+n’est qu’une intervention possible parmi d’autres.
+
+Trois décisions restent ouvertes à chaque bilan :
+
+- **Généraliser progressivement** si les résultats et leur solidité le
+  justifient, avec les contrôles et les moyens nécessaires.
+- **Corriger puis retester** si une nouvelle hypothèse mérite un essai limité.
+- **Arrêter l’assistance** si les risques, les coûts ou les résultats ne
+  justifient pas sa poursuite.
+
+Agir signifie aussi mettre à jour les procédures, former l’équipe et nommer
+la personne qui vérifiera les effets de la décision. Les heures libérées
+restent une capacité disponible tant que leur usage n’est pas établi.
+Le billet sur le <InternalLink slug="roi-logiciel">retour sur investissement logiciel</InternalLink> explique comment éviter
+de les compter comme des économies déjà réalisées.
+
+Après extension, le suivi continue. Un nouveau modèle, une documentation
+modifiée ou une nouvelle population de clients peuvent changer les résultats.
+Le NIST prévoit notamment le suivi, les retours des utilisateurs et les
+mécanismes de retrait dans la gestion après déploiement. Pour notre équipe,
+chaque changement important déclenche une nouvelle évaluation avant extension.
+Relancer le PDCA peut donc conduire à réviser le processus, les critères ou
+la solution technique.
+
+## Un premier cycle commence par une fiche de décision
+
+L’équipe du cas fictif a sa réponse : le temps baisse, mais le critère de
+qualité est manqué. Elle doit comprendre les réouvertures et tester une
+correction avant d’étendre l’assistance. Voici la fiche qu’elle prépare
+avant ce nouvel essai.
+
+| À écrire avant l’essai             | Question à trancher                                                                |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| Problème et périmètre              | Pour quelles demandes, quelles personnes et quelle difficulté ?                    |
+| Hypothèse et référence             | Quel changement devrait agir sur quel indicateur, comparé à quoi ?                 |
+| Critères de décision               | Quel gain attendu, quelles limites de qualité et de coût ?                         |
+| Protocole et échéance              | Quelle comparaison, quel volume, quelle fenêtre de suivi et quelle date de bilan ? |
+| Responsabilités                    | Qui met en œuvre, contrôle, analyse et décide ?                                    |
+| Retour au fonctionnement précédent | Comment suspendre l’assistance et continuer le service ?                           |
+| Décision et apprentissage          | Que généraliser, corriger ou arrêter, et que vérifier ensuite ?                    |
+
+**Avant votre prochain pilote d’IA, écrivez le résultat qui vous ferait
+renoncer à le généraliser.** Cette phrase rend la phase « Vérifier » utile
+avant même que la phase « Faire » commence.
+
+## Références
+
+- American Society for Quality, sans date. Voir <ExternalLink href="https://asq.org/quality-resources/pdca-cycle" preview="Définition du PDCA, essai à petite échelle et apprentissage avant extension.">What Is the Plan-Do-Check-Act Cycle?</ExternalLink>.
+- The W. Edwards Deming Institute, sans date. Voir <ExternalLink href="https://deming.org/explore/pdsa/" preview="Le PDSA et la distinction entre vérifier un résultat et étudier une prédiction.">PDSA Cycle</ExternalLink>.
+- NIST, 2023, version 1.0 ; révision en cours lors de la consultation. Voir <ExternalLink href="https://airc.nist.gov/airmf-resources/airmf/5-sec-core/" preview="Le cœur de l’AI Risk Management Framework : rôles, contexte, mesure et gestion des risques.">AI RMF Core</ExternalLink>.
+- HM Treasury et Evaluation Task Force, mise à jour du 15 mai 2026. Voir <ExternalLink href="https://www.gov.uk/government/publications/the-magenta-book/quality-in-policy-impact-evaluation-qpie-html" preview="Guide méthodologique sur la qualité de l’évaluation causale d’une intervention.">Quality in Policy Impact Evaluation</ExternalLink>.
+- Erik Brynjolfsson, Danielle Li et Lindsey Raymond, 2025. Voir <ExternalLink href="https://academic.oup.com/qje/article/140/2/889/7990658" preview="Article de recherche sur une assistance IA au support, publié dans The Quarterly Journal of Economics, 140(2), pages 889–942.">Generative AI at Work</ExternalLink>,
+  _The Quarterly Journal of Economics_.
+
+Sources consultées le 3 novembre 2026.
