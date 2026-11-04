@@ -1,0 +1,149 @@
+---
+// cspell:ignore pdca
+const id = "pdca-support";
+const boxes = [
+  {
+    x: 28,
+    y: 40,
+    title: "PLANIFIER",
+    line1: "Référence : 12 min · 4 %",
+    line2: "Cible : ≤ 9,6 min · ≤ 4 %",
+  },
+  {
+    x: 360,
+    y: 40,
+    title: "FAIRE",
+    line1: "Brouillon → vérification",
+    line2: "L’agent valide avant envoi",
+  },
+  {
+    x: 360,
+    y: 238,
+    title: "VÉRIFIER",
+    line1: "Pilote : 9 min · 7 %",
+    line2: "Temps ↓ · réouvertures ↑",
+  },
+  {
+    x: 28,
+    y: 238,
+    title: "AGIR",
+    line1: "Corriger avant d’étendre",
+    line2: "Analyser les réouvertures",
+    accent: true,
+  },
+];
+---
+
+<svg
+  viewBox="0 0 640 402"
+  role="img"
+  aria-label="Cycle PDCA du support, données simulées. Planifier : 12 minutes par demande et 4 % de réouvertures, avec une cible de 9,6 minutes au plus sans hausse des réouvertures. Faire : l’agent vérifie le brouillon avant envoi. Vérifier : 9 minutes mais 7 % de réouvertures. Agir : analyser et corriger avant d’étendre, puis préparer une nouvelle hypothèse."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="28" y="18" class="note">
+    EXEMPLE SIMULÉ · SUPPORT CLIENT
+  </text>
+
+  <g class="edges" marker-end={`url(#${id}-arrow)`}>
+    <path d="M280 96 H356"></path>
+    <path d="M486 152 V234"></path>
+    <path d="M360 294 H284"></path>
+    <path d="M154 238 V156"></path>
+  </g>
+  <g class="edge-labels">
+    <text x="320" y="80">
+      Essai
+    </text>
+    <text x="494" y="198" text-anchor="start">
+      Mesures
+    </text>
+    <text x="320" y="318">
+      Décision
+    </text>
+    <text x="144" y="190" text-anchor="end">
+      Nouvelle
+    </text>
+    <text x="144" y="208" text-anchor="end">
+      hypothèse
+    </text>
+  </g>
+
+  {boxes.map((box) => (
+    <g class:list={["phase", { accent: box.accent }]}>
+      <rect x={box.x} y={box.y} width="252" height="112" rx="4" />
+      <text x={box.x + 14} y={box.y + 27} class="title">
+        {box.title}
+      </text>
+      <text x={box.x + 14} y={box.y + 58}>
+        {box.line1}
+      </text>
+      <text x={box.x + 14} y={box.y + 84}>
+        {box.line2}
+      </text>
+    </g>
+  ))}
+
+  <text x="28" y="384" class="note">
+    % = demandes rouvertes dans les sept jours
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .edges {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.5;
+  }
+
+  .edge-labels {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .phase rect {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .phase text {
+    fill: currentColor;
+    font-size: 12px;
+  }
+
+  .phase .title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .accent {
+    color: var(--contrast);
+  }
+
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+</style>
