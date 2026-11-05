@@ -1,0 +1,303 @@
+---
+lang: "es"
+title: "Pruebas de hipótesis paso a paso: una diferencia no basta"
+pubDate: 2026-11-04
+description:
+  "Cómo planificar y ejecutar una prueba de hipótesis con dos proporciones:
+  hipótesis, supuestos, valor p, potencia e intervalos para evaluar una mejora
+  sin confundir significancia con utilidad."
+tags: ["statistics", "data-science"]
+summary:
+  - "La pregunta, la métrica, la muestra y la regla de parada se fijan antes de ver los resultados."
+  - "El valor p se calcula bajo la hipótesis nula y sus supuestos; no mide la probabilidad de que sea cierta."
+  - "Una diferencia significativa puede ser insuficiente para justificar una decisión práctica."
+  - "El informe debe incluir el efecto, su incertidumbre y los límites del diseño."
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import ColasDelContraste from "./components/pruebas-de-hipotesis/ColasDelContraste.astro";
+import EfectoEIntervalo from "./components/pruebas-de-hipotesis/EfectoEIntervalo.astro";
+
+{/* cspell:ignore erfc sqrt Wald Welch Newcombe statsmodels ttest equal_var confint proportions indep diffprop hipotesis metodo cientifico estimacion Simonsohn SEMATECH Dataplot Cuantil */}
+
+Palabras clave: pruebas de hipótesis, hipótesis nula, valor p, significancia
+estadística, potencia, intervalo de confianza.
+
+En una prueba de cupones con 900 clientes por grupo, el abandono fue del 28 %
+sin cupón y del 22 % con cupón. Desplegar la campaña cuesta dinero: ¿qué
+evidencia ofrece esa diferencia para hacerlo? Recorreremos una prueba de
+hipótesis desde su planificación hasta el informe final. Veremos cómo formular
+la pregunta, elegir el contraste, calcular el valor p y evaluar la importancia
+práctica del efecto.
+
+Retomamos la tienda de <InternalLink slug="tipos-de-analisis-de-datos">los cuatro tipos de análisis de datos</InternalLink>.
+Los recuentos son un **ejemplo didáctico**, no datos de una campaña real. Aquí
+suponemos asignación aleatoria, seguimiento completo y una observación
+independiente por cliente. El código calcula los resultados de esos recuentos;
+no demuestra que tales condiciones se cumplan en una tienda real.
+
+## La pregunta debe convertirse en una afirmación medible
+
+«El cupón funciona» deja demasiadas cosas abiertas. Nuestra pregunta será:
+**¿cambia un cupón del 15 % la proporción de clientes que no compra durante los
+90 días siguientes?** La población objetivo son los clientes elegibles para
+esa campaña. El resultado de cada cliente es binario: abandonó o no abandonó.
+
+El <Term title="Cantidad numérica que describe una población o el modelo que la representa.">parámetro</Term> que queremos estimar es la diferencia de proporciones:
+
+```text
+Δ = proporción de abandono sin cupón − proporción con cupón
+H₀: Δ = 0       (no hay diferencia)
+H₁: Δ ≠ 0       (hay diferencia en alguna dirección)
+```
+
+La <Term title="Afirmación sobre un parámetro que se usa como referencia para calcular el contraste.">hipótesis nula</Term>, H₀, proporciona el escenario de referencia.
+La alternativa, H₁, expresa qué diferencias queremos detectar. Con nuestra
+convención, un Δ positivo favorece al cupón.
+
+Elegimos una prueba **bilateral** porque nos interesa detectar tanto una
+reducción como un aumento del abandono. Una alternativa unilateral, Δ > 0,
+respondería otra pregunta. Debe justificarse antes de observar los resultados;
+no se escoge después para obtener un valor p menor.
+
+La falsabilidad se explica en <InternalLink slug="metodo-cientifico-en-software-y-seguridad">el método científico aplicado al software y la seguridad</InternalLink>.
+Aquí añadimos una dificultad: las muestras fluctúan. Una diferencia observada
+no refuta por sí sola una hipótesis estadística.
+
+## El diseño y la muestra se deciden antes del resultado
+
+Antes de enviar el primer cupón, dejamos escrito el plan:
+
+- **Unidad y asignación:** cada cliente pertenece a un solo grupo, elegido al
+  azar. Diez compras del mismo cliente no son diez clientes independientes.
+- **Métrica principal:** abandono a 90 días, con la misma definición en ambos
+  grupos. Fijamos cómo tratar datos faltantes y exclusiones.
+- **Contraste:** bilateral de dos proporciones independientes, con nivel de
+  significancia α = 0,05.
+- **Muestra y parada:** 900 clientes por grupo en este ejemplo, todos con su
+  ventana de seguimiento completa. El número es ilustrativo; no resulta aquí
+  de un cálculo de potencia.
+- **Relevancia práctica:** qué reducción justificaría el costo y qué otros
+  resultados, como margen o quejas, debemos vigilar.
+
+El <Term title="Límite fijado para la probabilidad de rechazar la hipótesis nula cuando es cierta, bajo los supuestos del procedimiento.">nivel de significancia</Term>, α, controla un error del procedimiento.
+Con α = 0,05, una prueba válida tiene una tasa de falsos rechazos de hasta el
+5 % cuando H₀ es cierta. **No significa que nuestro resultado tenga un 5 % de
+probabilidad de ser un error.**
+
+Hay dos errores posibles:
+
+| Decisión       | H₀ es cierta                      | Existe una diferencia            |
+| -------------- | --------------------------------- | -------------------------------- |
+| Rechazar H₀    | Error de tipo I: falso positivo   | Detectamos una diferencia        |
+| No rechazar H₀ | Decisión correcta: no rechazar H₀ | Error de tipo II: falso negativo |
+
+La <Term title="Probabilidad de rechazar la hipótesis nula para un efecto concreto, con un diseño y un nivel de significancia determinados.">potencia</Term> es la probabilidad de detectar un efecto especificado.
+«Potencia del 80 %» está incompleto si no indicamos para qué diferencia.
+Planificar la muestra requiere una tasa de abandono esperada, un efecto que
+queremos detectar, α y la potencia deseada. Bajar α reduce falsos positivos,
+pero, manteniendo muestra y efecto, también reduce la potencia.
+
+El manual del <Acronym title="National Institute of Standards and Technology (Instituto Nacional de Estándares y Tecnología de Estados Unidos)">NIST</Acronym>
+explica estas relaciones en su <ExternalLink href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35.htm" preview="Introducción de NIST a los contrastes, alfa, errores, potencia y relevancia práctica.">introducción a los contrastes</ExternalLink>.
+Ningún cálculo de muestra corrige una asignación sesgada o clientes contados
+varias veces como si fueran independientes.
+
+## La prueba depende de los datos y de cómo se obtuvieron
+
+La elección empieza por el diseño y la variable que medimos. Esta tabla
+orienta; no sustituye comprobar los supuestos:
+
+| Situación                           | Prueba posible        | Condición que debemos revisar                                                      |
+| ----------------------------------- | --------------------- | ---------------------------------------------------------------------------------- |
+| Dos proporciones independientes     | z de dos proporciones | Suficientes eventos y no eventos para la aproximación normal                       |
+| Tabla 2 × 2 con recuentos pequeños  | Exacta de Fisher      | Diseño compatible con su modelo y condicionamiento a los márgenes                  |
+| Medias de dos grupos independientes | t de Welch            | Independencia; con muestras pequeñas importa la distribución                       |
+| Mediciones numéricas emparejadas    | t de las diferencias  | Parejas independientes; con pocas parejas importa la normalidad de las diferencias |
+
+La documentación oficial describe la <ExternalLink href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.fisher_exact.html" preview="SciPy documenta la prueba exacta de Fisher y su modelo para tablas de contingencia.">prueba de Fisher</ExternalLink>
+y la <ExternalLink href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html" preview="SciPy explica la comparación de medias independientes; equal_var=False activa Welch.">prueba de Welch</ExternalLink>.
+El NIST explica por qué las <ExternalLink href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" preview="NIST transforma observaciones emparejadas en diferencias y contrasta su media.">observaciones emparejadas se analizan como diferencias</ExternalLink>.
+Welch permite varianzas distintas, pero no elimina la dependencia ni resuelve
+automáticamente una asimetría extrema.
+
+Para los cupones elegimos z: hay dos grupos independientes y suficientes
+abandonos y permanencias en ambos. Suponemos también que el cupón de un cliente
+no cambia el resultado de otro. La asignación aleatoria ayuda a interpretar el
+efecto causal en el experimento; generalizarlo a otros clientes exige justificar
+que el contexto es comparable.
+
+## El valor p mide la incompatibilidad con la hipótesis nula
+
+Al cerrar el seguimiento obtenemos estos recuentos:
+
+| Grupo     | Abandonaron | Permanecieron | Total | Abandono |
+| --------- | ----------: | ------------: | ----: | -------: |
+| Sin cupón |         252 |           648 |   900 |     28 % |
+| Con cupón |         198 |           702 |   900 |     22 % |
+
+La diferencia observada es **6 puntos porcentuales**. Bajo H₀ suponemos una
+misma proporción de abandono en ambos grupos. La estimamos agrupando sus
+recuentos: 450 abandonos entre 1800 clientes, es decir, 0,25.
+
+El <Term title="Resumen numérico de los datos cuya distribución bajo la hipótesis nula permite evaluar el resultado observado.">estadístico</Term> z divide la diferencia por
+su <Term title="Desviación estándar de la distribución de un estimador entre muestras repetidas.">error estándar</Term> bajo H₀:
+
+```text
+p_agrupada = (252 + 198) / (900 + 900) = 0,25
+error_H₀ = raíz[p_agrupada × (1 − p_agrupada) × (1/900 + 1/900)]
+z = (0,28 − 0,22) / error_H₀ ≈ 2,939
+```
+
+La diferencia queda a unas 2,94 unidades de error estándar del cero. Usamos
+la <ExternalLink href="https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/diffprop.htm" preview="NIST documenta el contraste normal de dos proporciones con estimación agrupada bajo H₀.">aproximación normal descrita por NIST</ExternalLink>.
+
+El **valor p bilateral** es la probabilidad, bajo H₀ y los demás supuestos,
+de obtener un estadístico al menos tan extremo como el observado, en cualquiera
+de las dos direcciones. Para este contraste sumamos las dos colas más allá de
+−2,939 y +2,939. El resultado es aproximadamente 0,00329.
+
+<Figure caption="Bajo H₀, las dos colas más allá de ±2,939 suman p ≈ 0,00329. El área se refiere al comportamiento del estadístico bajo ese modelo, no a la probabilidad de que H₀ sea cierta.">
+  <ColasDelContraste />
+</Figure>
+
+Este código usa solo la biblioteca estándar de Python. `erfc` permite calcular
+las colas normales sin instalar paquetes:
+
+```python
+from math import erfc, sqrt
+
+n_control, n_cupon = 900, 900
+x_control, x_cupon = 252, 198
+p_control = x_control / n_control
+p_cupon = x_cupon / n_cupon
+delta = p_control - p_cupon
+
+agrupada = (x_control + x_cupon) / (n_control + n_cupon)
+error_nulo = sqrt(
+    agrupada * (1 - agrupada) * (1 / n_control + 1 / n_cupon)
+)
+z = delta / error_nulo
+p_bilateral = erfc(abs(z) / sqrt(2))
+
+# Intervalo de Wald aproximado: error estimado sin agrupar.
+error_estimacion = sqrt(
+    p_control * (1 - p_control) / n_control
+    + p_cupon * (1 - p_cupon) / n_cupon
+)
+# Cuantil 0,975 de la normal estándar para un IC bilateral del 95 %.
+margen = 1.959963984540054 * error_estimacion
+inferior, superior = delta - margen, delta + margen
+
+print(f"Diferencia: {100 * delta:.2f} puntos porcentuales")
+print(f"z: {z:.6f}")
+print(f"p bilateral: {p_bilateral:.8f}")
+print(f"IC 95% aproximado: [{100 * inferior:.3f}, {100 * superior:.3f}] pp")
+```
+
+La ejecución produce:
+
+```text
+Diferencia: 6.00 puntos porcentuales
+z: 2.939388
+p bilateral: 0.00328861
+IC 95% aproximado: [2.009, 9.991] pp
+```
+
+Como p < 0,05, rechazamos H₀ con el criterio fijado. La diferencia positiva
+aporta evidencia de menor abandono con cupón bajo los supuestos del análisis.
+Eso todavía no decide si conviene desplegarlo.
+
+## La significancia debe acompañarse del efecto y su incertidumbre
+
+El valor p no es la probabilidad de que H₀ sea cierta. Tampoco mide el tamaño
+del efecto ni su importancia económica. Son distinciones centrales de la
+declaración de la <Acronym title="American Statistical Association (Asociación Estadística Estadounidense)">ASA</Acronym>
+sobre <ExternalLink href="https://www.amstat.org/asa/files/pdfs/p-valuestatement.pdf" preview="La ASA presenta seis principios para interpretar y comunicar los valores p.">significancia estadística y valores p</ExternalLink>.
+
+El efecto estimado es una reducción de 6 puntos porcentuales.
+Su <Acronym title="Intervalo de confianza">IC</Acronym> del 95 % va de 2,01 a 9,99 puntos.
+En muestras repetidas, el procedimiento produce intervalos que cubren el
+parámetro en aproximadamente el 95 % de los casos, bajo sus supuestos. El
+intervalo observado no asigna una probabilidad del 95 % a un parámetro fijo.
+
+Usamos un intervalo de **Wald aproximado**, con el error sin agrupar. La
+documentación de <ExternalLink href="https://www.statsmodels.org/stable/generated/statsmodels.stats.proportion.confint_proportions_2indep.html" preview="statsmodels ofrece distintos intervalos para dos proporciones, incluidos Wald y Newcombe.">statsmodels para dos proporciones</ExternalLink>
+incluye este método y otras alternativas. No debe aplicarse automáticamente con
+pocos eventos o proporciones cercanas a cero o uno. Además, este intervalo y
+el contraste agrupado no son inversiones exactas del mismo procedimiento.
+
+Ahora supongamos que el negocio hubiera fijado antes un requisito: reducir el
+abandono **más de 5 puntos** para justificar el costo. El intervalo incluye
+valores por debajo de ese umbral. Encontramos evidencia frente a cero, pero
+no hemos establecido que el efecto supere 5 puntos.
+
+<Figure caption="El intervalo aproximado excluye cero, pero contiene el umbral práctico ilustrativo de 5 puntos. Una diferencia estadísticamente significativa puede dejar sin resolver la decisión económica.">
+  <EfectoEIntervalo />
+</Figure>
+
+Para evaluar directamente ese requisito habría que planificar un contraste
+frente al umbral, con su potencia correspondiente, y considerar costos y
+márgenes. El umbral no debe aparecer solo porque el resultado nos gustó.
+
+El caso contrario también importa: **no rechazar H₀ no demuestra igualdad**.
+Una muestra puede ser demasiado pequeña para detectar una diferencia relevante.
+Si queremos demostrar que dos opciones son suficientemente parecidas,
+necesitamos una prueba de equivalencia con márgenes definidos previamente.
+
+## Buscar significancia hasta encontrarla altera la prueba
+
+En el diseño de muestra fija, mirar cada día y detenerse cuando p baja de 0,05
+modifica la tasa de falsos positivos. También la modifica probar muchas
+métricas o segmentos y publicar solo el resultado favorable.
+
+Un <ExternalLink href="https://www.bitss.org/wp-content/uploads/2014/06/false-positive-psychology2.pdf" preview="Simmons, Nelson y Simonsohn muestran cómo la flexibilidad no declarada eleva los falsos positivos.">estudio de Simmons, Nelson y Simonsohn</ExternalLink>
+documenta estos riesgos. La defensa práctica es fijar métrica, exclusiones,
+análisis y parada antes de observar los resultados. Si hay varias hipótesis
+confirmatorias, hay que planificar cómo controlar los errores de ese conjunto.
+
+Se puede detener un experimento antes mediante un diseño secuencial adecuado.
+Lo que cambia es el procedimiento y sus reglas, no solo el momento de mirar.
+Podemos explorar segmentos después, pero debemos presentar sus hallazgos como
+exploratorios y buscar confirmación con datos nuevos.
+
+## La conclusión debe responder la pregunta y declarar sus límites
+
+El informe del ejemplo puede quedar así:
+
+> En este caso didáctico, el abandono a 90 días fue del 28 % sin cupón y del
+> 22 % con cupón, con 900 clientes por grupo. La reducción estimada fue de
+> 6 puntos porcentuales, con IC de Wald aproximado del 95 % de 2,01 a 9,99.
+> El contraste bilateral de dos proporciones dio p = 0,00329. Con α = 0,05,
+> rechazamos la igualdad bajo los supuestos declarados. El resultado aporta
+> evidencia de una reducción, pero no establece que supere 5 puntos ni que
+> la campaña sea rentable.
+
+Antes de la próxima prueba, escribe una frase con **qué vas a medir, qué efecto
+importa y cuándo terminarás de observar**. Esa frase hace que el cálculo
+responda una pregunta definida, en lugar de dejar que el resultado elija la
+pregunta.
+
+## Referencias
+
+- El <ExternalLink href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35.htm" preview="Introducción a los contrastes, alfa, errores, potencia y relevancia práctica.">NIST/SEMATECH e-Handbook: Quantitative Techniques</ExternalLink>
+  explica los fundamentos del contraste.
+- La documentación de <ExternalLink href="https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/diffprop.htm" preview="Contraste normal de dos proporciones con estimación agrupada bajo H₀.">NIST Dataplot: Difference of Proportion Hypothesis Test</ExternalLink>
+  presenta el estadístico del ejemplo.
+- La documentación de <ExternalLink href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.fisher_exact.html" preview="Prueba exacta de Fisher y sus supuestos para tablas de contingencia.">SciPy: fisher_exact</ExternalLink>
+  describe una alternativa exacta para tablas 2 × 2.
+- La documentación de <ExternalLink href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html" preview="Comparación de medias independientes; equal_var=False activa Welch.">SciPy: ttest_ind</ExternalLink>
+  explica la comparación de medias independientes.
+- El manual de <ExternalLink href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" preview="Contraste de la media de diferencias entre observaciones emparejadas.">NIST: Analysis of paired observations</ExternalLink>
+  desarrolla el caso emparejado.
+- La <ExternalLink href="https://www.amstat.org/asa/files/pdfs/p-valuestatement.pdf" preview="Seis principios de la ASA para interpretar y comunicar los valores p.">declaración de la ASA sobre valores p</ExternalLink>
+  (7 de marzo de 2016) fundamenta sus límites de interpretación.
+- La documentación de <ExternalLink href="https://www.statsmodels.org/stable/generated/statsmodels.stats.proportion.confint_proportions_2indep.html" preview="Métodos de intervalos para dos proporciones independientes, incluidos Wald y Newcombe.">statsmodels: confint_proportions_2indep</ExternalLink>
+  detalla los métodos de intervalos disponibles.
+- El artículo de <ExternalLink href="https://www.bitss.org/wp-content/uploads/2014/06/false-positive-psychology2.pdf" preview="Investigación original sobre flexibilidad de análisis y falsos positivos.">Simmons, Nelson y Simonsohn, False-Positive Psychology</ExternalLink>
+  (_Psychological Science_, 2011) examina el efecto de las decisiones de análisis
+  no declaradas.
