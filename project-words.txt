@@ -639,3 +639,5 @@ basica
 heapsort
 subproblemas
 macroeconómicas
+significancia
+estadísticamente

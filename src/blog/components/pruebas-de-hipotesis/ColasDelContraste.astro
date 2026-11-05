@@ -1,0 +1,113 @@
+---
+import { formato, z } from "./modelo";
+
+const x = (valor: number) => 44 + ((valor + 4) / 8) * 552;
+const base = 230;
+const y = (valor: number) =>
+  base - (Math.exp(-(valor ** 2) / 2) / Math.sqrt(2 * Math.PI)) * 440;
+const puntos = (desde: number, hasta: number) =>
+  Array.from({ length: 161 }, (_, i) => {
+    const valor = desde + ((hasta - desde) * i) / 160;
+    return `${x(valor)},${y(valor)}`;
+  }).join(" L ");
+const cola = (desde: number, hasta: number) =>
+  `M ${x(desde)},${base} L ${puntos(desde, hasta)} L ${x(hasta)},${base} Z`;
+---
+
+<svg
+  viewBox="0 0 640 310"
+  role="img"
+  aria-label="Bajo la hipótesis nula, el estadístico Z sigue aproximadamente una normal estándar. Las áreas más allá de menos 2,939 y más 2,939 suman el valor p bilateral de 0,00329."
+  class="diagram"
+>
+  <text x="32" y="22" class="title">
+    Bajo H₀: Z ≈ normal estándar
+  </text>
+  <text x="32" y="43" class="note">
+    Caso didáctico · dos grupos de 900 clientes
+  </text>
+  <path d={cola(-4, -z)} class="tail"></path>
+  <path d={cola(z, 4)} class="tail"></path>
+  <path d={`M ${puntos(-4, 4)}`} class="curve"></path>
+  <line x1={x(-4)} x2={x(4)} y1={base} y2={base} class="axis"></line>
+  <line x1={x(0)} x2={x(0)} y1="62" y2={base} class="guide"></line>
+  {[-z, z].map((valor) => (
+    <line x1={x(valor)} x2={x(valor)} y1="165" y2={base} class="cut" />
+  ))}
+  <text x={x(-z)} y="141" class="accent" text-anchor="middle">
+    0,00164
+  </text>
+  <text x={x(z)} y="141" class="accent" text-anchor="middle">
+    0,00164
+  </text>
+  <text x={x(-z)} y="158" class="note" text-anchor="middle">
+    cola izquierda
+  </text>
+  <text x={x(z)} y="158" class="note" text-anchor="middle">
+    cola derecha
+  </text>
+  {[-4, -2, 0, 2, 4].map((valor) => (
+    <g>
+      <line x1={x(valor)} x2={x(valor)} y1={base} y2={base + 5} class="axis" />
+      <text x={x(valor)} y="250" class="note" text-anchor="middle">
+        {valor}
+      </text>
+    </g>
+  ))}
+  <text x={x(-z)} y="272" class="accent" text-anchor="middle">
+    −{formato(z, 3)}
+  </text>
+  <text x={x(z)} y="272" class="accent" text-anchor="middle">
+    +{formato(z, 3)}
+  </text>
+  <text x="320" y="298" class="title" text-anchor="middle">
+    p = área de ambas colas ≈ 0,00329
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  text {
+    fill: currentColor;
+  }
+  .title {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+  .accent {
+    fill: var(--contrast);
+  }
+  .axis {
+    stroke: var(--muted);
+    stroke-width: 1;
+  }
+  .guide {
+    stroke: var(--line);
+    stroke-dasharray: 3 5;
+  }
+  .cut {
+    stroke: var(--contrast);
+    stroke-dasharray: 4 4;
+  }
+  .curve {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+  .tail {
+    fill: var(--contrast);
+    stroke: var(--contrast);
+    stroke-width: 1.5;
+  }
+</style>

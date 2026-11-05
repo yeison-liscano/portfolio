@@ -1,0 +1,113 @@
+---
+import { diferencia, formato, inferior, superior } from "./modelo";
+
+const x = (valor: number) => 64 + ((valor + 1) / 13) * 528;
+const practicalThreshold = 5;
+---
+
+<svg
+  viewBox="0 0 640 238"
+  role="img"
+  aria-label="La reducción estimada del abandono es de 6 puntos porcentuales, con intervalo de confianza de Wald aproximado del 95 por ciento de 2,01 a 9,99 puntos. El intervalo excluye cero, pero contiene el umbral práctico ilustrativo de 5 puntos."
+  class="diagram"
+>
+  <text x="32" y="22" class="title">
+    Una diferencia frente a cero no garantiza superar 5 puntos
+  </text>
+  <text x="32" y="43" class="note">
+    Caso didáctico · reducción = abandono sin cupón − con cupón
+  </text>
+  <line x1={x(0)} x2={x(0)} y1="65" y2="154" class="zero"></line>
+  <line
+    x1={x(practicalThreshold)}
+    x2={x(practicalThreshold)}
+    y1="65"
+    y2="154"
+    class="threshold"
+  ></line>
+  <text x={x(0)} y="173" class="note" text-anchor="middle">
+    sin efecto
+  </text>
+  <text x={x(practicalThreshold)} y="173" class="note" text-anchor="middle">
+    umbral ilustrativo
+  </text>
+  <line x1={x(-1)} x2={x(12)} y1="140" y2="140" class="axis"></line>
+  {[0, 2, 4, 6, 8, 10, 12].map((valor) => (
+    <g>
+      <line x1={x(valor)} x2={x(valor)} y1="140" y2="145" class="axis" />
+      <text x={x(valor)} y="194" class="note" text-anchor="middle">
+        {valor}
+      </text>
+    </g>
+  ))}
+  <line
+    x1={x(inferior * 100)}
+    x2={x(superior * 100)}
+    y1="102"
+    y2="102"
+    class="interval"
+  ></line>
+  {[inferior, superior].map((valor) => (
+    <line
+      x1={x(valor * 100)}
+      x2={x(valor * 100)}
+      y1="94"
+      y2="110"
+      class="interval"
+    />
+  ))}
+  <circle cx={x(diferencia * 100)} cy="102" r="5" class="estimate"></circle>
+  <text x={x(inferior * 100)} y="86" text-anchor="middle">
+    {formato(inferior * 100)}
+  </text>
+  <text x={x(diferencia * 100)} y="86" text-anchor="middle">
+    {formato(diferencia * 100)}
+  </text>
+  <text x={x(superior * 100)} y="86" text-anchor="middle">
+    {formato(superior * 100)}
+  </text>
+  <text x="320" y="223" class="title" text-anchor="middle">
+    Reducción del abandono (puntos porcentuales)
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 560px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  text {
+    fill: currentColor;
+  }
+  .title {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+  .axis {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+  .zero {
+    stroke: var(--text-color);
+    stroke-width: 1;
+  }
+  .threshold {
+    stroke: var(--muted);
+    stroke-dasharray: 4 4;
+  }
+  .interval {
+    stroke: var(--contrast);
+    stroke-width: 3;
+  }
+  .estimate {
+    fill: var(--contrast);
+  }
+</style>
