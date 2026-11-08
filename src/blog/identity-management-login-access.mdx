@@ -1,0 +1,254 @@
+---
+title: "Identity management: why a successful login can still end in access denied"
+pubDate: 2026-11-07
+description:
+  "Follow one employee from login to a denied finance report. Separate identity,
+  authentication, authorization, accounting and the account changes that keep
+  access correct."
+tags: ["security", "programming"]
+lang: en
+isDraft: true
+summary:
+  - "A username claims an account; authentication checks control of its authenticator."
+  - "A successful login still leaves the application with an authorization decision."
+  - "Single sign-on and account changes require coordination across applications."
+  - "Separate authentication and access records make a denied request easier to explain."
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import IdentitySeries from "./components/identity-series/IdentitySeries.astro";
+import AccessDecisions from "./components/identity-management-login-access/AccessDecisions.astro";
+
+{/* cspell:ignore dataclasses Laat */}
+
+Keywords: identity management, authentication, authorization, accounting, single
+sign-on, account lifecycle.
+
+Ana, a fictional employee, signs in to the company portal, opens the finance
+report, and sees “access denied.” Her login worked. The application still needs
+to decide whether she may read that report. Following this request separates
+identification, authentication, authorization and accounting, then shows why a
+password reset cannot resolve every access problem.
+
+<IdentitySeries current={1} />
+
+## A username identifies the account Ana claims to control
+
+Ana types `ana@example.test`. That identifier tells the login service which
+account she claims to control. Anyone could type the same text. The service
+still needs evidence connecting this request to the account.
+
+An account also has a history. Someone created it, associated it with Ana, and
+registered a way for her to authenticate. A human resources process might have
+checked her employment before that registration. Those earlier checks answer
+different questions from the one asked at each login.
+
+The <Term title="A process that establishes a relationship between a claimed identity and a real person with a specified degree of confidence.">identity proofing</Term>
+process connects an applicant to a real person. Enrollment creates the
+subscriber relationship. The current
+guidance from <Acronym title="National Institute of Standards and Technology">NIST</Acronym>
+separates those activities
+in <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63a.html" preview="NIST SP 800-63A-4 defines identity proofing, enrollment and subscriber account management.">SP 800-63A-4</ExternalLink>.
+
+The necessary checks depend on the service. A pseudonymous discussion account
+and an employee payroll account have different needs. A digital identity is
+meaningful in its service’s context; knowing that someone controls an account
+does not automatically establish their civil identity. That distinction is
+explicit
+in <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63.html" preview="NIST SP 800-63-4 explains contextual digital identities and the separate roles of proofing, authentication and federation.">NIST’s digital identity model</ExternalLink>.
+
+## Authentication connects Ana’s proof to that account
+
+Ana next supplies evidence through an <Term title="Something a claimant controls and uses to authenticate, such as a password or a cryptographic key.">authenticator</Term>.
+For example, a registered cryptographic key can sign a challenge from the
+service. The service checks whether the proof matches an authenticator bound to
+the claimed account.
+
+Successful <Term title="Establishing confidence that a claimant controls an authenticator associated with an account.">authentication</Term>
+gives the application a basis for recognizing the account. It does not inspect
+every document Ana might open later. NIST describes this proof of control
+in <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63b.html" preview="NIST SP 800-63B-4 defines authentication through control of authenticators and explains authenticated sessions.">SP 800-63B-4</ExternalLink>.
+
+In our example, the portal establishes a <Term title="An ongoing interaction whose session secret connects later requests to an earlier authentication event.">session</Term>
+for Ana’s account. Subsequent requests can carry a session secret instead of
+asking her to authenticate again every time. The account identifier and the
+session secret have different jobs: one names the account, while the other
+connects requests to the established session.
+
+That is the first useful finding in the investigation: the portal recognized
+Ana. We can now inspect the report request without assuming that login failed.
+
+## The application authorizes each requested action
+
+The finance application receives a request to read `finance-report`. It must
+evaluate the action, the resource and the relevant account permissions.
+This <Term title="A decision about whether a subject may perform a particular action on a resource under an access policy.">authorization</Term>
+decision can deny access even when the session is valid.
+
+Suppose Ana has `profile:read` but lacks `finance:read`. The application can let
+her view her own profile and refuse the report. Repeating authentication would
+leave that permission unchanged. Granting every employee access would make the
+error disappear while introducing a different problem.
+
+NIST’s access enforcement control requires systems to apply approved
+authorizations under the applicable policy;
+see <ExternalLink href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf" preview="NIST SP 800-53 Rev. 5 includes account management, access enforcement and audit-record controls.">SP 800-53, AC-3</ExternalLink>.
+The policy may use roles or attributes, and its decision can be enforced by a
+different component. The application must still enforce the result at the
+resource boundary.
+
+The diagram shows our fictional deployment. Ana’s authenticated account reaches
+two resource checks; only one has the required permission.
+
+<Figure caption="The same authenticated account can read its profile and be denied the finance report because the required permissions differ.">
+  <AccessDecisions />
+</Figure>
+
+We can reproduce that distinction with a small Python model. Authentication is
+assumed at the boundary: this code starts with an already identified account.
+The permission changes represent administrative actions, not input that a user
+may submit to grant themselves access.
+
+```python
+from dataclasses import dataclass
+
+
+@dataclass
+class Account:
+    subject: str
+    active: bool
+    permissions: set[str]
+
+
+def authorize(account, action, resource, required_permission):
+    if not account.active:
+        outcome, reason = "DENY", "account_disabled"
+    elif required_permission not in account.permissions:
+        outcome, reason = "DENY", "permission_missing"
+    else:
+        outcome, reason = "ALLOW", "permission_present"
+
+    print(
+        f"subject={account.subject} action={action} resource={resource} "
+        f"outcome={outcome} reason={reason}"
+    )
+    return outcome == "ALLOW"
+
+
+# A trusted session layer has already identified Ana. No login is implemented.
+ana = Account("employee-1042", True, {"profile:read"})
+
+authorize(ana, "read", "finance-report", "finance:read")
+authorize(ana, "read", "own-profile", "profile:read")
+
+# Simulate a permission change approved by an administrator.
+ana.permissions.add("finance:read")
+authorize(ana, "read", "finance-report", "finance:read")
+
+# Simulate the application learning that the account has been disabled.
+ana.active = False
+authorize(ana, "read", "finance-report", "finance:read")
+```
+
+Running this code with Python produced:
+
+```text
+subject=employee-1042 action=read resource=finance-report outcome=DENY reason=permission_missing
+subject=employee-1042 action=read resource=own-profile outcome=ALLOW reason=permission_present
+subject=employee-1042 action=read resource=finance-report outcome=ALLOW reason=permission_present
+subject=employee-1042 action=read resource=finance-report outcome=DENY reason=account_disabled
+```
+
+The same account gets different results as the resource and account state
+change. This model has no network, authenticator verification, session storage
+or distributed cache. It demonstrates a policy boundary, rather than a complete
+identity system. For a related example, the existing <Acronym title="Model Context Protocol">MCP</Acronym>
+article describes
+the <InternalLink slug="mcp">scoped tool access in a remote server</InternalLink>
+alongside authentication.
+
+## Single sign-on gives each application evidence for its own session
+
+Our portal can also use <Acronym title="Single sign-on: accessing multiple services after an initial authentication, subject to their session and authentication policies.">SSO</Acronym>.
+An <Term title="A service that supplies verifiable authentication statements and account attributes to another service.">identity provider</Term>
+authenticates Ana. A relying application accepts verifiable evidence from that
+provider and establishes its own session. This relationship
+is <Term title="An arrangement in which a service relies on another party’s authentication statements rather than directly verifying the user’s authenticator.">federation</Term>.
+NIST describes the roles
+in <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63c.html" preview="NIST SP 800-63C-4 explains federation, verifiable assertions, relying-party sessions and account provisioning.">SP 800-63C-4</ExternalLink>.
+
+Ana’s finance application still needs a policy for the report. A trusted
+statement about her account supplies evidence for that decision; the statement
+alone does not define every application permission.
+
+Later posts trace <InternalLink slug="saml-single-sign-on">federated browser login</InternalLink>
+using <Acronym title="Security Assertion Markup Language">SAML</Acronym>
+and explain <InternalLink slug="kerberos-tickets">Kerberos tickets</InternalLink>.
+They solve authentication problems in different settings. The introduction’s
+essential question stays the same: which component recognized the account, and
+which component decided whether the requested action was allowed?
+
+## Account changes must reach the systems that grant access
+
+Ana’s manager confirms that she should read the report. An administrator
+approves the missing permission. In the Python model, changing one set fixes
+the next request. A deployment may need to update an application account,
+directory group or cached entitlement before its checks see that change.
+
+The account also changes when Ana transfers departments or leaves the company.
+NIST’s AC-2 control covers account creation, modification, disabling and
+removal. AC-3(8) explicitly addresses revocation timing. Existing sessions and
+cached information make propagation an operational question that needs an
+answer.
+
+Federation can be paired with provisioning interfaces that communicate account
+changes. Our example assumes the application learns about Ana’s disabled
+account before the final check. It does not demonstrate instantaneous
+revocation across systems.
+
+The later post on <Acronym title="Lightweight Directory Access Protocol">LDAP</Acronym>
+examines <InternalLink slug="ldap-users-groups">directory users and groups</InternalLink>.
+The <Acronym title="Remote Authentication Dial-In User Service">RADIUS</Acronym>
+post examines <InternalLink slug="radius-network-access">network access</InternalLink>,
+a separate boundary. A team should identify which systems must
+receive a change instead of assuming one directory update finishes the work.
+
+## Separate events reveal why one request passed and another failed
+
+The final part of <Acronym title="Authentication, authorization and accounting">AAA</Acronym>
+is accounting: recording relevant service decisions and resource use.
+The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2903.html" preview="The experimental RFC 2903 separates authentication, authorization and accounting in a generic service architecture.">early AAA architecture in RFC 2903</ExternalLink>
+uses that separation explicitly. In an application investigation, audit events
+also help connect a recognized account with a requested action and its result.
+
+NIST’s AU-3 control calls for records identifying the event, time, location,
+source, outcome and associated entities. Our printed demonstration omits time
+and source, so its lines are teaching output rather than a complete audit
+record. Avoid logging session secrets or credentials while adding the context
+needed to explain a decision.
+
+Ana’s initial incident now has a precise explanation: the finance permission
+was missing. The approved change made the report readable without changing her
+password. That finding is specific to this fictional case; a real denial still
+requires evidence.
+
+The final post <InternalLink slug="identity-protocols-compared">compares the four protocols</InternalLink>
+using those same boundaries.
+
+For the next access incident, write down five things: the account recognized,
+the authentication result, the requested action and resource, the policy that
+applied, and the recorded decision. Those facts locate the failing boundary
+before anyone changes permissions.
+
+## References
+
+- NIST. July 2025. See <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63.html" preview="NIST’s fourth revision of the Digital Identity Guidelines defines identity models and assurance decisions.">SP 800-63-4: Digital Identity Guidelines</ExternalLink>.
+- NIST. July 2025. See <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63a.html" preview="Identity proofing establishes a relationship with a real person; enrollment creates a subscriber account.">SP 800-63A-4: Identity Proofing and Enrollment</ExternalLink>.
+- NIST. July 2025. See <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63b.html" preview="Authentication requirements cover authenticator control, management and sessions.">SP 800-63B-4: Authentication and Authenticator Management</ExternalLink>.
+- NIST. July 2025. See <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63c.html" preview="Federation requirements describe identity providers, relying parties, assertions and provisioning.">SP 800-63C-4: Federation and Assertions</ExternalLink>.
+- NIST Joint Task Force. September 2020, updated December 2020. See <ExternalLink href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf" preview="Controls AC-2, AC-3 and AU-3 address account management, access enforcement and audit records.">SP 800-53 Rev. 5</ExternalLink>. The <ExternalLink href="https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final" preview="NIST’s publication page records the August 2025 release 5.2.0 changes to the control catalog.">publication page</ExternalLink> records subsequent catalog updates.
+- C. de Laat et al. August 2000. See <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2903.html" preview="RFC 2903 is an experimental architecture, used here for the conceptual separation of AAA functions.">RFC 2903: Generic AAA Architecture</ExternalLink> (Experimental).

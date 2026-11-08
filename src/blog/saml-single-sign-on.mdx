@@ -1,0 +1,224 @@
+---
+lang: "en"
+title: "SAML single sign-on: how one login opens several apps"
+pubDate: 2026-11-07
+description:
+  "Follow one browser login through a SAML identity provider and a reporting
+  app, then separate assertion validation, local sessions and access rules."
+summary:
+  - "The browser carries the SAML exchange between an identity provider and
+    an application; the application then creates its own session."
+  - "A signature protects the assertion, while audience, recipient, time,
+    request correlation and replay checks limit where it can be accepted."
+  - "Authentication can succeed while the application denies access to a
+    report; permissions remain a separate decision."
+  - "A standard-library encoding exercise reveals a Redirect-binding request
+    without pretending to validate a real SAML login."
+tags: ["security", "web"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import IdentitySeries from "./components/identity-series/IdentitySeries.astro";
+import BrowserFlow from "./components/saml-single-sign-on/BrowserFlow.astro";
+
+{/* cspell:ignore etree samlp AuthnRequest SAMLRequest SAMLResponse RelayState AuthnStatement NameID SubjectConfirmationData InResponseTo NotOnOrAfter NotBefore AudienceRestriction opensaml wbits attrib urlencode parse_qs fromstring b64encode b64decode compressobj DEFLATE Cantor Ragouzis Philpott */}
+
+Keywords: SAML, single sign-on, identity provider, assertions, browser login,
+sessions, authorization
+
+Ana signs in to the company identity provider and opens the reporting app
+without entering her password again. The app recognizes her, then refuses to
+show the report. Follow that login through the browser to see what <Acronym title="Security Assertion Markup Language">SAML</Acronym> proves, which checks protect the exchange, and why the application
+still decides what Ana may access. Ana and the company are a fictional example.
+
+<IdentitySeries current={2} />
+
+## The identity provider authenticates Ana; the app trusts its assertion
+
+An <Acronym title="Identity Provider: the system that authenticates a user and issues assertions to applications">IdP</Acronym> manages Ana's authentication. The reporting app is a <Acronym title="Service Provider: the application that consumes an identity provider's assertion">SP</Acronym>.
+They agree on identifiers, endpoints and verification keys before
+the login. Their shared configuration tells the app which issuer it trusts.
+
+The IdP issues an <Term title="A structured statement about a subject, issued by an authority that another system can choose to trust">assertion</Term> about Ana. SAML defines assertions
+using <Acronym title="Extensible Markup Language">XML</Acronym>, including authentication statements, attributes and authorization
+decision statements. This post follows authentication and attributes in browser
+login. An assertion does not automatically grant every permission in an app.
+The normative structures are defined in the <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf" preview="OASIS's SAML 2.0 definitions of assertions, conditions, statements and protocol messages.">SAML core specification</ExternalLink>.
+
+This arrangement enables <Acronym title="Single Sign-On: using an existing authentication context to access multiple services without repeating the initial login each time">SSO</Acronym>. Each participating app can rely on the
+IdP's authentication instead of asking Ana for her password independently.
+The app still needs to map the asserted identity to the account or access
+policy it uses.
+
+## The browser carries a request out and an assertion back
+
+Ana requests `/reports/42` without an app session. In this example, the SP
+starts
+the exchange using the HTTP Redirect binding, a defined way to carry a SAML
+message in a redirect. It sends an `AuthnRequest` to the IdP through Ana's
+browser. `RelayState` carries a reference to the app's saved navigation state.
+
+The IdP checks whether Ana already has a suitable authenticated session. If she
+does, it may reuse that context. Otherwise it authenticates her. SAML leaves
+that authentication interaction to the IdP; the app does not receive Ana's
+password through this exchange.
+
+The IdP returns a form containing a `SAMLResponse`. The browser posts it to the
+app's <Acronym title="Assertion Consumer Service: the service provider endpoint that receives SAML responses">ACS</Acronym>. The app validates the response before creating a local
+session. This sequence follows the <ExternalLink href="https://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0-cd-02.html" preview="OASIS's technical overview illustrates SP-initiated SSO with HTTP Redirect and POST bindings.">OASIS technical overview</ExternalLink>,
+section 5.1.2; other bindings and IdP-initiated flows also exist.
+
+<Figure caption="The browser transports the SAML messages; the reporting app creates a separate session after validating the response.">
+  <Stepper
+    label="SAML browser login steps"
+    steps={[
+      "Ana requests a report without a reporting-app session.",
+      "The app saves the target and redirects the browser with a SAMLRequest.",
+      "The browser sends the authentication request to the identity provider.",
+      "The identity provider authenticates Ana, or reuses a suitable session, then returns a form containing SAMLResponse.",
+      "The browser posts the response to the reporting app's Assertion Consumer Service.",
+      "The app validates the response and creates its own session; access to the report still depends on its policy.",
+    ]}
+  >
+    <BrowserFlow />
+  </Stepper>
+</Figure>
+
+Opening another participating app repeats its SAML exchange. A suitable IdP
+session can remove the credential prompt, while the second app creates its
+own session. SSO does not require a single cookie shared by all applications.
+
+## The assertion limits who may accept it and for how long
+
+The useful question is more precise than “does this response mention Ana?”
+The app must establish that a trusted issuer made an acceptable statement for
+this service, this request and this time.
+
+| Field or protection             | Question it helps answer                                    |
+| ------------------------------- | ----------------------------------------------------------- |
+| Issuer and signature            | Did a configured trusted party issue the protected content? |
+| Subject, often a `NameID`       | Which identity does the issuer assert?                      |
+| `AudienceRestriction`           | Is this SP an intended audience?                            |
+| Bearer confirmation `Recipient` | Was delivery intended for this ACS?                         |
+| `InResponseTo`                  | Does this reply match the request the SP started?           |
+| Conditions and `NotOnOrAfter`   | Is the assertion acceptable at this time?                   |
+
+The <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/saml-profiles-2.0-os.pdf" preview="The SAML 2.0 profiles specify bearer confirmation, audience, request correlation and replay checks for browser SSO.">Web Browser SSO profile</ExternalLink> gives the processing rules.
+Audience identifies the service; recipient identifies the receiving endpoint.
+For the SP-initiated flow shown here, the response must correlate with the
+request. An unsolicited IdP-initiated response has different correlation rules.
+
+Time checks also apply to distinct elements. A validity condition can include
+`NotBefore`; bearer `SubjectConfirmationData` in this profile must include
+`NotOnOrAfter` and must not include `NotBefore`. A maintained SAML library
+handles these element-specific rules more reliably than a homemade XML parser.
+
+## A valid signature is one check among several
+
+A signature provides integrity and source authentication when verified against
+the configured trust relationship. It cannot by itself establish that a
+message belongs to this app's pending request. The SP also checks destination,
+issuer, audience, recipient and applicable times, and prevents bearer assertion
+replay. Spring Security's <ExternalLink href="https://docs.spring.io/spring-security/reference/servlet/saml2/login/authentication.html" preview="Spring Security documents response and assertion validation and mapping SAML attributes to application authorities.">response-processing documentation</ExternalLink>
+shows how these responsibilities appear in a real implementation.
+
+One detail deserves care when reading old examples. For a POST-delivered
+response, each assertion needs digital-signature protection. The signature can
+cover each assertion or the enclosing response, as clarified by <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/errata05/os/saml-v2.0-errata05-os.html" preview="Approved SAML 2.0 errata correct signature placement and clarify browser SSO processing rules.">OASIS Errata 05, E26</ExternalLink>.
+Accepting a signed response still requires consuming the content its validated
+signature protects. A parsed XML element is not sufficient evidence of trust.
+
+## Decoding a request reveals its structure, not its trustworthiness
+
+The Redirect binding makes a small request hard to read in a browser address
+bar. The XML is compressed with raw DEFLATE, Base64 encoded and URL encoded.
+The <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf" preview="The SAML bindings standard defines the encoding used by HTTP Redirect and POST messages.">bindings specification</ExternalLink>, section 3.4, defines this encoding.
+
+This standard-library exercise creates and recovers a synthetic request
+fragment. It omits fields required for a complete request, performs no network
+login and validates no signature. Its XML is locally generated; this is not a
+parser for untrusted SAML messages.
+
+```python
+import base64
+import urllib.parse
+import xml.etree.ElementTree as ET
+import zlib
+
+xml = (
+    '<samlp:AuthnRequest '
+    'xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" '
+    'xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+    'ID="_ana_request" Version="2.0">'
+    '<saml:Issuer>https://reports.example.test/saml</saml:Issuer>'
+    '</samlp:AuthnRequest>'
+).encode()
+compressor = zlib.compressobj(wbits=-15)
+payload = compressor.compress(xml) + compressor.flush()
+query = urllib.parse.urlencode({
+    "SAMLRequest": base64.b64encode(payload).decode(),
+    "RelayState": "report-42",
+})
+fields = urllib.parse.parse_qs(query)
+recovered = zlib.decompress(
+    base64.b64decode(fields["SAMLRequest"][0]), wbits=-15
+)
+request = ET.fromstring(recovered)
+issuer = request.find("{urn:oasis:names:tc:SAML:2.0:assertion}Issuer")
+print("Request ID:", request.attrib["ID"])
+print("Issuer:", issuer.text)
+print("RelayState:", fields["RelayState"][0])
+print("Round trip:", recovered == xml)
+```
+
+Running this code locally produced:
+
+```text
+Request ID: _ana_request
+Issuer: https://reports.example.test/saml
+RelayState: report-42
+Round trip: True
+```
+
+The output proves only that the encoding round trip preserves these bytes.
+Reading an issuer string does not authenticate that issuer. This distinction
+matters when inspecting a login trace: readable claims become usable evidence
+only after the protocol's validation succeeds.
+
+## The app owns its session, permissions and logout behavior
+
+Return to Ana's refused report. Suppose the SAML exchange passed every check
+and the app created a session for her. The reporting app still requires a
+`report-reader` permission that her local account lacks. Correcting that
+authorization mapping addresses this fictional failure; changing the SAML
+signature settings would address a different part of the process.
+
+The app session also has a separate lifecycle. Signing out of the reporting
+app can remove its local session while leaving the IdP session active. A later
+visit can therefore sign Ana in again without another password prompt. SAML
+Single Logout coordinates additional messages among participating systems;
+it requires explicit support and configuration. Spring documents both <ExternalLink href="https://docs.spring.io/spring-security/reference/servlet/saml2/logout.html" preview="Spring Security explains app-only logout and the additional configuration required for SAML Single Logout.">local logout and Single Logout</ExternalLink>.
+
+Ana's one login can open several apps because they trust the same IdP. Each
+app remains responsible for validating its own exchange and deciding what she
+can do. The next post follows <InternalLink slug="kerberos-tickets">Kerberos tickets</InternalLink>
+through a different authentication exchange.
+
+When a login fails, locate the boundary first: IdP authentication, response
+validation, identity mapping, app session or resource permission.
+
+## References
+
+- OASIS Security Services Technical Committee. (2005). See the <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf" preview="The normative structure and semantics of SAML 2.0 assertions and protocol messages.">SAML 2.0 core specification</ExternalLink>.
+- OASIS Security Services Technical Committee. (2005). See the <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/saml-profiles-2.0-os.pdf" preview="The Web Browser SSO profile and its response-processing and replay requirements.">SAML 2.0 profiles</ExternalLink>.
+- OASIS Security Services Technical Committee. (2005). See the <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf" preview="How SAML messages are encoded and carried using HTTP Redirect, POST and other bindings.">SAML 2.0 bindings</ExternalLink>.
+- Ragouzis, N., et al., OASIS. (2008). Read the <ExternalLink href="https://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0-cd-02.html" preview="An explanatory committee draft with illustrated SAML browser SSO and federation flows.">SAML 2.0 Technical Overview, Committee Draft 02</ExternalLink>.
+- OASIS Security Services Technical Committee. (2012). Apply <ExternalLink href="https://docs.oasis-open.org/security/saml/v2.0/errata05/os/saml-v2.0-errata05-os.html" preview="Approved corrections to the SAML 2.0 standards, including the signature rule in E26.">SAML 2.0 Errata 05</ExternalLink> alongside the base specifications.
+- Spring Security. Consult <ExternalLink href="https://docs.spring.io/spring-security/reference/servlet/saml2/login/authentication.html" preview="Official implementation guidance for validating SAML responses and assertions and mapping application authorities.">Authenticating SAML Responses</ExternalLink>.
+- Spring Security. Consult <ExternalLink href="https://docs.spring.io/spring-security/reference/servlet/saml2/logout.html" preview="Official guidance for local logout and SAML Single Logout support and configuration.">Performing Single Logout</ExternalLink>.

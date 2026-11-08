@@ -641,3 +641,9 @@ subproblemas
 macroeconómicas
 significancia
 estadísticamente
+preauthentication
+reauthentication
+subkey
+kinit
+klist
+kdestroy
