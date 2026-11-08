@@ -1,0 +1,205 @@
+---
+const id = "radius-access";
+---
+
+<svg
+  viewBox="0 0 640 392"
+  role="img"
+  aria-label="The laptop exchanges EAP through a network access server. The NAS sends RADIUS requests, receives a decision, and enforces network access."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="16" y="18" class="note">
+    Illustrative enterprise Wi-Fi flow
+  </text>
+  <g class="participants">
+    <rect x="16" y="34" width="144" height="56" rx="4"></rect>
+    <text x="88" y="57" class="name">
+      Ana's laptop
+    </text>
+    <text x="88" y="76" class="role">
+      supplicant
+    </text>
+    <rect x="248" y="34" width="144" height="56" rx="4"></rect>
+    <text x="320" y="57" class="name">
+      Access point
+    </text>
+    <text x="320" y="76" class="role">
+      NAS / RADIUS client
+    </text>
+    <rect x="480" y="34" width="144" height="56" rx="4"></rect>
+    <text x="552" y="57" class="name">
+      RADIUS server
+    </text>
+    <text x="552" y="76" class="role">
+      policy + EAP server
+    </text>
+  </g>
+  {[88, 320, 552].map((x) => (
+    <line x1={x} y1="98" x2={x} y2="366" class="rail" />
+  ))}
+
+  <g data-step="1">
+    <text x="204" y="120" class="message">
+      EAP response
+    </text>
+    <line
+      x1="88"
+      y1="132"
+      x2="320"
+      y2="132"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    />
+    <text x="436" y="120" class="message">
+      Access-Request
+    </text>
+    <line
+      x1="320"
+      y1="132"
+      x2="552"
+      y2="132"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    />
+    <text x="436" y="150" class="detail">
+      EAP-Message attribute
+    </text>
+  </g>
+  <g data-step="2">
+    <text x="436" y="180" class="message">
+      Access-Challenge
+    </text>
+    <line
+      x1="552"
+      y1="192"
+      x2="320"
+      y2="192"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    />
+    <text x="204" y="180" class="message">
+      EAP request
+    </text>
+    <line
+      x1="320"
+      y1="192"
+      x2="88"
+      y2="192"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    />
+  </g>
+  <g data-step="3">
+    <text x="204" y="232" class="message">
+      EAP response
+    </text>
+    <line
+      x1="88"
+      y1="244"
+      x2="320"
+      y2="244"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    />
+    <text x="436" y="232" class="message">
+      Access-Request
+    </text>
+    <line
+      x1="320"
+      y1="244"
+      x2="552"
+      y2="244"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    />
+    <text x="436" y="262" class="detail">
+      More rounds may follow
+    </text>
+  </g>
+  <g data-step="4">
+    <text x="436" y="292" class="message">
+      Access-Accept
+    </text>
+    <line
+      x1="552"
+      y1="304"
+      x2="320"
+      y2="304"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    />
+    <text x="436" y="322" class="detail">
+      Decision + service attributes
+    </text>
+  </g>
+  <g data-step="5">
+    <path
+      d="M320,336 L320,352 L88,352"
+      class="arrow"
+      marker-end={`url(#${id}-arrow)`}
+    ></path>
+    <text x="204" y="374" class="message">
+      NAS enforces permitted access
+    </text>
+  </g>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .participants rect {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .name,
+  .role,
+  .message,
+  .detail {
+    text-anchor: middle;
+  }
+
+  .name,
+  .message {
+    fill: currentColor;
+    font-size: 12px;
+  }
+
+  .role,
+  .detail,
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .rail {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .arrow {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+</style>

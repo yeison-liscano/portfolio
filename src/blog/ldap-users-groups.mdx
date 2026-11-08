@@ -1,0 +1,244 @@
+---
+lang: "en"
+title: "LDAP: how applications find users and groups—and why searches miss them"
+pubDate: 2026-11-07
+description:
+  "Follow a missing user through LDAP entries, distinguished names, search
+  scopes, groups and Bind. A runnable scope model shows why a correct filter
+  can still return no matches."
+summary:
+  - "An LDAP search combines a base, scope, filter and requested attributes.
+    A valid filter cannot reach an entry outside its search scope."
+  - "Entries contain schema-governed attributes. A distinguished name locates
+    an entry; group membership needs an explicit schema and application policy."
+  - "Bind establishes the LDAP session's identity and authorization state.
+    It does not grant permission to an application's reports."
+  - "Password Bind needs confidentiality protection. Require TLS to succeed,
+    validate its server certificate and reject empty password input."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import IdentitySeries from "./components/identity-series/IdentitySeries.astro";
+import SearchScope from "./components/ldap-users-groups/SearchScope.astro";
+
+{/* cspell:ignore LDAP ldap ldapsearch LDIF StartTLS memberOf groupOfNames invalidCredentials unwillingToPerform OpenLDAP Sermersheim Zeilenga Sciberras Moriarty */}
+
+Keywords: LDAP, directory, distinguished name, search scope, search filter,
+group membership, Bind, StartTLS
+
+Ana exists in the company directory, but the reporting application cannot find
+her account. Resetting her password changes nothing. Following this fictional
+lookup explains how applications find users
+and groups, why a correct search filter can return nothing, and what a
+successful directory login actually establishes.
+
+<IdentitySeries current={4} />
+
+## LDAP defines directory operations; products implement them
+
+The <Acronym title="Lightweight Directory Access Protocol">LDAP</Acronym> protocol
+lets a client search, read and change directory information. A directory stores
+descriptive entries for things such as people, groups, computers and services.
+The protocol specifies messages exchanged with a directory service; it does
+not prescribe the service's storage engine.
+
+For example, OpenLDAP supplies a directory server. Microsoft's <Acronym title="Active Directory Domain Services">AD DS</Acronym>
+supplies directory services that include storage, schema, querying and
+replication. Applications can access AD DS through LDAP. Calling all three
+“LDAP” hides which part is failing: protocol exchange, server configuration or
+the stored information. Microsoft's <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview" preview="Microsoft's overview of AD DS objects, schema, queries, replication and security.">AD DS overview</ExternalLink>
+describes those additional responsibilities.
+
+The <ExternalLink href="https://www.openldap.org/doc/admin26/intro.html" preview="OpenLDAP's introduction to directory entries, naming, searches and directory-service implementations.">OpenLDAP introduction</ExternalLink>
+provides the complementary client view. We will follow one directory lookup,
+without configuring an enterprise domain or repeating the
+series' <InternalLink slug="kerberos-tickets">Kerberos ticket exchange</InternalLink>.
+
+## Entries hold attributes, and distinguished names locate them
+
+An <Term title="A named collection of attributes representing an object in a directory.">entry</Term>
+contains attributes such as <Acronym title="User identifier">uid</Acronym>,
+a <Acronym title="Common name">cn</Acronym> and `mail`. Attribute types define their
+syntax and comparison rules. The entry's `objectClass` values help determine
+which attributes its schema requires or permits. These are structured records,
+not arbitrary dictionaries accepted without validation.
+
+Ana's example entry has this <Acronym title="Distinguished Name: the name identifying an entry within the directory tree.">DN</Acronym>:
+
+```text
+uid=ana,ou=Staff,ou=People,dc=example,dc=com
+```
+
+An <Acronym title="Organizational unit">ou</Acronym> names a directory
+container; a <Acronym title="Domain component">dc</Acronym> represents a
+component of a domain-style name. Read the DN from the specific entry toward its
+ancestors. `uid=ana` names Ana
+relative to its parent, `ou=Staff`; the remaining components continue toward
+`dc=example,dc=com`. A DN locates an entry in the tree. It is not necessarily
+the username Ana types into a login form, and moving an entry can change it.
+
+The directory model in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4512.html" preview="RFC 4512 defines LDAP entries, attributes, directory trees, distinguished names and schema rules.">RFC 4512</ExternalLink>
+explains these relationships. Our names use a deliberately small example tree;
+a company's departments need not map directly to its directory structure.
+
+## A search needs the right base, scope, filter and attributes
+
+The reporting application uses `(uid=ana)` as its filter. That expresses the
+match it wants. Three other choices still matter:
+
+- **Base:** where the search starts, here `ou=People,dc=example,dc=com`.
+- **Scope:** whether to examine the base entry, its immediate children, or the
+  whole subtree including the base.
+- **Attributes:** which values to request from matching entries, such as
+  `uid` and `cn`.
+
+With one-level scope, the server examines `ou=Staff` and `uid=ben` below People.
+Ana is below Staff, so that search cannot reach her. Subtree scope reaches her
+without changing `(uid=ana)`.
+
+<Figure caption="Ana is a grandchild of the People entry. One-level scope misses her; subtree scope includes her.">
+  <SearchScope />
+</Figure>
+
+The Search operation in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4511.html" preview="RFC 4511 specifies LDAP operations, including search bases, scopes, filters, requested attributes and results.">RFC 4511</ExternalLink>
+defines these fields independently. Search results also depend on directory
+access controls and server limits. An empty result does not prove the user is
+absent from every part of the directory.
+
+This Python experiment reproduces the scope distinction. It models paths as
+tuples of simple name components. It is **a scope model, not an LDAP server**:
+it does not parse DN syntax, enforce schema, authenticate clients or implement
+LDAP filter matching.
+
+```python
+people = ("ou=People", "dc=example", "dc=com")
+ana = ("uid=ana", "ou=Staff") + people
+entries = [people, ("ou=Staff",) + people, ana, ("uid=ben",) + people]
+
+
+def in_scope(dn, base, scope):
+    if scope == "base":
+        return dn == base
+    if scope == "one":
+        return dn[1:] == base
+    if scope == "sub":
+        return dn[-len(base):] == base
+    raise ValueError("Unknown scope")
+
+
+for scope in ("base", "one", "sub"):
+    matches = [
+        ",".join(dn)
+        for dn in entries
+        if in_scope(dn, people, scope) and dn[0] == "uid=ana"
+    ]
+    print(f"{scope}: {len(matches)} match(es)")
+    for match in matches:
+        print(f"  {match}")
+```
+
+Running it with Python produced:
+
+```text
+base: 0 match(es)
+one: 0 match(es)
+sub: 1 match(es)
+  uid=ana,ou=Staff,ou=People,dc=example,dc=com
+```
+
+Against a server you administer, an OpenLDAP client can express the same search
+with `-b` for the base and `-s sub` for subtree scope. This command is a
+template
+for that configured server; no server response was captured for this post:
+
+```bash
+ldapsearch -x -ZZ -H ldap://directory.example.com \
+  -D 'cn=report-reader,dc=example,dc=com' -W \
+  -b 'ou=People,dc=example,dc=com' -s sub '(uid=ana)' uid cn
+```
+
+## Group membership supplies facts that application policy must interpret
+
+Finding Ana resolves the account lookup. The application next asks which groups
+contain her. One standardized schema uses `groupOfNames` entries whose `member`
+attributes contain member DNs, as defined in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4519.html" preview="RFC 4519 defines common LDAP attributes and object classes, including groupOfNames and member.">RFC 4519</ExternalLink>.
+In that schema, a group search could use this filter:
+
+```text
+(&(objectClass=groupOfNames)(member=uid=ana,ou=Staff,ou=People,dc=example,dc=com))
+```
+
+That query's base must include the group entries, perhaps under `ou=Groups`.
+Searching only People repeats the original mistake. Other deployments represent
+membership differently. Do not assume every server exposes a `memberOf`
+attribute or expands nested groups automatically.
+
+Suppose this lookup returns `report-readers`. The reporting application still
+needs a rule mapping that group to an action on a resource. Directory
+membership alone does not specify whether Ana may view, export or delete a
+report. The <InternalLink slug="identity-management-login-access">identity and access post</InternalLink>
+separates those decisions.
+
+## Bind establishes LDAP session state, not report permissions
+
+The <Term title="The LDAP operation that exchanges authentication information to establish a session's authorization state.">Bind operation</Term>
+lets the client establish its LDAP session identity and authorization state.
+One approach uses a service account for searches. Another application design
+checks a user's credentials through a separate Bind. The server then enforces
+the directory permissions associated with that session.
+
+For name/password simple Bind, provide both a nonempty name and a nonempty
+password. A nonempty name with an empty password can request an
+**unauthenticated Bind**, which establishes anonymous authorization state.
+Applications must reject empty password input rather than treating any
+successful Bind result as proof that Ana authenticated.
+
+This distinction comes from <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4513.html" preview="RFC 4513 defines LDAP Bind authentication, anonymous and unauthenticated states, StartTLS and security requirements.">RFC 4513</ExternalLink>,
+which also recommends that servers reject unauthenticated Bind by default.
+Even an authenticated Bind success establishes no permission to the reporting
+application's finance data. The LDAP server controls its directory; the
+reporting application controls its reports.
+
+## Protected connections and precise queries make the lookup trustworthy
+
+Simple name/password Bind needs confidentiality protection. Establish <Acronym title="Transport Layer Security">TLS</Acronym>
+and validate the server certificate before sending credentials. The command
+above uses `-ZZ`: OpenLDAP stops if StartTLS cannot start. Its weaker `-Z`
+option allows processing to continue after failure, according to
+the <ExternalLink href="https://www.openldap.org/doc/admin26/tls.html" preview="OpenLDAP documents TLS certificate configuration and why -ZZ requires StartTLS success.">OpenLDAP TLS guide</ExternalLink>.
+Use supported TLS versions: <ExternalLink href="https://www.rfc-editor.org/rfc/rfc8996.html" preview="RFC 8996 updates LDAP's security specification to prohibit obsolete TLS 1.0 and TLS 1.1.">RFC 8996</ExternalLink>
+updates LDAP's older specification to prohibit TLS 1.0 and 1.1.
+
+Queries need care too. Literal filter values require LDAP filter escaping;
+`*`, parentheses, backslash and the zero byte have special handling in
+the <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4515.html" preview="RFC 4515 defines LDAP search-filter strings and escaping for literal values.">filter specification</ExternalLink>.
+Use a library's filter-value escaping function for user input. DN escaping is
+a separate operation. The fixed sample names above avoid those special cases.
+
+Ana's immediate problem needed a scope change, followed by a group lookup under
+the correct base. Before resetting a password for a missing-user report, check
+the search base, scope, filter, requested attributes and caller's directory
+permissions. Then check the application's resource policy. That sequence tells
+you which system actually needs a change.
+
+## References
+
+- The IETF defines <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4511.html" preview="RFC 4511 specifies LDAP messages and operation semantics.">LDAP operations in RFC 4511</ExternalLink>
+  and <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4512.html" preview="RFC 4512 specifies LDAP information models, names and schema.">directory models in RFC 4512</ExternalLink>
+  (June 2006).
+- The IETF defines <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4513.html" preview="RFC 4513 defines Bind states, authentication methods and TLS security mechanisms.">authentication in RFC 4513</ExternalLink>,
+  with the TLS update in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc8996.html" preview="RFC 8996 prohibits TLS 1.0 and 1.1 in LDAP and other protocols.">RFC 8996</ExternalLink>
+  (2006; 2021).
+- The IETF specifies <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4515.html" preview="RFC 4515 specifies search-filter syntax and escaping.">filter strings in RFC 4515</ExternalLink>
+  and <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4519.html" preview="RFC 4519 specifies common directory attributes and object classes.">user schema in RFC 4519</ExternalLink>
+  (June 2006).
+- The OpenLDAP Project's 2.6 guide covers <ExternalLink href="https://www.openldap.org/doc/admin26/intro.html" preview="An introduction to directory services and LDAP's naming and search model.">directory services</ExternalLink>
+  and <ExternalLink href="https://www.openldap.org/doc/admin26/tls.html" preview="OpenLDAP TLS configuration and command-line StartTLS options.">TLS configuration</ExternalLink>.
+- Microsoft describes <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview" preview="Microsoft's March 2025 overview of AD DS structure and services.">Active Directory Domain Services</ExternalLink>
+  and its <ExternalLink href="https://learn.microsoft.com/en-us/windows/win32/ad/active-directory-domain-services" preview="Microsoft documents LDAP among the programming interfaces available for AD DS.">programming interfaces</ExternalLink>.

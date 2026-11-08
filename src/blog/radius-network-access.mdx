@@ -1,0 +1,207 @@
+---
+lang: "en"
+title: "RADIUS network access: who decides whether Ana can connect?"
+pubDate: 2026-11-07
+description:
+  "Follow an enterprise Wi-Fi login through the supplicant, network access
+  server and RADIUS server. Separate authentication, network enforcement,
+  transport protection and accounting to locate a failed connection."
+summary:
+  - "The access point is the RADIUS client. It asks the server for a decision
+    and enforces the permitted network service for Ana's laptop."
+  - "EAP authentication and protection of the RADIUS transport cover different
+    paths. Traditional password hiding does not encrypt the whole packet."
+  - "Access results and accounting records answer different questions. Follow
+    the last successful exchange before changing credentials or permissions."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import IdentitySeries from "./components/identity-series/IdentitySeries.astro";
+import AccessExchange from "./components/radius-network-access/AccessExchange.astro";
+
+{/* cspell:ignore supplicant Rigney Aboba Calhoun Preuß Mattsson Sethi McCauley Venaas Wierenga DeKok radtest radclient */}
+
+Keywords: RADIUS, network access, AAA, NAS, supplicant, EAP, accounting,
+enterprise Wi-Fi
+
+Ana can sign in to the reporting app from home, but her laptop cannot join the
+office network. The failed connection involves a different decision. Following
+one enterprise Wi-Fi login reveals the device that asks for access, the RADIUS
+server that evaluates the request, and the network equipment that enforces its
+answer. That distinction helps locate the failure before changing a working
+password.
+
+<IdentitySeries current={5} />
+
+## Ana's laptop is the supplicant; the access point is the RADIUS client
+
+In this fictional deployment, Ana's laptop runs a <Term title="Software on the user device that participates in network access authentication.">supplicant</Term>.
+The access point acts as a <Acronym title="Network Access Server">NAS</Acronym>.
+It controls the connection and communicates with the <Acronym title="Remote Authentication Dial In User Service">RADIUS</Acronym>
+server. A controller can perform that NAS role in other deployments; a remote
+access gateway can do so for a <Acronym title="Virtual Private Network">VPN</Acronym>.
+
+The word _client_ causes confusion here. Ana uses the network, but the NAS is
+the client of the RADIUS server. The official <ExternalLink href="https://wiki.freeradius.org/guide/Getting-Started" preview="FreeRADIUS's introductory guide distinguishes network devices acting as RADIUS clients from user laptops and demonstrates local server tests.">FreeRADIUS guide</ExternalLink>
+makes that distinction explicit. Drawing the laptop directly connected to the
+RADIUS server would hide the device responsible for enforcement.
+
+This post follows an illustrative exchange. No live access point or RADIUS
+server was used to produce a packet capture, and the messages below are a
+protocol walkthrough rather than recorded terminal output.
+
+## The server answers an access request with accept, reject or challenge
+
+Ana's laptop uses the <Acronym title="Extensible Authentication Protocol">EAP</Acronym>
+framework to participate in authentication. The NAS carries EAP messages in
+RADIUS `EAP-Message` attributes. The selected EAP method determines the
+authentication conversation; EAP alone does not specify a password check.
+This forwarding arrangement is described in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc3579.html" preview="RFC 3579 defines how a NAS forwards EAP messages inside RADIUS exchanges between a peer and authentication server.">RFC 3579</ExternalLink>.
+
+The NAS sends an `Access-Request`. The server may return an `Access-Challenge`
+to continue authentication. The NAS delivers the next EAP request to Ana's
+laptop, then carries its response in another `Access-Request`. Several rounds
+can follow. The result is an `Access-Accept` or `Access-Reject`.
+
+<Figure caption="The NAS carries authentication messages to the server, receives its decision, and enforces the permitted network access. Several EAP rounds can occur before acceptance.">
+  <Stepper
+    label="RADIUS network access exchange"
+    lang="en"
+    steps={[
+      "The laptop supplies an EAP response; the NAS forwards it in an Access-Request.",
+      "An Access-Challenge carries the server's next EAP request back through the NAS.",
+      "The laptop answers, and the NAS sends another Access-Request; authentication may need more rounds.",
+      "The server returns Access-Accept and service attributes when the request is permitted.",
+      "The NAS completes the relevant network setup and enforces the permitted service.",
+    ]}
+  >
+    <AccessExchange />
+  </Stepper>
+</Figure>
+
+A challenge is an intermediate result. A timeout is also different from a
+rejection: it means the requester did not receive a usable answer within its
+waiting period. Treating both as “wrong password” discards useful evidence.
+
+## An accepted connection still needs the access point to enforce its rules
+
+RADIUS separates the decision from its application. An accept response can
+include service configuration. The NAS must support and apply the returned
+parameters. The packet types and attribute handling are defined in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2865.html" preview="RFC 2865 defines the base RADIUS access exchange, service attributes, password hiding and retransmission behavior.">RFC 2865</ExternalLink>.
+
+For example, a deployment can place Ana in a network segment according to
+policy. FreeRADIUS's <ExternalLink href="https://www.freeradius.org/documentation/freeradius-server/3.2.11/concepts/aaa.html" preview="FreeRADIUS 3.2.11 documentation explains policy lookup, authentication and the attributes used in request processing.">request-processing documentation</ExternalLink>
+uses network assignment as an authorization example. The precise attributes
+and NAS configuration must agree; an acceptance message cannot configure a
+feature the network device does not implement.
+
+Network admission also leaves the reporting app's permissions intact. Ana may
+join the network and still lack permission to read a finance report. The
+series introduction separates those <InternalLink slug="identity-management-login-access">identity and access decisions</InternalLink>.
+
+## EAP authentication and RADIUS transport protect different paths
+
+The figure contains two communication paths that need separate analysis. The
+first carries Ana's authentication conversation through the NAS. The second
+carries RADIUS packets between the NAS and server.
+
+An EAP method can provide its own protection. For example, <Acronym title="Extensible Authentication Protocol with Transport Layer Security">EAP-TLS</Acronym>
+uses certificates and the <Acronym title="Transport Layer Security">TLS</Acronym>
+handshake. The current TLS 1.3 mapping is specified in <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9190.html" preview="RFC 9190 specifies EAP-TLS with TLS 1.3, including certificate-based authentication, identity checks and authorization considerations.">RFC 9190</ExternalLink>.
+Other EAP methods have different properties. “Uses EAP” is therefore too little
+information to establish how Ana's credentials are protected.
+
+RADIUS over TLS establishes protection for the RADIUS transport. Its endpoints
+are the RADIUS peers. That TLS connection has different endpoints from the
+EAP-TLS authentication conversation. Trace where each protection begins and
+ends before describing a deployment as encrypted.
+
+These distinctions also matter during diagnosis. A failure to establish the
+RADIUS transport can prevent the server from seeing Ana's authentication
+exchange at all. A certificate failure inside the EAP method occurs at another
+stage.
+
+## Traditional RADIUS hides some credentials, not the entire packet
+
+The original <Acronym title="User Datagram Protocol">UDP</Acronym>-based RADIUS
+exchange uses a shared secret between client and server. Its `User-Password`
+attribute uses reversible, <Acronym title="Message-Digest Algorithm 5">MD5</Acronym>-based hiding. The
+algorithm does not encrypt the entire RADIUS packet. Usernames and other
+attributes can remain readable. The <Acronym title="Challenge-Handshake Authentication Protocol">CHAP</Acronym>
+and EAP mechanisms carry different authentication material, so that password
+description does not cover every request.
+
+The historical choice of UDP also leaves the application responsible for
+retries and timeout handling.
+It does not establish a general performance advantage. The base specification
+discusses both retransmission and congestion limitations.
+
+There are additional transport profiles. <ExternalLink href="https://www.rfc-editor.org/rfc/rfc6614.html" preview="RFC 6614 defines an Experimental TLS-over-TCP transport profile for RADIUS, subsequently updated by later RFCs.">RFC 6614</ExternalLink>
+defines RADIUS over TLS. The newer <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9765.html" preview="Experimental RFC 9765 defines RADIUS/1.1, a negotiated TLS or DTLS profile that removes MD5-based packet authentication and attribute hiding.">RFC 9765</ExternalLink>,
+published in April 2025, defines RADIUS/1.1 as an **Experimental** protocol.
+Its negotiated TLS or <Acronym title="Datagram Transport Layer Security">DTLS</Acronym>
+profile removes the legacy shared-secret and MD5 mechanisms. It does not
+silently upgrade existing RADIUS/UDP traffic. Verify the deployed profile and
+implementation rather than inferring protection from the RADIUS name.
+
+## Accounting records describe the session after access begins
+
+The third part of <Acronym title="Authentication, Authorization and Accounting">AAA</Acronym>
+is accounting: recording session activity and resource use. An access decision
+and a session record answer different questions.
+
+RADIUS accounting has separate messages, defined in <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc2866" preview="RFC 2866 specifies RADIUS Accounting, including session identifiers, start and stop events, and accounting request acknowledgments.">RFC 2866</ExternalLink>.
+The NAS reports events using `Accounting-Request`; the accounting server
+acknowledges with `Accounting-Response`. Authentication and accounting services
+can use different server endpoints.
+
+| Illustrative event | Message or attribute       | What it tells the investigator                              |
+| ------------------ | -------------------------- | ----------------------------------------------------------- |
+| Request accepted   | `Access-Accept`            | The server permitted the requested service.                 |
+| Session started    | `Acct-Status-Type = Start` | The NAS reports that the service began.                     |
+| Session identified | `Acct-Session-Id`          | Related records can be associated with one session.         |
+| Session ended      | `Acct-Status-Type = Stop`  | The NAS reports the session's end and available usage data. |
+
+An accept without a start record deserves investigation. The NAS may have
+failed to complete network setup, accounting may be configured elsewhere, or a
+record may be missing. The absence of one log entry cannot establish which
+explanation is correct.
+
+## The last successful exchange tells you where to investigate next
+
+Return to Ana's laptop. Check whether the NAS received its authentication
+traffic. Then check whether the RADIUS server received the request, what it
+answered, and whether the NAS received and applied that answer. Finally, look
+for accounting events using the session identifier and relevant timestamps.
+
+If the server returned `Access-Accept` and the NAS received it, investigate
+network setup and enforcement next. A password reset would not explain that
+branch. If no answer reached the NAS, investigate the request and response
+path before changing account permissions.
+
+For a future isolated lab, FreeRADIUS's `radtest` or `radclient` can simulate a
+RADIUS client and expose accept, reject and accounting exchanges. Such a test
+would exercise the server path. It would still leave the real supplicant,
+wireless association and access-point enforcement to test separately.
+
+The useful takeaway is a question: **what was the last successful exchange?**
+That locates the next boundary to inspect. When network access succeeds but a
+report remains forbidden, continue with the <InternalLink slug="identity-protocols-compared">comparison of the four identity protocols</InternalLink>
+and investigate the application decision.
+
+## References
+
+- C. Rigney et al., IETF (2000). The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2865.html" preview="The base RADIUS specification defines access requests, responses, attributes and traditional credential hiding.">RADIUS specification, RFC 2865</ExternalLink>.
+- C. Rigney, IETF (2000). The <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc2866" preview="RADIUS Accounting defines session-event requests, acknowledgments and identifying attributes.">RADIUS Accounting specification, RFC 2866</ExternalLink>.
+- B. Aboba and P. Calhoun, IETF (2003). The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc3579.html" preview="RFC 3579 explains how RADIUS carries EAP messages between a NAS and an authentication server.">RADIUS support for EAP specification, RFC 3579</ExternalLink>.
+- J. Preuß Mattsson and M. Sethi, IETF (2022). The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9190.html" preview="EAP-TLS 1.3 specifies certificate-based EAP authentication and its security properties.">EAP-TLS 1.3 specification, RFC 9190</ExternalLink>.
+- S. Winter et al., IETF (2012). The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc6614.html" preview="Experimental RFC 6614 defines RADIUS over TLS and has subsequent updates.">TLS transport profile, RFC 6614</ExternalLink>.
+- A. DeKok, IETF (2025). The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9765.html" preview="Experimental RFC 9765 defines RADIUS/1.1, negotiated over TLS or DTLS, removing legacy MD5 mechanisms.">RADIUS/1.1 specification, RFC 9765</ExternalLink>.
+- FreeRADIUS project. The <ExternalLink href="https://wiki.freeradius.org/guide/Getting-Started" preview="Official FreeRADIUS guidance for local tests, debugging and RADIUS client terminology.">Getting Started guide</ExternalLink> and version 3.2.11 <ExternalLink href="https://www.freeradius.org/documentation/freeradius-server/3.2.11/concepts/aaa.html" preview="FreeRADIUS's implementation-specific explanation of authorization, authentication and request processing.">AAA documentation</ExternalLink>.

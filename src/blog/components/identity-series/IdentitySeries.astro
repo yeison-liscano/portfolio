@@ -1,0 +1,73 @@
+---
+import InternalLink from "../../../components/blog/InternalLink.astro";
+
+interface Props {
+  current: 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+const { current } = Astro.props;
+const parts = [
+  {
+    slug: "identity-management-login-access",
+    title: "Identity and access decisions",
+  },
+  { slug: "saml-single-sign-on", title: "SAML browser single sign-on" },
+  {
+    slug: "kerberos-tickets",
+    title: "Kerberos tickets and service authentication",
+  },
+  { slug: "ldap-users-groups", title: "LDAP users, groups and searches" },
+  { slug: "radius-network-access", title: "RADIUS network access" },
+  {
+    slug: "identity-protocols-compared",
+    title: "Find the system behind an access failure",
+  },
+];
+---
+
+<nav class="identity-series" aria-label="Identity management series">
+  <p>
+    Identity management · Part {current} of {parts.length}
+  </p>
+  <ol>
+    {parts.map((part, index) => (
+      <li>
+        {index + 1 === current ? (
+          <span aria-current="page">{part.title}</span>
+        ) : (
+          <InternalLink slug={part.slug}>{part.title}</InternalLink>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .identity-series {
+    margin-block: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+
+  p {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+
+  ol {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding-left: 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  [aria-current="page"] {
+    color: var(--contrast);
+    font-weight: 600;
+  }
+</style>

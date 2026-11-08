@@ -1,0 +1,170 @@
+---
+const id = "kerberos-ticket-flow";
+const exchanges = [
+  {
+    step: 1,
+    y: 144,
+    from: 80,
+    to: 330,
+    label: "AS-REQ: initial credentials",
+    detail: "Password-based preauthentication in this example",
+  },
+  {
+    step: 2,
+    y: 216,
+    from: 330,
+    to: 80,
+    label: "AS-REP: TGT + encrypted reply",
+    detail: "TGT: KDC reads it; reply: client reads it",
+  },
+  {
+    step: 3,
+    y: 288,
+    from: 80,
+    to: 330,
+    label: "TGS-REQ: TGT + authenticator",
+    detail: "Request the file service; prove the TGT session key",
+  },
+  {
+    step: 4,
+    y: 360,
+    from: 330,
+    to: 80,
+    label: "TGS-REP: service ticket + reply",
+    detail: "Ticket: file service reads it; reply: client reads it",
+  },
+  {
+    step: 5,
+    y: 432,
+    from: 80,
+    to: 560,
+    label: "AP-REQ: service ticket + fresh authenticator",
+    detail: "File service checks Ana and possession of the session key",
+  },
+  {
+    step: 6,
+    y: 504,
+    from: 560,
+    to: 80,
+    label: "AP-REP: service proves its identity",
+    detail: "Required here because Ana requested mutual authentication",
+  },
+];
+---
+
+<svg
+  viewBox="0 0 640 536"
+  role="img"
+  aria-label="Six Kerberos messages: the client obtains a TGT from the authentication service, exchanges it with the ticket-granting service for a file-service ticket, and presents only that service ticket to the file server. Different keys protect the tickets and the replies to the client."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke" />
+    </marker>
+  </defs>
+
+  <text x="16" y="20" class="note">
+    Example: one realm, password-based sign-in
+  </text>
+  <rect x="24" y="40" width="112" height="48" rx="4" class="box" />
+  <text x="80" y="60" class="heading">
+    Ana's client
+  </text>
+  <text x="80" y="77" class="subheading">
+    ticket cache
+  </text>
+  <rect x="248" y="40" width="164" height="48" rx="4" class="box" />
+  <text x="330" y="60" class="heading">
+    KDC
+  </text>
+  <text x="330" y="77" class="subheading">
+    AS + TGS
+  </text>
+  <rect x="504" y="40" width="112" height="48" rx="4" class="box" />
+  <text x="560" y="60" class="heading">
+    File service
+  </text>
+  <text x="560" y="77" class="subheading">
+    service key
+  </text>
+
+  {[80, 330, 560].map((x) => (
+    <line x1={x} y1="88" x2={x} y2="520" class="lifeline" />
+  ))}
+
+  {exchanges.map(({ step, y, from, to, label, detail }) => (
+    <g data-step={step}>
+      <text x="320" y={y - 20} class="message">
+        {step}. {label}
+      </text>
+      <line
+        x1={from}
+        y1={y}
+        x2={to}
+        y2={y}
+        class="arrow"
+        marker-end={`url(#${id}-arrow)`}
+      />
+      <text x="320" y={y + 20} class="detail">
+        {detail}
+      </text>
+    </g>
+  ))}
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--text-color);
+    stroke-width: 1.5;
+  }
+
+  .heading,
+  .subheading,
+  .message,
+  .detail {
+    fill: currentColor;
+    text-anchor: middle;
+    font-size: 12px;
+  }
+
+  .heading {
+    font-weight: 600;
+  }
+
+  .subheading,
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .detail {
+    font-size: 11px;
+  }
+
+  .lifeline {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 4 5;
+  }
+
+  .arrow {
+    stroke: currentColor;
+    stroke-width: 1.75;
+  }
+</style>

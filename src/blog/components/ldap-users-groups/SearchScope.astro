@@ -1,0 +1,121 @@
+<svg
+  viewBox="0 0 640 336"
+  role="img"
+  aria-label="Example directory: Ana is a grandchild of ou=People. A one-level search sees ou=Staff and uid=ben; a subtree search also reaches uid=ana."
+  class="diagram"
+>
+  <text x="24" y="20" class="heading">
+    Example directory
+  </text>
+  <g class="branches">
+    <path d="M192 66 V96 M192 130 V148 H100 V176 M192 148 H300 V176 M100 210 V256" />
+  </g>
+  <rect x="80" y="32" width="224" height="34" class="node" />
+  <text x="192" y="53" class="label">
+    dc=example,dc=com
+  </text>
+  <rect x="112" y="96" width="160" height="34" class="node" />
+  <text x="192" y="117" class="label">
+    ou=People
+  </text>
+  <rect x="24" y="160" width="352" height="66" class="scope" />
+  <rect x="40" y="176" width="120" height="34" class="node" />
+  <text x="100" y="197" class="label">
+    ou=Staff
+  </text>
+  <rect x="248" y="176" width="104" height="34" class="node" />
+  <text x="300" y="197" class="label">
+    uid=ben
+  </text>
+  <g class="accent">
+    <rect x="48" y="256" width="104" height="34" class="node" />
+    <text x="100" y="277" class="label">
+      uid=ana
+    </text>
+  </g>
+  <text x="192" y="316" class="note" text-anchor="middle">
+    Dashed outline: one-level scope
+  </text>
+  <path d="M408 24 V316" class="divider" />
+  <text x="432" y="52" class="heading">
+    Base: ou=People
+  </text>
+  <text x="432" y="96" class="label-left">
+    base
+  </text>
+  <text x="432" y="118" class="note">
+    People only
+  </text>
+  <text x="432" y="166" class="label-left">
+    one
+  </text>
+  <text x="432" y="188" class="note">
+    Staff and Ben
+  </text>
+  <text x="432" y="236" class="label-left">
+    sub
+  </text>
+  <text x="432" y="258" class="note">
+    People, Staff, Ben
+  </text>
+  <text x="432" y="280" class="note accent">
+    and Ana
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .branches,
+  .divider {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .node {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .scope {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+  }
+
+  .label,
+  .label-left {
+    fill: currentColor;
+    font-size: 12px;
+  }
+
+  .label {
+    text-anchor: middle;
+  }
+
+  .heading {
+    fill: currentColor;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .accent {
+    color: var(--contrast);
+  }
+
+  .note.accent {
+    fill: var(--contrast);
+  }
+</style>

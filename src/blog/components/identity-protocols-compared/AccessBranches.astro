@@ -1,0 +1,224 @@
+---
+const id = "identity-access-branches";
+---
+
+<svg
+  viewBox="0 0 640 640"
+  class="diagram"
+  role="img"
+  aria-label="Illustrative separate network, file and browser paths: RADIUS handles network admission, Kerberos authenticates a file client, and a SAML application makes its own report decision. Optional LDAP queries supply attributes."
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="16" y="20" class="heading">
+    Illustrative deployment
+  </text>
+  <text x="16" y="46" class="edge">
+    NETWORK ADMISSION
+  </text>
+  <rect x="16" y="64" width="128" height="48" class="box"></rect>
+  <text x="80" y="92" class="label">
+    Ana's laptop
+  </text>
+  <rect x="228" y="64" width="152" height="48" class="box"></rect>
+  <text x="304" y="85" class="label">
+    Access point
+  </text>
+  <text x="304" y="102" class="sub">
+    NAS / client
+  </text>
+  <rect x="472" y="64" width="152" height="48" class="box"></rect>
+  <text x="548" y="92" class="label">
+    RADIUS server
+  </text>
+  <path d="M144,88 H224" class="wire" marker-end={`url(#${id}-arrow)`}></path>
+  <text x="186" y="78" class="edge middle">
+    802.1X
+  </text>
+  <path d="M380,88 H468" class="wire" marker-end={`url(#${id}-arrow)`}></path>
+  <text x="426" y="78" class="edge middle">
+    RADIUS
+  </text>
+
+  <text x="16" y="176" class="edge">
+    FILE SERVICE
+  </text>
+  <rect x="16" y="196" width="128" height="64" class="box"></rect>
+  <text x="80" y="224" class="label">
+    File client
+  </text>
+  <text x="80" y="242" class="sub">
+    Ana's ticket cache
+  </text>
+  <rect x="228" y="196" width="152" height="64" class="box"></rect>
+  <text x="304" y="232" class="label">
+    KDC
+  </text>
+  <rect x="472" y="196" width="152" height="64" class="box"></rect>
+  <text x="548" y="224" class="label">
+    File service
+  </text>
+  <text x="548" y="242" class="sub">
+    folder policy
+  </text>
+  <path d="M144,216 H224" class="wire" marker-end={`url(#${id}-arrow)`}></path>
+  <text x="186" y="204" class="edge middle">
+    request
+  </text>
+  <path d="M228,246 H148" class="wire" marker-end={`url(#${id}-arrow)`}></path>
+  <text x="186" y="278" class="edge middle">
+    service ticket
+  </text>
+  <path
+    d="M80,260 V316 H548 V264"
+    class="wire"
+    marker-end={`url(#${id}-arrow)`}
+  ></path>
+  <text x="304" y="306" class="edge middle">
+    service ticket + authenticator
+  </text>
+
+  <text x="16" y="366" class="edge">
+    BROWSER LOGIN
+  </text>
+  <rect x="16" y="388" width="128" height="64" class="box"></rect>
+  <text x="80" y="424" class="label">
+    Ana's browser
+  </text>
+  <rect x="228" y="388" width="152" height="64" class="box"></rect>
+  <text x="304" y="416" class="label">
+    Identity provider
+  </text>
+  <text x="304" y="434" class="sub">
+    IdP session
+  </text>
+  <rect x="472" y="388" width="152" height="64" class="box"></rect>
+  <text x="548" y="416" class="label">
+    Reporting app
+  </text>
+  <text x="548" y="434" class="sub">
+    app session
+  </text>
+  <path d="M144,420 H224" class="wire" marker-end={`url(#${id}-arrow)`}></path>
+  <text x="186" y="408" class="edge middle">
+    SSO
+  </text>
+  <path d="M380,420 H468" class="wire" marker-end={`url(#${id}-arrow)`}></path>
+  <text x="426" y="368" class="edge middle">
+    assertion
+  </text>
+  <text x="426" y="383" class="edge middle">
+    via browser
+  </text>
+
+  <g class="accent">
+    <path
+      d="M548,452 V492"
+      class="wire"
+      marker-end={`url(#${id}-arrow)`}
+    ></path>
+    <rect x="472" y="496" width="152" height="48" class="box"></rect>
+    <text x="548" y="518" class="label">
+      Read report
+    </text>
+    <text x="548" y="535" class="sub">
+      access denied
+    </text>
+  </g>
+
+  <rect x="228" y="552" width="152" height="48" class="box"></rect>
+  <text x="304" y="580" class="label">
+    Directory
+  </text>
+  <path
+    d="M304,452 V548"
+    class="optional"
+    marker-end={`url(#${id}-arrow)`}
+  ></path>
+  <text x="316" y="494" class="edge">
+    optional
+  </text>
+  <text x="316" y="510" class="edge">
+    LDAP read
+  </text>
+  <path
+    d="M624,96 H634 V576 H384"
+    class="optional"
+    marker-end={`url(#${id}-arrow)`}
+  ></path>
+  <text x="498" y="602" class="edge middle">
+    optional LDAP read
+  </text>
+  <text x="16" y="630" class="edge">
+    Paths show roles; replies and SSO redirects are abbreviated.
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .wire,
+  .optional {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .optional {
+    stroke: var(--muted);
+    stroke-dasharray: 5 4;
+  }
+
+  text {
+    fill: currentColor;
+  }
+
+  .heading {
+    font-size: 13px;
+  }
+
+  .label {
+    text-anchor: middle;
+    font-size: 12px;
+  }
+
+  .edge,
+  .sub {
+    font-size: 11px;
+  }
+
+  .edge {
+    fill: var(--muted);
+  }
+
+  .sub,
+  .middle {
+    text-anchor: middle;
+  }
+
+  .accent {
+    color: var(--contrast);
+  }
+</style>

@@ -1,0 +1,127 @@
+---
+const id = "saml-browser-flow";
+---
+
+<svg
+  viewBox="0 0 640 416"
+  role="img"
+  aria-label="The browser carries the SAML request to the identity provider and posts its response to the reporting app, which creates a separate session."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="56" y="24" class="heading">
+    Browser
+  </text>
+  <text x="328" y="24" class="heading">
+    Reporting app
+  </text>
+  <text x="584" y="24" class="heading">
+    Identity provider
+  </text>
+  <text x="328" y="44" class="role">
+    SP
+  </text>
+  <text x="584" y="44" class="role">
+    IdP
+  </text>
+  {[56, 328, 584].map((x) => (
+    <line x1={x} y1="56" x2={x} y2="392" class="rail" />
+  ))}
+
+  <g data-step="1">
+    <line x1="56" y1="88" x2="324" y2="88" marker-end={`url(#${id}-arrow)`} />
+    <text x="192" y="76" class="message">
+      GET /reports/42
+    </text>
+  </g>
+  <g data-step="2">
+    <line x1="328" y1="144" x2="60" y2="144" marker-end={`url(#${id}-arrow)`} />
+    <text x="192" y="132" class="message">
+      302: SAMLRequest in URL
+    </text>
+  </g>
+  <g data-step="3">
+    <line x1="56" y1="200" x2="580" y2="200" marker-end={`url(#${id}-arrow)`} />
+    <text x="320" y="188" class="message">
+      GET IdP: AuthnRequest + RelayState
+    </text>
+  </g>
+  <g data-step="4">
+    <line x1="584" y1="256" x2="60" y2="256" marker-end={`url(#${id}-arrow)`} />
+    <text x="320" y="244" class="message">
+      After authentication: HTML form with SAMLResponse
+    </text>
+  </g>
+  <g data-step="5">
+    <line x1="56" y1="312" x2="324" y2="312" marker-end={`url(#${id}-arrow)`} />
+    <text x="192" y="300" class="message">
+      POST response to app ACS
+    </text>
+  </g>
+  <g data-step="6">
+    <line x1="328" y1="368" x2="60" y2="368" marker-end={`url(#${id}-arrow)`} />
+    <text x="192" y="356" class="message">
+      App session cookie + redirect
+    </text>
+  </g>
+  <text x="16" y="410" class="note">
+    Example: SP-initiated SSO, Redirect/POST bindings; time runs down.
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .heading {
+    fill: currentColor;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .role {
+    fill: var(--muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .rail {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  g line {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .message {
+    fill: currentColor;
+    font-size: 11px;
+    text-anchor: middle;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-size: 10px;
+  }
+</style>

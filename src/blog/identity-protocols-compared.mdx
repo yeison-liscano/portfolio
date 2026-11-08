@@ -1,0 +1,204 @@
+---
+lang: "en"
+title: "SAML, Kerberos, LDAP and RADIUS: find the right system when access fails"
+pubDate: 2026-11-07
+description:
+  "Follow one employee through network access, a file service and browser login
+  to separate four identity protocols and diagnose an application denial."
+summary:
+  - "RADIUS network admission, LDAP directory operations, Kerberos service
+    authentication and SAML federation solve different parts of access."
+  - "A directory product can support several protocols. Sharing its accounts
+    does not make the protocols interchangeable."
+  - "An updated directory entry can coexist with an application session that
+    still carries old attributes. Trace the decision and its inputs."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import IdentitySeries from "./components/identity-series/IdentitySeries.astro";
+import AccessBranches from "./components/identity-protocols-compared/AccessBranches.astro";
+
+{/* cspell:ignore Ana IdP OASIS NAS KDC */}
+
+{/* cspell:ignore Rigney Congdon Sermersheim Neuman */}
+
+Keywords: SAML, Kerberos, LDAP, RADIUS, identity management, authorization,
+directory, single sign-on, application session
+
+Ana connects to the company Wi-Fi, opens a shared folder and signs in to the
+reporting app. The finance report still says “access denied.” Those actions can
+involve different protocols and different decisions. Map each one to the system
+that owns it, then use that map to investigate the denial without treating every
+access failure as a password problem.
+
+<IdentitySeries current={6} />
+
+This is a fictional deployment chosen to connect the series. Companies can use
+different combinations. None of the four protocols requires this whole
+architecture, and they do not form a mandatory sequence. The earlier posts
+explain their message flows; here the question is which decision failed.
+
+## Network admission and application access are separate decisions
+
+The access point exchanges messages with a server using <Acronym title="Remote Authentication Dial In User Service">RADIUS</Acronym>.
+The access point is the <Acronym title="Network Access Server: the device providing and enforcing a network access service">NAS</Acronym>
+and acts as the RADIUS client. Ana's laptop participates in network
+authentication through the access point. Calling her laptop “the RADIUS client”
+would put the decision boundary in the wrong place.
+
+The server returns a decision and attributes that the NAS uses to provide
+service. The base <Acronym title="Request for Comments: a numbered technical publication in the Internet specification series">RFC</Acronym>
+describes that division in the <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2865.html" preview="The base RADIUS specification defines the network access server, authentication decisions and service attributes.">RADIUS specification</ExternalLink>.
+Admission can come with restrictions. A usable Wi-Fi connection still says
+nothing about Ana's permission to read a finance report.
+
+In this example, Wi-Fi uses enterprise network authentication with a RADIUS
+backend. That is a deployment choice: the <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc3580" preview="Informational guidelines explain optional RADIUS backends for wired and wireless IEEE 802.1X authentication.">802.1X RADIUS guidelines</ExternalLink>
+explicitly describe backend support as optional. See the <InternalLink slug="radius-network-access">RADIUS post</InternalLink>
+for the request and response flow.
+
+<Figure caption="This illustrative deployment has separate network, file-service and browser-login paths. Optional LDAP reads supply attributes; the reporting app makes the highlighted report decision.">
+  <AccessBranches />
+</Figure>
+
+## LDAP supplies directory information that other services can use
+
+The directory stores an entry for Ana and attributes associated with it. A
+client uses <Acronym title="Lightweight Directory Access Protocol">LDAP</Acronym>
+to search those entries or perform other directory operations. A <Term title="An LDAP operation that establishes the authentication state of a directory connection.">Bind</Term>
+can establish the connection's authentication state. A successful search
+returns information visible to that client under the directory's access rules.
+These are operations defined by <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4511.html" preview="RFC 4511 defines LDAP Bind, Search and other operations and their result messages.">RFC 4511</ExternalLink>.
+
+Our identity provider reads Ana's directory attributes when it issues a new
+login <Term title="A statement issued by an identity provider for a relying application to validate and use.">assertion</Term>. Another application could query the directory itself, cache
+results, or use a different attribute source. LDAP does not require one of
+those architectures. A group attribute becomes a report permission only when
+the application's policy gives it that meaning.
+
+The <InternalLink slug="ldap-users-groups">LDAP post</InternalLink> explains search
+bases, filters and groups. For this investigation, retain the distinction
+between the directory's current value and the value an application actually
+used.
+
+## Kerberos authenticates Ana to a particular service
+
+Ana's file client obtains tickets from a <Acronym title="Key Distribution Center">KDC</Acronym>
+and presents a service ticket with an authenticator to the file service. Its
+ticket-granting ticket goes to the ticket-granting service when requesting that
+service ticket. Those destinations matter: a print or file server does not
+receive the ticket-granting ticket in the ordinary service exchange.
+
+The service establishes Ana's authenticated <Term title="An identity known to the authentication system, such as a user or service.">principal</Term>, then checks the requested
+folder operation. The base <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc4120#section-1.4" preview="Section 1.4 of the Kerberos specification explains why a service ticket authenticates a client without granting resource permissions by itself.">Kerberos specification</ExternalLink>
+explicitly separates those jobs. Carrying authorization data can help the
+service decide, but issuing a ticket alone cannot grant every operation.
+
+In the <InternalLink slug="kerberos-tickets">Kerberos walkthrough</InternalLink>,
+the important evidence is which ticket the client obtained and which identity
+the service recognized. Here, a working shared folder narrows one problem. It
+does not establish that the browser app has the right attributes.
+
+## SAML lets the reporting app rely on another system's authentication
+
+The reporting app receives a response through Ana's browser using <Acronym title="Security Assertion Markup Language">SAML</Acronym>.
+The <Acronym title="Identity Provider">IdP</Acronym> supplies an assertion; the
+app validates it and establishes its own session. Attributes in the assertion
+can become inputs to the app's access policy, as the <Acronym title="Organization for the Advancement of Structured Information Standards">OASIS</Acronym>
+technical <ExternalLink href="https://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0-cd-02.html" preview="The OASIS SAML technical overview illustrates browser federation, local sessions and access checks based on assertion attributes.">overview</ExternalLink>
+illustrates. The <InternalLink slug="saml-single-sign-on">SAML post</InternalLink>
+explains the validation checks.
+
+The useful comparison is the artifact each component receives:
+
+| Protocol | Main exchange in this example              | Result to investigate                     | Decision still needed                         |
+| -------- | ------------------------------------------ | ----------------------------------------- | --------------------------------------------- |
+| RADIUS   | NAS and RADIUS server                      | Access decision and service attributes    | Permission to read the report                 |
+| LDAP     | Directory client and server                | Entries, attributes and operation results | The app's interpretation of group membership  |
+| Kerberos | Client, KDC and named service              | Tickets and an authenticated principal    | Permission for the requested folder operation |
+| SAML     | IdP and reporting app, through the browser | Validated assertion and app session       | Permission for the requested report operation |
+
+This table describes the example, rather than every supported use. SAML can
+carry several kinds of statement; LDAP also supports writes. Separate RADIUS
+accounting messages are defined in the <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc2866" preview="RFC 2866 specifies separate RADIUS accounting messages for network service usage.">accounting specification</ExternalLink>.
+Protocol names alone are not an access policy.
+
+## One directory can support several protocols without making them equivalent
+
+Microsoft's <Acronym title="Active Directory Domain Services">AD DS</Acronym>
+is a directory service with storage, schema, queries and replication. Its <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview" preview="Microsoft describes AD DS directory storage, schema, search and replication.">service overview</ExternalLink>
+describes those responsibilities. LDAP is one protocol for interacting with a
+directory; it is not the product's name.
+
+The Windows KDC uses the domain's AD DS database as its account database,
+according to Microsoft's <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-authentication-overview" preview="Microsoft explains the Windows KDC, its AD DS account database and the distinction between ticket-granting and service tickets.">Kerberos overview</ExternalLink>.
+Shared account information explains why these names appear together. It does
+not make an LDAP search and a Kerberos authentication exchange interchangeable.
+The same reasoning applies when a RADIUS server or IdP uses directory
+attributes: identify the interface and the consumer's policy separately.
+
+## Existing sessions make account changes harder to trace
+
+Return to Ana's report. The following is an invented worked case, not captured
+logs or measured behavior. Our example app copies roles into its session when
+it consumes an assertion. The IdP reads current directory attributes for each
+new assertion. Real products may use different mappings and refresh rules.
+
+| Time  | State in this worked case                                        | Consequence                                    |
+| ----- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| 09:00 | App session stores `analyst`                                     | Report policy denies finance access            |
+| 09:05 | Directory now includes `finance-reader`                          | The existing app session still holds `analyst` |
+| 09:06 | Ana requests the report with that session                        | Login is valid; report access is denied        |
+| 09:10 | A new assertion supplies `finance-reader` to a fresh app session | The same report policy permits the read        |
+
+No password change is needed in this case. The difference is the attribute
+snapshot consumed by the decision. The fix is to refresh the application's
+access state through its supported mechanism and verify the resulting role
+mapping. Signing out and back in helps only if that deployment fetches and
+uses fresh attributes.
+
+The <Acronym title="National Institute of Standards and Technology">NIST</Acronym> <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63c.html#reauthentication-and-session-requirements-in-federated-environments" preview="NIST explains that IdP sessions, relying-party sessions and assertion validity have independent lifetimes.">federation guidelines</ExternalLink>
+explain the underlying boundary: IdP and application sessions have independent
+lifetimes. Ending one need not end the other. An account change therefore needs
+an explicit propagation and session-handling policy.
+
+## The failing resource tells you which decision to investigate
+
+Ana's investigation becomes a short evidence request:
+
+1. Name the resource and action: read the finance report.
+2. Identify its decision maker: the reporting app's access policy.
+3. Find the recognized identity and attributes used for that request.
+4. Compare their source and timestamp with the authoritative directory entry.
+5. Verify the mapping and refresh behavior, then repeat the same operation.
+
+The <InternalLink slug="identity-management-login-access">opening post</InternalLink>
+separates login and access decisions. The published <InternalLink slug="mcp">remote MCP server post</InternalLink>
+shows a related application boundary: authenticated scopes control which tools
+the caller can use.
+
+For Ana, the mismatch was between a current directory entry and an older app
+session. Each protocol did its assigned job. When the next denial arrives,
+start with the failed operation and ask which component decided it, using which
+identity information. That question makes a useful incident report before any
+configuration changes begin.
+
+## References
+
+- IETF, June 2000. The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc2865.html" preview="The base RADIUS specification defines the NAS, access decisions and service configuration attributes.">RADIUS specification, RFC 2865</ExternalLink>.
+- C. Rigney, June 2000. The <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc2866" preview="Informational RFC 2866 defines RADIUS accounting messages, separately from access authentication.">RADIUS accounting specification, RFC 2866</ExternalLink>.
+- P. Congdon et al., September 2003. The <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc3580" preview="Informational, rather than standards-track, guidance on optional RADIUS use in IEEE 802.1X deployments.">IEEE 802.1X RADIUS usage guidelines, RFC 3580</ExternalLink>.
+- J. Sermersheim, IETF, June 2006. The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc4511.html" preview="The LDAP protocol specification covers directory operations, messages and results.">LDAP protocol specification, RFC 4511</ExternalLink>.
+- C. Neuman et al., IETF, July 2005. The <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc4120" preview="The Kerberos V5 base specification includes service authentication and the separate authorization boundary.">Kerberos V5 specification, RFC 4120</ExternalLink>,
+  especially section 1.4.
+- OASIS, March 2008. The <ExternalLink href="https://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0-cd-02.html" preview="An explanatory committee draft with illustrated SAML federation, attributes and local-session examples.">SAML V2.0 Technical Overview, Committee Draft 02</ExternalLink>.
+- Microsoft. The <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview" preview="Microsoft's description of the AD DS directory service, storage and replication.">AD DS overview</ExternalLink>
+  and its <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-authentication-overview" preview="Microsoft's description of Windows Kerberos and its AD DS integration.">Windows Kerberos authentication overview</ExternalLink>.
+- NIST, July 2025. The <ExternalLink href="https://pages.nist.gov/800-63-4/sp800-63c.html" preview="Current federal federation guidance covers assertions, separate sessions and account synchronization.">SP 800-63C-4 federation guidelines</ExternalLink>,
+  particularly the reauthentication and session requirements.

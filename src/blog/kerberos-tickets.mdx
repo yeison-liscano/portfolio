@@ -1,0 +1,215 @@
+---
+lang: "en"
+title: "Kerberos tickets: how one login reaches several services"
+pubDate: 2026-11-07
+description:
+  "Follow a Kerberos sign-in from the authentication service to a file server.
+  See who can decrypt each ticket, why authenticators matter, and why a valid
+  ticket still does not grant access to every folder."
+summary:
+  - "The initial authentication exchange normally obtains a ticket-granting
+    ticket. The client uses it at the KDC to request tickets for other services."
+  - "A service ticket and the reply delivered with it use different protecting
+    keys. The client can carry a ticket without reading its encrypted contents."
+  - "A fresh authenticator proves possession of the ticket's session key.
+    Time checks and replay protection keep a captured request from being reused."
+  - "Cached credentials enable repeated access, but stolen credentials can be
+    abused. The application still decides which operations a user may perform."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import IdentitySeries from "./components/identity-series/IdentitySeries.astro";
+import TicketFlow from "./components/kerberos-tickets/TicketFlow.astro";
+
+{/* cspell:ignore krbtgt PREAUTH KDC ASREQ TGSREQ APREQ */}
+
+Keywords: Kerberos, authentication, single sign-on, KDC, TGT, service ticket,
+session key, authenticator
+
+Ana signs in to her workstation, then opens a shared folder without entering
+her password again. Her computer has acquired a separate ticket for the file
+service. Following that exchange explains what sign-in cached, what crosses
+the network, and how the server recognizes Ana while still deciding whether
+she may open the folder. The distinction matters when a successful login ends
+in an access error: each step proves something different.
+
+<IdentitySeries current={3} />
+
+## The client and service trust the same Key Distribution Center
+
+This is a fictional, single-domain example. Ana's workstation, a file service
+and a <Acronym title="Key Distribution Center">KDC</Acronym> participate in it.
+Both endpoints trust the KDC, which holds keys associated with identities.
+A <Term title="An identity that Kerberos can name and authenticate, such as a user or service.">principal</Term>
+identifies Ana or the file service. A <Term title="An administrative domain for Kerberos principals and their KDCs.">realm</Term>
+groups those identities under one Kerberos administration.
+
+The KDC has two logical jobs. Its <Acronym title="Authentication Service">AS</Acronym>
+handles initial authentication. Its <Acronym title="Ticket-Granting Service">TGS</Acronym>
+handles requests supported by an existing ticket. They can run together; the
+diagram separates their jobs without implying two physical machines.
+Microsoft's <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-authentication-overview" preview="Microsoft explains the Kerberos client, service and KDC, including the distinction between TGTs and service tickets.">Kerberos overview</ExternalLink>
+describes how these roles fit an Active Directory domain, where domain
+controllers run the KDC. Kerberos itself also has other implementations.
+
+We will follow a password-based route with preauthentication. This is a
+protocol walkthrough, not a measured deployment: no test KDC or real user
+credentials were used. It leaves cross-realm trust and delegation aside so
+each ticket's recipient remains visible.
+
+## The authentication exchange obtains a ticket for requesting more tickets
+
+Ana's client starts an AS exchange. An initial response may
+require additional <Term title="A mechanism that supplies evidence of identity during the initial Kerberos exchange.">preauthentication</Term>.
+For a password-based example, the client can prove knowledge of a key derived
+from the password by protecting a timestamp. The password itself stays local.
+
+Deriving that key is an encryption-type-specific operation. It is not a
+universal instruction to hash every password once. For example,
+the <Acronym title="Advanced Encryption Standard">AES</Acronym>
+profile in the <ExternalLink href="https://www.rfc-editor.org/rfc/rfc3962.html" preview="RFC 3962 specifies AES encryption types for Kerberos, including password and salt processing through a string-to-key function.">Kerberos specification</ExternalLink>
+defines a string-to-key process using the password, salt and iteration
+parameters. Other authentication mechanisms can change the initial exchange.
+The <ExternalLink href="https://www.rfc-editor.org/rfc/rfc6113.html" preview="RFC 6113 defines the Kerberos preauthentication framework and FAST protection for authentication exchanges.">preauthentication framework</ExternalLink>
+also supports mechanisms beyond this password example.
+
+After the exchange succeeds, the client receives a <Acronym title="Ticket-Granting Ticket">TGT</Acronym>
+and a protected reply containing the client/TGS session key. The TGT's
+encrypted contents are protected with the ticket-granting service's key.
+The client can store the TGT while being unable to decrypt those contents.
+
+The encrypted AS reply gives Ana's client its copy of the client/TGS session
+key. This is the first crucial split: the ticket is for the next
+recipient; the reply supplies information the client needs to use it.
+
+## The TGS issues a service ticket that the client cannot decrypt
+
+Now Ana opens the shared folder. Her client requests credentials for the file
+service from the TGS. It submits the TGT, the desired service name and an
+authenticator protected with the client/TGS session key.
+
+The KDC returns a service ticket and a protected reply containing a new
+client/file-service session key. The service's long-term key protects the
+ticket. The client/TGS session key, or a negotiated subkey, protects the reply.
+MIT's <ExternalLink href="https://web.mit.edu/kerberos/krb5-latest/doc/admin/enctypes.html" preview="MIT distinguishes the service key, randomly generated session key and reply-encrypting key used when the KDC issues credentials.">key-selection documentation</ExternalLink>
+separates these three key roles.
+
+| Protected object                                   | Who can read its protected contents?                                  |
+| -------------------------------------------------- | --------------------------------------------------------------------- |
+| TGT                                                | The KDC using the ticket-granting service's key                       |
+| AS reply's encrypted part in this password example | Ana's client using the initial reply key                              |
+| File-service ticket                                | The file service using its long-term key; the KDC also knows that key |
+| TGS reply's encrypted part                         | Ana's client using the client/TGS session key or subkey               |
+| Authenticator sent to the file service             | The file service using the client/file-service session key            |
+
+The KDC created the session keys too. This table identifies the intended
+recipient's protection path; it does not suggest the KDC lacks those secrets.
+
+The TGT goes to the TGS. The file-service ticket goes to the file service.
+They are not interchangeable passes. In this ordinary service exchange, Ana
+does not hand her TGT to the file server.
+
+<Figure caption="The TGT returns to the KDC; only the service ticket reaches the file service, with a fresh authenticator.">
+  <Stepper
+    label="Follow a Kerberos ticket from sign-in to the file service"
+    steps={[
+      "The client starts an AS exchange; this example uses password-based preauthentication.",
+      "The AS returns a TGT and a separately encrypted reply containing the client/TGS session key.",
+      "The client presents its TGT and an authenticator to the TGS, requesting the file service.",
+      "The TGS returns a file-service ticket and a reply containing the client/file-service session key.",
+      "The client sends the file-service ticket and a fresh authenticator directly to the file service.",
+      "The service returns AP-REP when mutual authentication is requested, proving its identity to the client.",
+    ]}
+  >
+    <TicketFlow />
+  </Stepper>
+</Figure>
+
+## A fresh authenticator proves possession of the session key
+
+An intercepted ticket can be copied. To use it, the client also proves that it
+knows the corresponding session key. It creates a fresh authenticator, including
+its identity and a timestamp, protected with that key. The service checks it
+along with the ticket.
+
+Time checks alone leave a window in which a captured request could be resent.
+The service normally keeps a replay cache to reject authenticators already
+seen within the permitted clock skew. A different suitable replay defense can
+replace that cache. These checks are specified in
+the <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc4120#section-3.2.3" preview="RFC 4120 section 3.2.3 specifies application-server checks, including authenticators, clock skew, replay protection and ticket lifetime.">application exchange</ExternalLink>.
+
+That creates two different failure cases: an expired ticket and an
+authenticator rejected because clocks disagree. A password reset is not a
+general repair for either. A replay rejection also differs from a user lacking
+permission for a folder.
+
+## Mutual authentication lets the service prove its identity too
+
+Ana's client can request mutual authentication. The service then returns an
+`AP-REP` message protected with their session key. It includes values from the
+client's authenticator that the client checks. This gives Ana's client evidence
+that it reached a service able to recover the key from the ticket.
+
+The exchange establishes authentication and shared key material. Protecting
+later file contents depends on how the application uses that material or
+another secure channel. Merely saying “Kerberos login succeeded” does not
+describe every later byte's encryption. The
+specification's <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc4120#section-3.2.6" preview="RFC 4120 explains how an application can use shared keys after the authentication exchange.">application-key discussion</ExternalLink>
+makes that next responsibility explicit.
+
+## Ticket caches explain repeated access and create a theft risk
+
+Ana opens the folder again. Her client can reuse valid cached credentials,
+creating a new authenticator instead of repeating the initial password
+exchange. It may also reuse a cached service ticket without contacting the KDC.
+MIT's <ExternalLink href="https://web.mit.edu/kerberos/krb5-latest/doc/basic/ccache_def.html" preview="MIT describes credential caches, their stored identities and credentials, and how they avoid repeated KDC requests.">credential-cache documentation</ExternalLink>
+explains that behavior.
+
+A cache contains usable credentials, including associated session keys.
+Someone who steals sufficient cached credentials can impersonate Ana while
+they remain usable. A network capture of a ticket alone and theft of a client's
+credential cache are therefore different events. Protecting the workstation
+still matters after the password disappears from the sign-in prompt.
+
+In an isolated lab, `kinit` can obtain initial credentials and `klist` can show
+the TGT followed by service-ticket entries. MIT's
+guide to <ExternalLink href="https://web.mit.edu/kerberos/krb5-latest/doc/user/tkt_mgmt.html" preview="MIT shows how kinit obtains credentials, klist displays ticket names and lifetimes, and kdestroy removes local cached credentials.">ticket management</ExternalLink>
+provides examples. Those command outputs are not reproduced here because this
+walkthrough did not run a KDC. Removing a local cache also does not erase copies
+already stolen elsewhere.
+
+## A valid identity still needs permission to open the folder
+
+The file service has authenticated Ana. It still evaluates the requested
+operation against its access rules. Ana may read the team folder while being
+denied the payroll folder. Kerberos can carry authorization information, but
+the application must make the authorization decision.
+
+This is the same boundary introduced in
+the <InternalLink slug="identity-management-login-access">identity management post</InternalLink>:
+proof of identity and permission answer different questions. The
+Kerberos <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc4120#section-1.4" preview="RFC 4120 separates Kerberos authentication from an application's decision to authorize an operation.">authorization section</ExternalLink>
+states that boundary directly.
+
+Ana's single sign-in works because credentials can be reused for specific
+services. Each requested folder still has its own access check. Before changing
+Ana's password, identify the failed stage: initial credentials, service-ticket
+acquisition, authenticator validation or the file permission check.
+
+## References
+
+- IETF. July 2005. <ExternalLink href="https://datatracker.ietf.org/doc/html/rfc4120" preview="The base Kerberos V5 specification defines AS, TGS and application exchanges, ticket checks and authorization boundaries.">RFC 4120: The Kerberos Network Authentication Service (V5)</ExternalLink>,
+  with subsequent updates listed on the document page.
+- IETF. April 2011. <ExternalLink href="https://www.rfc-editor.org/rfc/rfc6113.html" preview="The Kerberos preauthentication framework defines authentication facilities, reply-key handling and FAST.">RFC 6113: A Generalized Framework for Kerberos Pre-Authentication</ExternalLink>.
+- IETF. February 2005. <ExternalLink href="https://www.rfc-editor.org/rfc/rfc3962.html" preview="This Kerberos AES specification includes the password-and-salt string-to-key process.">RFC 3962: Advanced Encryption Standard (AES) Encryption for Kerberos 5</ExternalLink>.
+- MIT. Current documentation, accessed November 2026. <ExternalLink href="https://web.mit.edu/kerberos/krb5-latest/doc/admin/enctypes.html" preview="MIT distinguishes long-term service keys, generated session keys and reply-encrypting keys.">Encryption types</ExternalLink>.
+- MIT. Current documentation, accessed November 2026. <ExternalLink href="https://web.mit.edu/kerberos/krb5-latest/doc/basic/ccache_def.html" preview="MIT explains the credentials held in a cache and their role in repeated service authentication.">Credential cache</ExternalLink>.
+- MIT. Current documentation, accessed November 2026. <ExternalLink href="https://web.mit.edu/kerberos/krb5-latest/doc/user/tkt_mgmt.html" preview="MIT documents acquiring, listing and destroying Kerberos credentials.">Ticket management</ExternalLink>.
+- Microsoft Learn. Accessed November 2026. <ExternalLink href="https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-authentication-overview" preview="Microsoft describes Kerberos roles, domain integration and the route from a TGT to a service ticket.">Kerberos authentication overview in Windows Server</ExternalLink>.
