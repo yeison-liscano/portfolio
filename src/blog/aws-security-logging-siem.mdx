@@ -1,0 +1,412 @@
+---
+lang: "en"
+title: "AWS Security Logging to a SIEM with Terraform: Flow Logs, CloudTrail and GuardDuty, and the Traffic None of Them Record"
+pubDate: 2026-11-23
+description:
+  "Each box of the reference diagram leaves evidence, if logging is on. Turn on
+  flow logs, DNS query logs, CloudTrail and GuardDuty with Terraform, lock the
+  evidence for a year, and run two detections: a port scan in flow-log records
+  and an opened security group in CloudTrail."
+summary:
+  - "No single log is complete. Flow logs skip DNS queries to the Amazon
+    resolver and calls to the metadata service, and GuardDuty reads a copy of
+    the logs without keeping any."
+  - "A port scan appears as many rejected ports from one source. A short Python
+    script flags it in 1,029 synthetic flow-log records, and you can run it
+    here."
+  - "An opened security group is an API call. An EventBridge rule on CloudTrail
+    events alerts on it, as long as a trail is on."
+  - "Evidence belongs where the workload cannot erase it: a locked bucket, a
+    validated trail, and a test that fails if either is switched off."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import AwsNetworkSeries from "./components/aws-network-series/AwsNetworkSeries.astro";
+import ReferenceMap from "./components/aws-network-series/ReferenceMap.astro";
+
+{/* cspell:ignore Parquet parquet OCSF tftest srcaddr dstaddr dport sport Portscan defaultdict IMDS EventBridge Sigma Firehose */}
+
+Keywords: SIEM, AWS security logging, VPC Flow Logs, CloudTrail, GuardDuty,
+Route 53 Resolver query logs, port scan detection, EventBridge, OCSF, Terraform
+
+Capital One learned of its 2019 breach from an outsider's tip on July 17,
+according to the Justice Department. Each control from the earlier parts leaves
+evidence: rejected flows, WAF blocks, firewall alerts, API calls that open a
+security group. That evidence exists only if logging is on, and no single log is
+complete. Flow logs skip DNS queries to the Amazon resolver and calls to the
+metadata service. GuardDuty reads its own copy of the logs and keeps none of
+them for you. Could the orders team see an attack from inside, before anyone
+emails them? This post turns on the evidence with Terraform and stores it where
+the workload cannot delete it. It then runs two detections, a port scan in
+flow-log records and an opened security group in CloudTrail.
+
+<AwsNetworkSeries current={7} />
+
+## Each box of the diagram leaves a different log
+
+<Figure caption="The series' reference diagram. The private network reaches the SIEM through the arrow labeled internal integration; the table below lists the log each box leaves and what it misses.">
+  <ReferenceMap />
+</Figure>
+
+The last box of the reference diagram
+from <InternalLink slug="aws-network-security-map">Part 1</InternalLink>
+receives an arrow labeled "internal integration" from the private network.
+A <Acronym title="Security Information and Event Management">SIEM</Acronym>, as
+the <InternalLink slug="cybersecurity-basics">cybersecurity basics post</InternalLink>
+introduced it, collects events from many sources and correlates them. On AWS,
+the sources are the logs of the other six boxes, and each one sees a different
+layer. The lab sends them to one evidence bucket or to CloudWatch Logs:
+
+| Box (part)            | Evidence                                  | Where the lab sends it         | What it does not record                      |
+| --------------------- | ----------------------------------------- | ------------------------------ | -------------------------------------------- |
+| Private network (2)   | VPC flow logs                             | S3, Parquet, hourly partitions | Payloads, Amazon DNS, metadata service, DHCP |
+| CDN (3)               | AWS WAF logs                              | CloudWatch Logs, us-east-1     | Requests that skip CloudFront                |
+| Perimeter (4)         | Network Firewall alert and flow logs      | CloudWatch Logs and S3         | Traffic not routed to an endpoint            |
+| Perimeter (4)         | Resolver query logs, with DNS Firewall    | S3                             | Answers served from a cache                  |
+| Access management (5) | CloudTrail; Session Manager transcripts   | S3, with log file validation   | Data events, unless enabled; port forwarding |
+| Authorized users (6)  | Client VPN and Verified Access logs       | CloudWatch Logs                | Requests inside a VPN session                |
+| SIEM (7)              | GuardDuty findings, Security Hub controls | EventBridge to an SNS topic    | Raw events: these are conclusions            |
+
+The last column is the point of the table. Every log has a blind spot, and the
+blind spots differ, so the evidence is only as complete as the set of logs that
+is on.
+
+One attacker runs through the rest of this post. They control the checkout app
+at `10.0.1.20` and make three moves: scan the orders API at `10.0.2.30` for
+other services, open a security group, and delete the logs that saw both. Each
+section below asks which log records a move and which one misses it.
+
+## Flow logs record connections, not content, and skip DNS and metadata
+
+A flow log record summarizes the traffic of one network interface for one flow
+during an aggregation interval. The default format, version 2, holds 14 fields,
+from addresses and ports to the `action`, `ACCEPT` or `REJECT`.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-log-records.html" preview="AWS VPC User Guide: flow log record fields, versions and the custom format.">flow log records page</ExternalLink>
+lists more fields in later versions, and the lab adds seven of them. `tcp-flags`
+shows a `SYN` without a reply, `pkt-srcaddr` shows the original address behind a
+NAT gateway, and `traffic-path` shows which gateway carried outbound traffic:
+
+```hcl
+resource "aws_flow_log" "orders" {
+  vpc_id                   = aws_vpc.orders.id
+  traffic_type             = "ALL"
+  log_destination_type     = "s3"
+  log_destination          = "${aws_s3_bucket.evidence.arn}/vpc-flow-logs/"
+  max_aggregation_interval = 60
+  log_format = join(" ", [
+    "$${version}", "$${account-id}", "$${interface-id}", "$${srcaddr}",
+    "$${dstaddr}", "$${srcport}", "$${dstport}", "$${protocol}",
+    "$${packets}", "$${bytes}", "$${start}", "$${end}", "$${action}",
+    "$${log-status}", "$${vpc-id}", "$${subnet-id}", "$${tcp-flags}",
+    "$${pkt-srcaddr}", "$${pkt-dstaddr}", "$${flow-direction}",
+    "$${traffic-path}",
+  ])
+
+  destination_options {
+    file_format                = "parquet"
+    hive_compatible_partitions = true
+    per_hour_partition         = true
+  }
+}
+```
+
+`REJECT` means a security group or a network ACL refused the traffic. A flow log
+never holds the bytes of a packet; reading content takes Traffic Mirroring or a
+firewall.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-limitations.html" preview="AWS VPC User Guide: flow log limitations, including traffic that is never logged.">limitations page</ExternalLink>
+lists the traffic flow logs never record. It includes traffic to the Amazon DNS
+server, requests to the instance metadata service at `169.254.169.254`, DHCP and
+the Amazon Time Sync Service.
+
+Those gaps are the paths of two attacks from earlier parts. The DNS tunnel
+of <InternalLink slug="aws-network-firewall-ids-ips">Part 4</InternalLink>
+leaves no flow record, which is why the lab turns on Route 53 Resolver query
+logs. The metadata request of the Capital One breach leaves none either, which
+is why Part 5 required IMDSv2 rather than relying on detection. Flow logs are
+also not instant: records reach CloudWatch Logs in about 5 minutes and S3 in
+about 10, on a best-effort basis.
+
+## CloudTrail records every network change, and validation proves the record
+
+Every call that changes a security group, a route table or a firewall policy is
+a CloudTrail management event. AWS keeps 90 days of management events in the
+event history of each account at no cost. A trail keeps them longer, in a bucket
+you choose:
+
+```hcl
+resource "aws_cloudtrail" "account" {
+  name                          = "orders-trail"
+  s3_bucket_name                = aws_s3_bucket.evidence.bucket
+  s3_key_prefix                 = "cloudtrail"
+  is_multi_region_trail         = true
+  include_global_service_events = true
+  enable_log_file_validation    = true
+
+  depends_on = [aws_s3_bucket_policy.evidence]
+}
+```
+
+`enable_log_file_validation` defaults to `false` in Terraform. With it on,
+CloudTrail writes an hourly digest file that holds a SHA-256 hash of each log
+file and is signed with RSA. Each digest also refers to the previous one, so
+the <ExternalLink href="https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html" preview="AWS CloudTrail User Guide: log file integrity validation with signed, chained digest files.">validation guide</ExternalLink>
+can show whether a log file was changed or deleted after delivery. A trail
+created in the organization's management account covers every member account,
+and members cannot stop it. Data events, such as S3 object reads, are off by
+default and cost extra.
+
+CloudTrail Lake, an AWS service for querying these events, closed to new
+customers on May 31, 2026; existing customers keep it. The lab stores the trail
+in S3, where any SIEM can read it. The security group alert later in this post
+depends on this trail.
+
+## GuardDuty analyzes a copy of your logs, so it does not replace retention
+
+Amazon GuardDuty reads CloudTrail management events, VPC flow logs and DNS query
+logs and turns them into findings.
+Its <ExternalLink href="https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_data-sources.html" preview="Amazon GuardDuty User Guide: foundational data sources and how GuardDuty consumes them.">data sources page</ExternalLink>
+explains that it consumes an independent, duplicated stream of those sources.
+You do not have to enable flow logs for GuardDuty to analyze them, and GuardDuty
+does not store them for you. Its DNS analysis also covers only queries answered
+by the Amazon resolver.
+
+That makes GuardDuty a detector, not an archive. The AWS Security Reference
+Architecture (SRA)
+has <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/log-archive.html" preview="AWS Security Reference Architecture: the Log Archive account and its requirements.">log archive guidance</ExternalLink>
+that says GuardDuty's streams must not substitute for log retention. When a
+finding arrives, the investigation needs the flow logs and the trail that the
+lab keeps. The lab turns GuardDuty on, publishes findings every 15 minutes, and
+routes those of severity 7 or more, high or critical, to an SNS topic:
+
+```hcl
+resource "aws_cloudwatch_event_rule" "guardduty_high" {
+  name        = "guardduty-high"
+  description = "GuardDuty findings of severity 7 or more"
+  event_pattern = jsonencode({
+    source        = ["aws.guardduty"]
+    "detail-type" = ["GuardDuty Finding"]
+    detail = {
+      severity = [{ numeric = [">=", 7] }]
+    }
+  })
+}
+```
+
+## A port scan shows up as many rejected ports from one source
+
+Suppose an attacker controls the checkout app at `10.0.1.20` and looks for other
+services on the orders API at `10.0.2.30`. MITRE ATT&CK calls
+this <ExternalLink href="https://attack.mitre.org/techniques/T1046/" preview="MITRE ATT&CK T1046: Network Service Discovery.">T1046, Network Service Discovery</ExternalLink>.
+The security group from Part 2 admits the checkout app on 443 only, so every
+other probe is rejected, and each rejection is a flow log record.
+
+The script below builds 1,029 records in the version 2 format: five normal calls
+on 443, then one probe to each port from 1 to 1,024. The records are synthetic,
+written to match the format and
+the <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-records-examples.html" preview="AWS VPC User Guide: flow log record examples, accepted and rejected.">examples AWS publishes</ExternalLink>,
+because the lab never deployed. The detection counts distinct rejected TCP ports
+for each pair of addresses and flags a pair above 20. You can run it:
+
+```python
+from collections import defaultdict
+
+# Synthetic flow log records in the default (version 2) format:
+# version account-id interface-id srcaddr dstaddr srcport dstport protocol
+# packets bytes start end action log-status
+ENI = "eni-0a1b2c3d4e5f60718"  # the orders API's network interface
+START = 1795468800
+
+records = [
+    # The checkout app calls the orders API on 443: allowed.
+    f"2 111122223333 {ENI} 10.0.1.20 10.0.2.30 {40000 + i} 443 6 12 4380 "
+    f"{START + i * 60} {START + i * 60 + 59} ACCEPT OK"
+    for i in range(5)
+]
+# Then the same address tries every port from 1 to 1024: the security
+# group allows only 443, so every other attempt is rejected.
+records += [
+    f"2 111122223333 {ENI} 10.0.1.20 10.0.2.30 51515 {port} 6 1 44 "
+    f"{START + 300} {START + 359} {'ACCEPT' if port == 443 else 'REJECT'} OK"
+    for port in range(1, 1025)
+]
+
+FIELDS = ("version account eni src dst sport dport proto packets bytes "
+          "start end action status").split()
+
+rejected_ports = defaultdict(set)
+for line in records:
+    r = dict(zip(FIELDS, line.split()))
+    if r["action"] == "REJECT" and r["proto"] == "6":
+        rejected_ports[(r["src"], r["dst"])].add(int(r["dport"]))
+
+THRESHOLD = 20  # distinct rejected ports per source and target
+print(f"{len(records)} records read")
+for (src, dst), ports in sorted(rejected_ports.items()):
+    verdict = "PORT SCAN" if len(ports) > THRESHOLD else "ok"
+    print(f"{src} -> {dst}: {len(ports)} rejected ports "
+          f"({min(ports)}-{max(ports)}) => {verdict}")
+```
+
+Run with Python 3.14, it prints:
+
+```text
+1029 records read
+10.0.1.20 -> 10.0.2.30: 1023 rejected ports (1-1024) => PORT SCAN
+```
+
+The threshold of 20 is a choice, not a standard. A slow scan of a few ports an
+hour stays under it, and a misconfigured client retrying one port never reaches
+it. In production, the same count runs as a query in the SIEM over each time
+window. GuardDuty has a finding type, `Recon:EC2/Portscan`, for an instance
+performing outbound port scans to a remote host, listed among
+its <ExternalLink href="https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_finding-types-ec2.html" preview="Amazon GuardDuty User Guide: EC2 finding types, including reconnaissance findings.">EC2 finding types</ExternalLink>,
+and the script shows what such a detection counts. The lab never deployed, so it
+did not test whether that finding fires on a scan inside the VPC.
+
+## An opened security group is an API call, and EventBridge can alert on it
+
+The attacker's second move is to open a security group instead of scanning
+it. <InternalLink slug="aws-iam-network-administrators">Part 5</InternalLink>
+described it as
+MITRE's <ExternalLink href="https://attack.mitre.org/techniques/T1686/001/" preview="MITRE ATT&CK T1686.001: changing cloud firewall rules from the control plane.">T1686.001, Cloud Firewall</ExternalLink>.
+That leaves no rejected flow, but it is a CloudTrail event. Amazon EventBridge
+receives CloudTrail management events
+as <ExternalLink href="https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-service-event-cloudtrail.html" preview="Amazon EventBridge User Guide: events delivered from AWS services through CloudTrail.">"AWS API Call via CloudTrail"</ExternalLink>
+events, provided a trail is on, so a rule can match the three calls that add a
+security group rule. Rendered from the lab's plan, the pattern is:
+
+```json
+{
+  "detail": {
+    "eventName": [
+      "AuthorizeSecurityGroupIngress",
+      "AuthorizeSecurityGroupEgress",
+      "ModifySecurityGroupRules"
+    ],
+    "eventSource": ["ec2.amazonaws.com"]
+  },
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "source": ["aws.ec2"]
+}
+```
+
+The rule sends each match to the same SNS topic as the GuardDuty findings. In a
+team that changes the network only through the pipeline of Part 5, every alert
+from a person's session is worth reading. This lab could not deliver a real
+event to the rule, so the pattern is checked for syntax by the plan, not for
+matches. After deployment, EventBridge's test feature can match it against a
+sample event before anyone relies on it.
+
+## Logs belong in an account the workload cannot change
+
+The third move deletes the evidence. MITRE lists it
+as <ExternalLink href="https://attack.mitre.org/techniques/T1685/002/" preview="MITRE ATT&CK T1685.002: disabling or modifying cloud logs, renumbered from T1562.008 in April 2026.">T1685.002</ExternalLink>,
+renumbered from T1562.008
+in <ExternalLink href="https://attack.mitre.org/resources/updates/updates-april-2026/" preview="MITRE ATT&CK updates, April 2026: version 19 and its revoked and renumbered techniques.">ATT&CK v19</ExternalLink>,
+April 2026. The series answers it at three levels. Part 5's service control
+policy denies `ec2:DeleteFlowLogs`, `cloudtrail:StopLogging` and the GuardDuty
+changes in workload accounts. The evidence bucket uses S3 Object Lock, so nobody
+can overwrite or delete an object for 365 days:
+
+```hcl
+# GOVERNANCE lets a privileged role shorten retention in a lab. Production
+# log archives use COMPLIANCE, which nobody can undo, root included.
+resource "aws_s3_bucket_object_lock_configuration" "evidence" {
+  bucket = aws_s3_bucket.evidence.id
+
+  rule {
+    default_retention {
+      mode = "GOVERNANCE"
+      days = 365
+    }
+  }
+}
+```
+
+The SRA's log archive guidance requires immutable storage in a dedicated
+account. The lab keeps everything in one account and uses governance mode so it
+can be torn down; a real log archive uses compliance mode, in its own account.
+
+The third level is the test. The lab's terraform test has one more assertion:
+the trail must be multi-Region with log file validation, the flow log must
+capture all traffic, and the lock must last a year. On a copy with validation
+turned off, it fails:
+
+```text
+Error: Test assertion failed
+  on tests/segmentation.tftest.hcl line 171, in run "segmentation":
+    │ aws_cloudtrail.account.enable_log_file_validation is false
+
+The evidence must be complete, validated and locked for a year.
+```
+
+## A SIEM correlates only what shares a schema, so normalize to OCSF
+
+Every source above has its own format: space-separated flow records, JSON
+CloudTrail events, WAF logs, Suricata alerts. A SIEM must map them to one schema
+before it can correlate a rejected flow with the API call that opened the port
+an hour later.
+The <Term title="Open Cybersecurity Schema Framework: an open schema that maps security events from many sources to common classes and fields.">OCSF</Term>
+schema,
+at <ExternalLink href="https://schema.ocsf.io/" preview="The Open Cybersecurity Schema Framework schema browser.">schema.ocsf.io</ExternalLink>,
+is the common target on AWS. Amazon Security Lake stores CloudTrail, flow logs,
+Route 53 logs, WAF logs and findings as OCSF in Parquet, in your own S3, and
+maps flow logs to the Network Activity class. The new AWS Security Hub,
+generally available since December 2025, also uses OCSF.
+
+The SRA now recommends the CloudWatch unified data store as the main central log
+store, with Security Lake as an alternative. Either way, the SIEM subscribes to
+normalized data instead of parsing seven formats itself.
+
+## Both moves now surface from inside, without an outside tip
+
+The opening question has its answer. With these logs on, the port scan above
+becomes a thousand `REJECT` records in S3 within about ten minutes. The opened
+security group becomes an alert on the SNS topic. Neither waits for an email
+from outside, and the third move meets a locked bucket.
+
+The series began with a diagram of boxes and the claim that a box is only a
+promise. Configuration, tests and evidence are how each promise is kept. For
+each box of your own diagram, name the log that would show its failure, then
+check three things:
+
+1. The log is on.
+2. It lands where the workload cannot change it.
+3. At least one detection reads it.
+
+## References
+
+- **Logs:** AWS VPC User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-log-records.html" preview="Flow log records.">Flow log records</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-limitations.html" preview="Flow log limitations.">Flow log limitations</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-records-examples.html" preview="Flow log record examples.">Flow log record examples</ExternalLink>;
+  Amazon Route 53 Developer
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-query-logs.html" preview="Resolver query logging.">Resolver query logging</ExternalLink>;
+  AWS Network Firewall Developer
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/firewall-logging-contents.html" preview="Contents of firewall logs.">Contents of a Network Firewall log</ExternalLink>.
+- **CloudTrail and EventBridge:** AWS CloudTrail User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html" preview="Log file integrity validation.">Validating CloudTrail log file integrity</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-lake.html" preview="CloudTrail Lake, closed to new customers.">CloudTrail Lake</ExternalLink>;
+  Amazon EventBridge User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-service-event-cloudtrail.html" preview="Events from AWS services via CloudTrail.">Events from AWS services via CloudTrail</ExternalLink>.
+- **Detection:** Amazon GuardDuty User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_data-sources.html" preview="GuardDuty data sources.">Foundational data sources</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_finding-types-ec2.html" preview="GuardDuty EC2 finding types.">EC2 finding types</ExternalLink>;
+  MITRE
+  ATT&CK, <ExternalLink href="https://attack.mitre.org/techniques/T1046/" preview="Network Service Discovery.">T1046</ExternalLink>, <ExternalLink href="https://attack.mitre.org/techniques/T1686/001/" preview="Cloud firewall changes.">T1686.001</ExternalLink>, <ExternalLink href="https://attack.mitre.org/techniques/T1685/002/" preview="Cloud log tampering.">T1685.002</ExternalLink>
+  and <ExternalLink href="https://attack.mitre.org/resources/updates/updates-april-2026/" preview="ATT&CK v19 updates.">Updates, April 2026</ExternalLink>.
+- **Architecture and schemas:** AWS Prescriptive
+  Guidance, <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/log-archive.html" preview="SRA Log Archive account.">AWS Security Reference Architecture, Log Archive account</ExternalLink>;
+  AWS Security Hub User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub-v2.html" preview="The new AWS Security Hub.">What is AWS Security Hub?</ExternalLink>;
+  OCSF, <ExternalLink href="https://schema.ocsf.io/" preview="OCSF schema browser.">Open Cybersecurity Schema Framework</ExternalLink>;
+  U.S. Attorney's Office, Western District of
+  Washington, <ExternalLink href="https://www.justice.gov/usao-wdwa/united-states-v-paige-thompson" preview="Case page for United States v. Paige Thompson.">United States v. Paige Thompson</ExternalLink>.
+- **Terraform:**
+  HashiCorp, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/flow_log" preview="aws_flow_log documentation.">aws_flow_log</ExternalLink>
+  and <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudtrail" preview="aws_cloudtrail documentation.">aws_cloudtrail</ExternalLink>.

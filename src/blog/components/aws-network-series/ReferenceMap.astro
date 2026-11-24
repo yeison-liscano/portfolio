@@ -1,0 +1,272 @@
+---
+/**
+ * ReferenceMap - The cloud security reference diagram, redrawn in English,
+ * with the AWS services that fill each box. External users reach the
+ * private network through the CDN and the perimeter; authorized users skip
+ * the CDN; the cloud administrator comes in through access management; the
+ * private network reports to the SIEM.
+ */
+const id = "reference-map";
+---
+
+<svg
+  viewBox="0 0 760 440"
+  role="img"
+  aria-label="External users pass through a CDN (CloudFront, with WAF and Shield) and a perimeter of firewall, IDS and IPS (Network Firewall and Route 53 DNS Firewall) into a private network (VPC) split into web, app and data segments. Authorized users skip the CDN (Client VPN or Verified Access). The cloud administrator reaches the network through access management (IAM Identity Center and SCPs). The private network sends its logs to a SIEM (CloudTrail, flow logs, GuardDuty). Everything except the CDN sits in the AWS Region, on the VPC side; the CDN filters traffic at the edge first."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" class="zone">
+    Internet
+  </text>
+
+  <rect x="236" y="44" width="516" height="384" rx="14" class="boundary"></rect>
+  <text x="252" y="68" class="zone">
+    AWS Region, your VPC side
+  </text>
+
+  <!-- Authorized users: the path that skips the CDN, under its box and up
+  into the perimeter. -->
+  <path
+    d="M54,384 H316 V334"
+    class="edge dashed open"
+    marker-end={`url(#${id}-arrow)`}
+  ></path>
+
+  <!-- Users -->
+  <circle cx="40" cy="200" r="12" class="person"></circle>
+  <text x="40" y="228" class="small mid">
+    External
+  </text>
+  <text x="40" y="242" class="small mid">
+    users
+  </text>
+  <circle cx="40" cy="384" r="12" class="person"></circle>
+  <text x="40" y="412" class="small mid">
+    Authorized
+  </text>
+  <text x="40" y="426" class="small mid">
+    users
+  </text>
+  <text x="100" y="358" class="svc">
+    Client VPN or
+  </text>
+  <text x="100" y="372" class="svc">
+    Verified Access
+  </text>
+
+  <!-- CDN -->
+  <rect x="96" y="160" width="104" height="170" rx="4" class="box"></rect>
+  <text x="148" y="232" class="name mid">
+    CDN
+  </text>
+  <text x="148" y="250" class="svc mid">
+    CloudFront
+  </text>
+  <text x="148" y="268" class="svc mid">
+    WAF · Shield
+  </text>
+
+  <!-- Perimeter -->
+  <rect x="256" y="160" width="120" height="170" rx="4" class="box"></rect>
+  <text x="316" y="208" class="name mid">
+    Perimeter
+  </text>
+  <text x="316" y="226" class="small mid">
+    firewall,
+  </text>
+  <text x="316" y="240" class="small mid">
+    IDS, IPS
+  </text>
+  <text x="316" y="266" class="svc mid">
+    Network
+  </text>
+  <text x="316" y="280" class="svc mid">
+    Firewall
+  </text>
+  <text x="316" y="294" class="svc mid">
+    DNS Firewall
+  </text>
+
+  <!-- Access management: an L-shaped wall -->
+  <path
+    d="M400 96 H732 V136 H436 V330 H400 Z"
+    class="box"
+    stroke-linejoin="round"
+  ></path>
+  <text x="584" y="114" class="name mid">
+    Access management (IAM)
+  </text>
+  <text x="584" y="129" class="svc mid">
+    Identity Center · SCPs
+  </text>
+
+  <!-- Cloud administrator -->
+  <circle cx="704" cy="22" r="10" class="person"></circle>
+  <text x="686" y="26" class="small end">
+    Cloud administrator
+  </text>
+  <line
+    x1="704"
+    y1="34"
+    x2="704"
+    y2="168"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+
+  <!-- Private network -->
+  <rect x="460" y="160" width="272" height="170" rx="28" class="vpc"></rect>
+  <text x="584" y="188" class="name mid">
+    Private network (VPC)
+  </text>
+  <rect x="482" y="214" width="62" height="44" rx="4" class="segment"></rect>
+  <text x="513" y="240" class="svc mid">
+    web
+  </text>
+  <rect x="558" y="214" width="62" height="44" rx="4" class="segment"></rect>
+  <text x="589" y="240" class="svc mid">
+    app
+  </text>
+  <rect x="634" y="214" width="62" height="44" rx="4" class="segment"></rect>
+  <text x="665" y="240" class="svc mid">
+    data
+  </text>
+  <text x="596" y="290" class="small mid">
+    segmentation:
+  </text>
+  <text x="596" y="306" class="svc mid">
+    subnets · security groups
+  </text>
+
+  <!-- Request path -->
+  <line
+    x1="54"
+    y1="200"
+    x2="92"
+    y2="200"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <line
+    x1="200"
+    y1="200"
+    x2="252"
+    y2="200"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <line
+    x1="376"
+    y1="236"
+    x2="478"
+    y2="236"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+
+  <!-- SIEM -->
+  <line x1="596" y1="330" x2="596" y2="360" class="edge"></line>
+  <text x="606" y="350" class="small">
+    internal integration
+  </text>
+  <rect x="470" y="360" width="252" height="54" rx="4" class="box"></rect>
+  <text x="596" y="382" class="name mid">
+    SIEM
+  </text>
+  <text x="596" y="400" class="svc mid">
+    CloudTrail · flow logs · GuardDuty
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .zone {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .boundary {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 5;
+  }
+
+  .box,
+  .segment {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .vpc {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .person {
+    fill: var(--primary);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .small {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 11px;
+  }
+
+  .svc {
+    fill: var(--contrast);
+    font-size: 11px;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .end {
+    text-anchor: end;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .dashed {
+    stroke-dasharray: 5 4;
+  }
+
+  .open {
+    fill: none;
+  }
+</style>

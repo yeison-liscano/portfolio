@@ -1,0 +1,209 @@
+---
+/**
+ * TwoGates - The same staff member reaches the orders admin page two
+ * ways. Client VPN checks identity once, then routes packets into the
+ * app subnets, where authorization rules and security groups decide.
+ * Verified Access checks identity and the request on every request and
+ * never puts the laptop on the network. The "every request" gate
+ * carries the accent.
+ */
+const id = "two-gates";
+const w = 124;
+const xs = [16, 162, 308, 454, 600];
+---
+
+<svg
+  viewBox="0 0 760 300"
+  role="img"
+  aria-label="Two ways for order support staff to reach the orders admin page. With Client VPN, the laptop signs in once through SAML, the VPN endpoint gives it an address in 10.100.0.0/22 and routes its packets into the app subnets, where an authorization rule and a security group decide which addresses and ports it reaches, for up to eight hours. With Verified Access, the browser sends HTTPS to the admin domain, and Verified Access evaluates a Cedar policy against the user's identity and the request on every request before forwarding it to the internal load balancer. The laptop never joins the network."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <!-- Client VPN -->
+  <text x="16" y="24" class="lane">
+    AWS Client VPN: packets
+  </text>
+  <rect x={xs[0]} y="38" width={w} height="60" rx="4" class="box"></rect>
+  <text x={xs[0] + w / 2} y="64" class="name mid">
+    laptop
+  </text>
+  <text x={xs[0] + w / 2} y="82" class="sub mid">
+    VPN client
+  </text>
+
+  <rect x={xs[1]} y="38" width={w} height="60" rx="4" class="box"></rect>
+  <text x={xs[1] + w / 2} y="64" class="name mid">
+    sign in once
+  </text>
+  <text x={xs[1] + w / 2} y="82" class="sub mid">
+    SAML, Identity Center
+  </text>
+
+  <rect x={xs[2]} y="38" width={w} height="60" rx="4" class="box"></rect>
+  <text x={xs[2] + w / 2} y="64" class="name mid">
+    VPN endpoint
+  </text>
+  <text x={xs[2] + w / 2} y="82" class="mono mid">
+    10.100.0.0/22
+  </text>
+
+  <rect x={xs[3]} y="38" width={w} height="60" rx="4" class="box"></rect>
+  <text x={xs[3] + w / 2} y="60" class="name mid">
+    authorization
+  </text>
+  <text x={xs[3] + w / 2} y="76" class="name mid">
+    rule + SG
+  </text>
+  <text x={xs[3] + w / 2} y="92" class="sub mid">
+    addresses, ports
+  </text>
+
+  <rect x={xs[4]} y="38" width={w} height="60" rx="4" class="box"></rect>
+  <text x={xs[4] + w / 2} y="64" class="name mid">
+    admin page
+  </text>
+  <text x={xs[4] + w / 2} y="82" class="sub mid">
+    internal ALB
+  </text>
+
+  {[0, 1, 2, 3].map((i) => (
+    <line
+      x1={xs[i] + w}
+      y1="68"
+      x2={xs[i + 1] - 2}
+      y2="68"
+      class="edge"
+      marker-end={`url(#${id}-arrow)`}
+    />
+  ))}
+  <text x="16" y="122" class="note">
+    The laptop joins the app subnets for up to 8 hours; the rules decide which
+    packets pass.
+  </text>
+
+  <!-- Verified Access -->
+  <text x="16" y="176" class="lane">
+    AWS Verified Access: requests
+  </text>
+  <rect x={xs[0]} y="190" width={w} height="60" rx="4" class="box"></rect>
+  <text x={xs[0] + w / 2} y="216" class="name mid">
+    browser
+  </text>
+  <text x={xs[0] + w / 2} y="234" class="sub mid">
+    HTTPS
+  </text>
+
+  <rect
+    x={xs[1]}
+    y="190"
+    width={xs[3] + w - xs[1]}
+    height="60"
+    rx="4"
+    class="box accent-box"
+  ></rect>
+  <text x={(xs[1] + xs[3] + w) / 2} y="212" class="name mid accent-text">
+    Verified Access: Cedar policy on every request
+  </text>
+  <text x={(xs[1] + xs[3] + w) / 2} y="230" class="sub mid">
+    user and groups from Identity Center · method · path
+  </text>
+  <text x={(xs[1] + xs[3] + w) / 2} y="244" class="sub mid">
+    allow or deny, logged with the trust context
+  </text>
+
+  <rect x={xs[4]} y="190" width={w} height="60" rx="4" class="box"></rect>
+  <text x={xs[4] + w / 2} y="216" class="name mid">
+    admin page
+  </text>
+  <text x={xs[4] + w / 2} y="234" class="sub mid">
+    internal ALB
+  </text>
+
+  <line
+    x1={xs[0] + w}
+    y1="220"
+    x2={xs[1] - 2}
+    y2="220"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <line
+    x1={xs[3] + w}
+    y1="220"
+    x2={xs[4] - 2}
+    y2="220"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <text x="16" y="274" class="note">
+    The laptop never joins the network; each request is judged on its own.
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .lane {
+    fill: var(--muted);
+    font-size: 12px;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .accent-box {
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .sub,
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .mono {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .accent-text {
+    fill: var(--contrast);
+  }
+</style>

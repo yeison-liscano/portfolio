@@ -1,0 +1,446 @@
+---
+lang: "en"
+title: "AWS IAM for Network Administrators: The Firewall for the Control Plane Is a Policy, Not a Port"
+pubDate: 2026-11-23
+description:
+  "Every rule from the earlier posts can be undone by one API call. Write the
+  guardrails in Terraform: a service control policy that forbids new internet
+  paths and log deletion, one-hour Identity Center sessions, Session Manager
+  instead of a bastion, IMDSv2 and permission boundaries."
+summary:
+  - "Packets cross security groups; API calls cross only IAM. Anyone allowed to
+    call ec2:AuthorizeSecurityGroupIngress can undo every network rule."
+  - "An explicit deny always wins, and a service control policy can only deny.
+    The lab's guardrail SCP renders to 843 characters of the 5,120 allowed."
+  - "People get one-hour sessions from IAM Identity Center and reach instances
+    through Session Manager, which needs three VPC endpoints and no inbound
+    port."
+  - "IMDSv2 closes the SSRF path to instance credentials. Checkov and Trivy both
+    flag IMDSv1, and an SCP refuses to launch it."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import AwsNetworkSeries from "./components/aws-network-series/AwsNetworkSeries.astro";
+import ControlPlane from "./components/aws-iam-network-administrators/ControlPlane.astro";
+
+{/* cspell:ignore EleKtra Gamazo Quist IMDSv IMDSv2 IMDSv1 Adminer userid tftest Kabanov Madnick */}
+
+Keywords: AWS IAM, control plane, service control policy, IAM Identity Center,
+Session Manager, bastion host, IMDSv2, SSRF, permission boundary, Terraform
+
+In 2023, Unit 42 watched attackers use AWS access keys leaked on GitHub within
+five minutes of their publication. They created security groups and launched
+mining instances in several Regions. Not one of those calls crossed a security
+group: they all went to the
+AWS <Acronym title="Application Programming Interface">API</Acronym>. Anyone
+with the right <Acronym title="Identity and Access Management">IAM</Acronym>
+permission can undo every rule from the earlier posts, so the access-management
+box protects all the others. Which policy, then, stops a valid key from opening
+the database to the internet? This post separates the control plane from the
+data plane. Then it writes the guardrails in Terraform: service control policies
+that forbid new internet paths and log deletion, one-hour Identity Center
+sessions, Session Manager instead of a bastion, IMDSv2 and permission
+boundaries.
+
+<AwsNetworkSeries current={5} />
+
+## Packets cross security groups; administrators cross IAM
+
+The map in <InternalLink slug="aws-network-security-map">Part 1</InternalLink>
+drew the administrator's arrow through the access-management wall and nowhere
+else. The reason is the split AWS calls
+the <Term title="The APIs that create, change and delete resources, as opposed to the data plane that carries the traffic.">control plane</Term>
+and the data plane. Every packet to the orders API crosses Network Firewall, a
+network ACL and a security group. A call to `ec2:AuthorizeSecurityGroupIngress`
+crosses none of them. It is checked by IAM, and then it rewrites the security
+group that every later packet must cross.
+
+<Figure caption="A packet crosses three filters to reach the orders API. An API call crosses only IAM evaluation, then changes one of those filters.">
+  <ControlPlane />
+</Figure>
+
+MITRE ATT&CK lists this move
+as <ExternalLink href="https://attack.mitre.org/techniques/T1686/001/" preview="MITRE ATT&CK: Cloud Firewall, a sub-technique of Defense Impairment, renumbered from T1562.007 in April 2026.">T1686.001, Cloud Firewall</ExternalLink>,
+renumbered from T1562.007 in April 2026.
+The <ExternalLink href="https://unit42.paloaltonetworks.com/malicious-operations-of-exposed-iam-keys-cryptojacking/" preview="Unit 42, October 2023: the EleKtra-Leak campaign, which used AWS keys leaked on GitHub for cryptojacking.">EleKtra-Leak report</ExternalLink>
+by Unit 42 counted 474 unique miners. A firewall rule cannot stop that. An IAM
+policy can.
+
+## An explicit deny always wins, and a service control policy can only deny
+
+IAM starts from an implicit deny, and an allow in an identity policy opens one
+action.
+AWS's <ExternalLink href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic_policy-eval-denyallow.html" preview="AWS IAM User Guide: how IAM decides between allow and deny across policy types.">policy evaluation logic</ExternalLink>
+then adds the rule that makes guardrails possible: "An explicit deny overrides
+an explicit allow." A deny written once, above every account, holds against any
+allow written later in those accounts.
+
+That is the job of
+a <Term title="An AWS Organizations policy that sets the maximum permissions for the IAM users and roles of the accounts it is attached to.">service control policy</Term>
+(<Acronym title="Service Control Policy">SCP</Acronym>).
+The <ExternalLink href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html" preview="AWS Organizations User Guide: service control policies, their effect and their limits.">Organizations guide</ExternalLink>
+is precise about its limits: "SCPs do not grant permissions." They apply to
+every IAM user and role in the member accounts, including the root user, but not
+to the management account or to service-linked roles. Resource control policies,
+their newer sibling, cannot help here, because they do not support EC2 or VPC
+actions. Network guardrails are SCPs.
+
+## The guardrail SCP forbids new internet paths, log deletion and IMDSv1
+
+The lab's SCP has three statements, each against a change that would undo an
+earlier part. The first forbids new paths to the internet, the pattern from
+AWS's <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/prevent-internet-access-at-the-account-level-by-using-a-service-control-policy.html" preview="AWS Prescriptive Guidance: prevent internet access at the account level with a service control policy.">Prescriptive Guidance</ExternalLink>,
+except for one pipeline role. The second keeps the evidence that Part 7
+collects. The third refuses any instance that allows IMDSv1:
+
+```hcl
+data "aws_iam_policy_document" "network_guardrails" {
+  statement {
+    sid    = "NoNewPathsToTheInternet"
+    effect = "Deny"
+    actions = [
+      "ec2:CreateInternetGateway",
+      "ec2:AttachInternetGateway",
+      "ec2:CreateEgressOnlyInternetGateway",
+      "ec2:CreateVpcPeeringConnection",
+      "ec2:AcceptVpcPeeringConnection",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "ArnNotLike"
+      variable = "aws:PrincipalARN"
+      values   = ["arn:aws:iam::*:role/network-pipeline"]
+    }
+  }
+
+  statement {
+    sid    = "KeepTheEvidence"
+    effect = "Deny"
+    actions = [
+      "ec2:DeleteFlowLogs",
+      "cloudtrail:StopLogging",
+      "cloudtrail:DeleteTrail",
+      "cloudtrail:UpdateTrail",
+      "cloudtrail:PutEventSelectors",
+      "guardduty:DeleteDetector",
+      "guardduty:UpdateDetector",
+      "guardduty:DisassociateFromAdministratorAccount",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "OnlyIMDSv2Instances"
+    effect    = "Deny"
+    actions   = ["ec2:RunInstances"]
+    resources = ["arn:aws:ec2:*:*:instance/*"]
+
+    condition {
+      test     = "StringNotEquals"
+      variable = "ec2:MetadataHttpTokens"
+      values   = ["required"]
+    }
+  }
+}
+
+resource "aws_organizations_policy" "network_guardrails" {
+  name    = "network-guardrails"
+  type    = "SERVICE_CONTROL_POLICY"
+  content = data.aws_iam_policy_document.network_guardrails.minified_json
+}
+
+resource "aws_organizations_policy_attachment" "workloads" {
+  policy_id = aws_organizations_policy.network_guardrails.id
+  target_id = var.workloads_ou_id
+}
+```
+
+Like every lab in this series, this one plans with fake keys and never reaches
+AWS. The `aws_iam_policy_document` data source runs inside Terraform, so the
+plan holds the exact JSON that AWS would receive. Rendered from the lab's saved
+plan, the second statement reads:
+
+```json
+{
+  "Sid": "KeepTheEvidence",
+  "Effect": "Deny",
+  "Action": [
+    "guardduty:UpdateDetector",
+    "guardduty:DisassociateFromAdministratorAccount",
+    "guardduty:DeleteDetector",
+    "ec2:DeleteFlowLogs",
+    "cloudtrail:UpdateTrail",
+    "cloudtrail:StopLogging",
+    "cloudtrail:PutEventSelectors",
+    "cloudtrail:DeleteTrail"
+  ],
+  "Resource": "*"
+}
+```
+
+The whole minified policy is 843 characters.
+The <ExternalLink href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_reference_limits.html" preview="AWS Organizations User Guide: quotas, including the maximum size of a service control policy.">Organizations quotas</ExternalLink>
+allow 5,120 characters per SCP, so there is room for the next guardrail.
+
+`KeepTheEvidence` has no exception on purpose. Nobody in a workload account,
+including the pipeline, may stop the trail or delete flow logs. The trail and
+the evidence bucket therefore have to be managed from outside the
+workload <Acronym title="Organizational Unit">OU</Acronym>, in a log archive
+account. Part 7 explains why, although its lab keeps everything in one account.
+The plan proves the JSON is well formed, not that the policy behaves as
+intended. An SCP takes effect only in an organization, and the Organizations
+guide advises attaching a new one to a test OU first.
+
+## People get short sessions from Identity Center, not access keys
+
+The EleKtra-Leak keys worked because they never expired. The Well-Architected
+practice <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec02-bp02.html" preview="AWS Well-Architected SEC02-BP02: use temporary credentials.">SEC02-BP02</ExternalLink>
+rates long-term credentials for people as a high risk. IAM Identity Center
+replaces them: a person signs in and receives credentials for a role defined by
+a <Term title="An IAM Identity Center template that becomes an IAM role in each account it is assigned to.">permission set</Term>.
+The session lasts one hour by default and at most 12. The network operators get
+one hour, read access, and the right to open Session Manager sessions on the
+orders instances:
+
+```hcl
+resource "aws_ssoadmin_permission_set" "network_operator" {
+  name             = "NetworkOperator"
+  description      = "Read the network, start Session Manager sessions"
+  instance_arn     = var.sso_instance_arn
+  session_duration = "PT1H"
+}
+
+resource "aws_ssoadmin_managed_policy_attachment" "network_read" {
+  instance_arn       = var.sso_instance_arn
+  permission_set_arn = aws_ssoadmin_permission_set.network_operator.arn
+  managed_policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+}
+
+data "aws_iam_policy_document" "start_sessions" {
+  statement {
+    sid       = "SessionsOnTaggedInstances"
+    actions   = ["ssm:StartSession"]
+    resources = ["arn:aws:ec2:*:*:instance/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/project"
+      values   = ["orders"]
+    }
+  }
+
+  statement {
+    sid       = "SessionDocument"
+    actions   = ["ssm:StartSession"]
+    resources = ["arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell"]
+  }
+
+  statement {
+    sid       = "OwnSessionsOnly"
+    actions   = ["ssm:TerminateSession", "ssm:ResumeSession"]
+    resources = ["arn:aws:ssm:*:*:session/$${aws:userid}-*"]
+  }
+}
+```
+
+The `$${aws:userid}` escapes Terraform's interpolation, so AWS receives the
+policy variable `${aws:userid}` and each operator can end only their own
+sessions. Changing the network itself goes through the `network-pipeline` role
+that the SCP exempts, which means through a reviewed pull request.
+
+## Session Manager replaces the bastion if the VPC has three endpoints
+
+A bastion host is a server with port 22 open to somebody, an SSH key to rotate,
+and a public address to defend. Like the EleKtra-Leak keys, that SSH key works
+until someone rotates it.
+AWS's <ExternalLink href="https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html" preview="AWS Systems Manager User Guide: Session Manager, shell access without inbound ports or bastion hosts.">Session Manager guide</ExternalLink>
+offers shell access "without the need to open inbound ports, maintain bastion
+hosts, or manage SSH keys". The agent on the instance opens an outbound
+connection to the Systems Manager service, and the session travels inside it.
+
+The orders API has no route to the internet except through the firewall of Part
+4, which allows one payment domain. Session Manager needs
+three <ExternalLink href="https://docs.aws.amazon.com/systems-manager/latest/userguide/setup-create-vpc.html" preview="AWS Systems Manager User Guide: VPC endpoints for Systems Manager.">interface endpoints</ExternalLink>
+in the VPC instead, for `ssm`, `ssmmessages` and `ec2messages`, and the instance
+needs a role with `AmazonSSMManagedInstanceCore`:
+
+```hcl
+resource "aws_vpc_endpoint" "ssm" {
+  for_each = toset(["ssm", "ssmmessages", "ec2messages"])
+
+  vpc_id              = aws_vpc.orders.id
+  service_name        = "com.amazonaws.us-east-1.${each.key}"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = local.tier_subnet_ids["app"]
+  security_group_ids  = [aws_security_group.endpoints.id]
+  private_dns_enabled = true
+}
+
+# Instances reach the endpoints on 443.
+resource "aws_vpc_security_group_egress_rule" "api_to_endpoints" {
+  security_group_id            = aws_security_group.orders_api.id
+  referenced_security_group_id = aws_security_group.endpoints.id
+  ip_protocol                  = "tcp"
+  from_port                    = 443
+  to_port                      = 443
+  description                  = "Session Manager and AWS APIs"
+}
+```
+
+The orders API's security group gains one egress rule and no ingress rule. The
+Terraform default `vpc_endpoint_type` is `Gateway` and `private_dns_enabled`
+defaults to `false`, so both are written out.
+
+A session preferences document then records every shell session in the evidence
+bucket and closes idle sessions after 20 minutes. That recording covers shell
+sessions, not the port forwarding a database client needs. For raw TCP, the
+other option is
+an <ExternalLink href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connect-with-ec2-instance-connect-endpoint.html" preview="Amazon EC2 User Guide: EC2 Instance Connect Endpoint, an identity-aware TCP proxy to private instances.">EC2 Instance Connect Endpoint</ExternalLink>,
+an "identity-aware TCP proxy" whose connections CloudTrail also records.
+
+## IMDSv2 closes the SSRF path to instance credentials
+
+The instance role is a credential too, and
+the <Term title="The link-local HTTP service at 169.254.169.254 that gives an instance its configuration and the temporary credentials of its role.">instance metadata service</Term>
+hands it to anything that can send an HTTP request from the instance. With
+IMDSv1, a plain `GET` is enough, so
+a <Term title="Server-side request forgery: tricking a server into sending a request of the attacker's choosing, often to an internal address.">server-side request forgery</Term>
+in the application becomes a credential leak. That is the reported path in the
+Capital One breach of Part 1. In 2022,
+Mandiant <ExternalLink href="https://cloud.google.com/blog/topics/threat-intelligence/cloud-metadata-abuse-unc2903" preview="Mandiant, May 2022: UNC2903 used an SSRF in Adminer against IMDSv1 to steal AWS credentials.">described UNC2903</ExternalLink>
+doing the same through a flaw in Adminer, a database tool, and then reading S3
+buckets with the stolen role.
+
+IMDSv2 requires a session token obtained with a `PUT` request first.
+The <ExternalLink href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html" preview="Amazon EC2 User Guide: configure the instance metadata service, IMDSv2 tokens and hop limits.">metadata service guide</ExternalLink>
+adds two defenses: a `PUT` that carries an `X-Forwarded-For` header is refused,
+and a hop limit of 1 keeps the token from leaving the instance. Many SSRF flaws
+can only send a `GET`, or pass through a proxy that adds that header. The orders
+API requires tokens:
+
+```hcl
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+```
+
+The scanners agree on this one. On a copy of the lab with `http_tokens =
+"optional"`, Checkov reported one new failure, `CKV_AWS_79: "Ensure Instance
+Metadata Service Version 1 is not enabled"`, and Trivy one new `HIGH` finding,
+`AWS-0028`. IMDSv1 is the same mistake in every account, so generic rules catch
+it, unlike the open database
+of <InternalLink slug="aws-vpc-segmentation-terraform">Part 2</InternalLink>.
+Two more layers make it hard to undo: the SCP's `OnlyIMDSv2Instances` statement
+refuses the launch, and an account default makes IMDSv2 the setting for
+instances that do not choose:
+
+```hcl
+# Account default for new instances in this Region: IMDSv2 only.
+resource "aws_ec2_instance_metadata_defaults" "region" {
+  http_tokens                 = "required"
+  http_put_response_hop_limit = 1
+}
+```
+
+This last snippet validates and plans on its own (1 resource) and is not part of
+the lab.
+
+## Permission boundaries let teams create roles without escalating
+
+Teams that ship applications need to create roles, for a Lambda function or a
+new service. If they may create any role, a leaked key with that right could
+create one with `ec2:AuthorizeSecurityGroupIngress` and use it, which brings
+back the opening attack.
+A <ExternalLink href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html" preview="AWS IAM User Guide: permissions boundaries for IAM entities, and delegating role creation with them.">permissions boundary</ExternalLink>
+sets the most a role may ever do, whatever policies it later receives. The
+`iam:PermissionsBoundary` condition key makes the boundary mandatory:
+
+```hcl
+# The app team may create roles only if each role carries the boundary,
+# and may not remove or replace it afterwards.
+data "aws_iam_policy_document" "app_team" {
+  statement {
+    sid       = "CreateRolesWithTheBoundary"
+    actions   = ["iam:CreateRole", "iam:PutRolePolicy", "iam:AttachRolePolicy"]
+    resources = ["arn:aws:iam::*:role/app/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PermissionsBoundary"
+      values   = [aws_iam_policy.app_boundary.arn]
+    }
+  }
+
+  statement {
+    sid       = "KeepTheBoundary"
+    effect    = "Deny"
+    actions   = ["iam:DeleteRolePermissionsBoundary", "iam:PutRolePermissionsBoundary"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "NoBoundaryEdits"
+    effect = "Deny"
+    actions = [
+      "iam:CreatePolicyVersion",
+      "iam:DeletePolicy",
+      "iam:DeletePolicyVersion",
+      "iam:SetDefaultPolicyVersion",
+    ]
+    resources = [aws_iam_policy.app_boundary.arn]
+  }
+}
+```
+
+The boundary itself, `app_boundary`, allows the services the team uses and
+denies every action on security groups, routes, network ACLs and VPCs. The
+snippet plans on its own (2 resources) and is not part of the lab. The last
+statement matters: without it, the team could rewrite the boundary policy and
+lift its own limit.
+
+## Only the reviewed pipeline may change the network
+
+The opening question has its answer, in layers. No packet filter stops a valid
+key. The service control policy stops every key from creating a new path to the
+internet or erasing the evidence, because no allow can override its deny. A
+person's session is read-only and lasts one hour. A role an app team creates
+carries a boundary that denies every action on security groups, routes, network
+ACLs and VPCs. List the API calls that would undo your network, and check that
+each one is denied to every principal except one reviewed pipeline.
+
+## References
+
+- **Incidents:** Unit 42 (Gamazo and
+  Quist), <ExternalLink href="https://unit42.paloaltonetworks.com/malicious-operations-of-exposed-iam-keys-cryptojacking/" preview="Unit 42, October 2023.">EleKtra-Leak: cryptojacking with exposed IAM keys</ExternalLink>
+  (2023);
+  Mandiant, <ExternalLink href="https://cloud.google.com/blog/topics/threat-intelligence/cloud-metadata-abuse-unc2903" preview="Mandiant, May 2022.">Cloud metadata abuse by UNC2903</ExternalLink>
+  (2022); MITRE
+  ATT&CK, <ExternalLink href="https://attack.mitre.org/techniques/T1686/001/" preview="Cloud Firewall.">T1686.001 Cloud Firewall</ExternalLink>.
+- **IAM and Organizations:** AWS IAM User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic_policy-eval-denyallow.html" preview="Policy evaluation: explicit and implicit deny.">Explicit and implicit denies</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html" preview="Permissions boundaries.">Permissions boundaries for IAM entities</ExternalLink>;
+  AWS Organizations User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html" preview="Service control policies.">Service control policies</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_reference_limits.html" preview="Organizations quotas.">Quotas for AWS Organizations</ExternalLink>;
+  AWS Prescriptive
+  Guidance, <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/prevent-internet-access-at-the-account-level-by-using-a-service-control-policy.html" preview="Internet deny SCP pattern.">Prevent internet access at the account level by using an SCP</ExternalLink>;
+  AWS Well-Architected
+  Framework, <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec02-bp02.html" preview="Use temporary credentials.">SEC02-BP02</ExternalLink>.
+- **Access to instances:** AWS Systems Manager User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html" preview="Session Manager.">AWS Systems Manager Session Manager</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/systems-manager/latest/userguide/setup-create-vpc.html" preview="VPC endpoints for Systems Manager.">Improve the security of EC2 instances by using VPC endpoints</ExternalLink>;
+  Amazon EC2 User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connect-with-ec2-instance-connect-endpoint.html" preview="EC2 Instance Connect Endpoint.">Connect using EC2 Instance Connect Endpoint</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html" preview="Configure the instance metadata service.">Configure the instance metadata service</ExternalLink>.
+- **Terraform:**
+  HashiCorp, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/organizations_policy" preview="aws_organizations_policy documentation.">aws_organizations_policy</ExternalLink>
+  and <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssoadmin_permission_set" preview="aws_ssoadmin_permission_set documentation.">aws_ssoadmin_permission_set</ExternalLink>.

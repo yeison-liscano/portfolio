@@ -1,0 +1,251 @@
+---
+/**
+ * ControlPlane - Two lanes. Packets (data plane) cross the firewall,
+ * the network ACL and the security group before they reach the orders
+ * API. API calls (control plane) cross only IAM evaluation, then change
+ * the security group itself. The arrow where an API call rewrites the
+ * security group carries the accent.
+ */
+const id = "control-plane";
+---
+
+<svg
+  viewBox="0 0 760 300"
+  role="img"
+  aria-label="Two lanes. In the data plane, a packet from the internet crosses Network Firewall and the network ACL, then the security group, before it reaches the orders API. In the control plane, an administrator or a leaked access key calls the AWS API; the only check is IAM evaluation of the service control policy, identity policy and permission boundary. The API call then rewrites the security group that every packet must cross, and CloudTrail records the call."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <!-- Control plane -->
+  <text x="12" y="24" class="lane">
+    control plane: API calls
+  </text>
+  <rect x="12" y="40" width="128" height="64" rx="4" class="box"></rect>
+  <text x="76" y="66" class="name mid">
+    administrator
+  </text>
+  <text x="76" y="84" class="sub mid">
+    or a leaked key
+  </text>
+
+  <line
+    x1="140"
+    y1="72"
+    x2="176"
+    y2="72"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+
+  <rect x="178" y="40" width="172" height="64" rx="4" class="box gate"></rect>
+  <text x="264" y="62" class="name mid">
+    IAM evaluation
+  </text>
+  <text x="264" y="80" class="sub mid">
+    SCP · identity policy
+  </text>
+  <text x="264" y="95" class="sub mid">
+    permission boundary
+  </text>
+
+  <line
+    x1="350"
+    y1="72"
+    x2="386"
+    y2="72"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+
+  <rect x="388" y="40" width="172" height="64" rx="4" class="box"></rect>
+  <text x="474" y="66" class="name mid">
+    AWS API
+  </text>
+  <text x="474" y="84" class="mono mid">
+    AuthorizeSecurityGroup…
+  </text>
+
+  <line
+    x1="560"
+    y1="72"
+    x2="596"
+    y2="72"
+    class="edge dashed"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <rect x="598" y="40" width="150" height="64" rx="4" class="box"></rect>
+  <text x="673" y="66" class="name mid">
+    CloudTrail
+  </text>
+  <text x="673" y="84" class="sub mid">
+    records the call
+  </text>
+
+  <!-- The call rewrites the rule every packet must cross -->
+  <line
+    x1="474"
+    y1="104"
+    x2="474"
+    y2="190"
+    class="edge accent"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <text x="484" y="150" class="note accent-text">
+    changes the rules
+  </text>
+
+  <!-- Data plane -->
+  <text x="12" y="176" class="lane">
+    data plane: packets
+  </text>
+  <rect x="12" y="192" width="128" height="64" rx="4" class="box"></rect>
+  <text x="76" y="218" class="name mid">
+    packet
+  </text>
+  <text x="76" y="236" class="sub mid">
+    from the internet
+  </text>
+
+  <line
+    x1="140"
+    y1="224"
+    x2="176"
+    y2="224"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+
+  <rect x="178" y="192" width="172" height="64" rx="4" class="box"></rect>
+  <text x="264" y="218" class="name mid">
+    Network Firewall
+  </text>
+  <text x="264" y="236" class="sub mid">
+    network ACL
+  </text>
+
+  <line
+    x1="350"
+    y1="224"
+    x2="386"
+    y2="224"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+
+  <rect
+    x="388"
+    y="192"
+    width="172"
+    height="64"
+    rx="4"
+    class="box accent-box"
+  ></rect>
+  <text x="474" y="218" class="name mid">
+    security group
+  </text>
+  <text x="474" y="236" class="sub mid">
+    on the orders API
+  </text>
+
+  <line
+    x1="560"
+    y1="224"
+    x2="596"
+    y2="224"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <rect x="598" y="192" width="150" height="64" rx="4" class="box"></rect>
+  <text x="673" y="218" class="name mid">
+    orders API
+  </text>
+  <text x="673" y="236" class="mono mid">
+    10.0.2.30
+  </text>
+
+  <text x="12" y="286" class="note">
+    No packet filter sits on the control plane: IAM is its only gate.
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .lane {
+    fill: var(--muted);
+    font-size: 12px;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .gate {
+    stroke: var(--text-color);
+    stroke-width: 1.5;
+  }
+
+  .accent-box {
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .sub,
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .mono {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .dashed {
+    stroke-dasharray: 5 4;
+  }
+
+  .accent {
+    stroke: var(--contrast);
+    stroke-width: 2.5;
+  }
+
+  .accent-text {
+    fill: var(--contrast);
+  }
+</style>
