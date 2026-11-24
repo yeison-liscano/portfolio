@@ -1,0 +1,400 @@
+---
+lang: "en"
+title: "AWS Client VPN vs Verified Access: Reaching Private Apps Without Trusting the Network"
+pubDate: 2026-11-23
+description: "Order support staff need a private admin page. Build both gates in
+  Terraform: Client VPN, which signs a laptop in once and routes it into a
+  subnet, and Verified Access, which checks a Cedar policy on every request.
+  Test the policy locally, then compare logs, reach and price."
+summary:
+  - "Authorized users skip the CDN, so their path needs its own gate. A VPN
+    checks identity once and then routes packets; Verified Access checks every
+    request and never puts the laptop on the network."
+  - "Client VPN authorization rules are firewall rules keyed by group. A
+    terraform test fails when one authorizes every user instead of a group."
+  - "A Verified Access policy is Cedar. Run locally with the Cedar CLI, the
+    lab's policy allowed a GET from order support and denied a DELETE and a
+    user outside the group."
+  - "Client VPN logs connections, while Verified Access logs each decision.
+    For one web app the prices are similar; protocol support decides where Verified Access fits."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import AwsNetworkSeries from "./components/aws-network-series/AwsNetworkSeries.astro";
+import TwoGates from "./components/aws-client-vpn-verified-access/TwoGates.astro";
+
+{/* cspell:ignore Cedar cedar idc tftest OIDC Jamf JumpCloud Borchert Connelly */}
+
+Keywords: AWS Client VPN, AWS Verified Access, zero trust, Cedar, SAML, IAM
+Identity Center, remote access, authorization, Terraform
+
+Order support staff need a private admin page, and in
+the <InternalLink slug="aws-network-security-map">reference diagram</InternalLink>
+authorized users like them skip
+the <Acronym title="Content Delivery Network">CDN</Acronym> and reach the
+private network directly. That path needs its own gate.
+A <Acronym title="Virtual Private Network">VPN</Acronym> checks identity once
+and then routes the laptop into a subnet, so anything that subnet can reach
+becomes reachable. Verified Access, AWS's zero trust service, checks identity on
+every request and never puts the laptop on the network. If a support laptop is
+stolen with a live session, what can the thief reach through each gate? This
+post builds both gates for the orders admin page in Terraform and tests the
+Verified Access policy locally against allowed and denied requests. It then
+compares what each gate logs, reaches and costs.
+
+<AwsNetworkSeries current={6} />
+
+## Authorized users skip the CDN, so their path needs its own gate
+
+The orders admin page lets order support staff look up and correct orders. It is
+not for customers, so it has no place behind CloudFront and the public web ACL
+of <InternalLink slug="aws-edge-cloudfront-waf-shield">Part 3</InternalLink>.
+The lab gives it its own internal load balancer in the app subnets, with no
+public address, and a security group that admits only the two gates below. The
+load balancer forwards to the orders API on 443. Like the rest of the series,
+the lab is plan-only: Terraform plans it with fake credentials, and nothing is
+deployed.
+
+The two gates follow two models. A VPN extends the network to the laptop: after
+sign-in, the laptop has an address inside the boundary and is trusted like other
+hosts there. Zero trust drops that assumption.
+NIST's <ExternalLink href="https://csrc.nist.gov/pubs/sp/800/207/final" preview="NIST SP 800-207 (2020): Zero Trust Architecture.">SP 800-207</ExternalLink>
+defines it as assuming "there is no implicit trust granted to assets or user
+accounts based solely on their physical or network location".
+
+<Figure caption="The same staff member reaches the admin page two ways. Client VPN signs the laptop in once and routes its packets into the app subnets; Verified Access judges each request and never puts the laptop on the network.">
+  <TwoGates />
+</Figure>
+
+## A VPN authenticates once and then routes packets
+
+AWS Client VPN supports three ways to sign in: Active Directory, mutual
+certificates
+and <Acronym title="Security Assertion Markup Language">SAML</Acronym>
+federation. The lab uses SAML with IAM Identity Center, so staff sign in with
+the same identity as everywhere else. The endpoint gives each laptop an address
+from its own range, `10.100.0.0/22`, and associates with the two app subnets:
+
+```hcl
+resource "aws_ec2_client_vpn_endpoint" "staff" {
+  description            = "Order support staff"
+  server_certificate_arn = var.vpn_server_certificate_arn
+  client_cidr_block      = "10.100.0.0/22"
+  vpc_id                 = aws_vpc.orders.id
+  security_group_ids     = [aws_security_group.client_vpn.id]
+  split_tunnel           = true
+  session_timeout_hours  = 8
+  transport_protocol     = "udp"
+
+  authentication_options {
+    type              = "federated-authentication"
+    saml_provider_arn = var.vpn_saml_provider_arn
+  }
+
+  connection_log_options {
+    enabled              = true
+    cloudwatch_log_group = aws_cloudwatch_log_group.client_vpn.name
+  }
+}
+
+resource "aws_ec2_client_vpn_network_association" "staff" {
+  for_each               = toset(["app-a", "app-b"])
+  client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.staff.id
+  subnet_id              = aws_subnet.tier[each.key].id
+}
+```
+
+Two settings shape what the laptop can do. Client VPN tunnels all traffic by
+default; `split_tunnel = true` sends only the VPC's routes through the VPN, so
+the laptop's other traffic does not cross the orders network. And
+`session_timeout_hours = 8` means that a sign-in at 9:00 lasts until 17:00. For
+those eight hours, the laptop is a host in the network, whoever is typing.
+
+## Client VPN authorization rules are firewall rules keyed by group
+
+After sign-in, two layers decide what the laptop reaches.
+The <ExternalLink href="https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-working-rules.html" preview="AWS Client VPN Administrator Guide: authorization rules, which grant groups access to networks.">authorization rules guide</ExternalLink>
+says that authorization rules "act as firewall rules", and nothing is allowed
+without one. A rule names a destination range and, with SAML, a group from the
+identity provider:
+
+```hcl
+# Authorization rules are firewall rules keyed by group: order support may
+# reach the app subnets and nothing else.
+resource "aws_ec2_client_vpn_authorization_rule" "order_support" {
+  for_each               = toset(local.app_cidrs)
+  client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.staff.id
+  target_network_cidr    = each.value
+  access_group_id        = var.order_support_group_id
+  description            = "Order support reaches the app tier"
+}
+```
+
+The rule works at the level of address ranges, so order support may reach any
+address in the app subnets. The endpoint's security group narrows that to one
+destination, the admin load balancer on 443, the same
+way <InternalLink slug="aws-vpc-segmentation-terraform">Part 2</InternalLink>
+chained the workload groups.
+
+The easiest mistake is the shortcut that skips the group. A rule with
+`authorize_all_groups = true` admits every user who can sign in, including staff
+outside order support. The lab's terraform test now checks that every rule names
+a group:
+
+```hcl
+assert {
+  condition = alltrue([
+    for r in values(aws_ec2_client_vpn_authorization_rule.order_support) :
+    r.access_group_id != null && r.authorize_all_groups != true
+  ])
+  error_message = "VPN authorization rules must name a group, never every user."
+}
+```
+
+On a copy of the lab with the shortcut, it fails:
+
+```text
+Error: Test assertion failed
+  on tests/segmentation.tftest.hcl line 163, in run "segmentation":
+VPN authorization rules must name a group, never every user.
+```
+
+## Verified Access evaluates every request against a Cedar policy
+
+AWS Verified Access, generally available since April 2023, puts a decision in
+front of each request instead of a network around the user.
+Its <ExternalLink href="https://docs.aws.amazon.com/verified-access/latest/ug/how-it-works.html" preview="AWS Verified Access User Guide: how trust providers, groups, endpoints and policies fit together.">user guide</ExternalLink>
+describes the parts. A trust provider supplies claims about the user, from IAM
+Identity Center or an <Acronym title="OpenID Connect">OIDC</Acronym> provider,
+and optionally about the device, from tools such as Jamf, CrowdStrike or
+JumpCloud. A group holds a policy written
+in <Term title="An open-source policy language from AWS for writing authorization rules as permit and forbid statements over a principal, an action, a resource and a context.">Cedar</Term>.
+An endpoint connects a domain name to an application, here the internal admin
+load balancer:
+
+```hcl
+resource "aws_verifiedaccess_trust_provider" "identity_center" {
+  description              = "IAM Identity Center"
+  policy_reference_name    = "idc"
+  trust_provider_type      = "user"
+  user_trust_provider_type = "iam-identity-center"
+}
+
+resource "aws_verifiedaccess_group" "orders_admin" {
+  verifiedaccess_instance_id = aws_verifiedaccess_instance.staff.id
+  description                = "Orders admin page"
+  policy_document            = file("${path.module}/policies/orders-admin.cedar")
+
+  depends_on = [aws_verifiedaccess_instance_trust_provider_attachment.identity_center]
+}
+
+resource "aws_verifiedaccess_endpoint" "orders_admin" {
+  description              = "Orders admin page"
+  verified_access_group_id = aws_verifiedaccess_group.orders_admin.id
+  attachment_type          = "vpc"
+  endpoint_type            = "load-balancer"
+  application_domain       = var.admin_domain
+  domain_certificate_arn   = var.admin_certificate_arn
+  endpoint_domain_prefix   = "orders-admin"
+  security_group_ids       = [aws_security_group.verified_access.id]
+
+  load_balancer_options {
+    load_balancer_arn = aws_lb.admin.arn
+    port              = 443
+    protocol          = "https"
+    subnet_ids        = local.tier_subnet_ids["app"]
+  }
+}
+```
+
+The `policy_reference_name` of the trust provider, `idc`, is the name the policy
+uses for its claims. The policy itself allows order support and forbids one
+method:
+
+```text
+// Order support staff, signed in through IAM Identity Center, may use the
+// orders admin page.
+permit(principal, action, resource)
+when {
+  context.idc.user.email.verified == true &&
+  context.idc.groups has "6f4e2c1a-7b3d-4e5f-8a9b-0c1d2e3f4a5b"
+};
+
+// Nobody deletes an order through the admin page.
+forbid(principal, action, resource)
+when {
+  context has http_request &&
+  context.http_request.http_method == "DELETE"
+};
+```
+
+The group appears by its Identity Center ID, not by name, as
+the <ExternalLink href="https://docs.aws.amazon.com/verified-access/latest/ug/auth-policies.html" preview="AWS Verified Access User Guide: Verified Access policies, the context of each trust provider, and examples.">policy guide</ExternalLink>
+shows for this trust provider. In Cedar, a matching `forbid` beats any `permit`,
+so the second statement holds even for a member of order support. The `context
+has http_request` guard keeps the statement valid for endpoints that carry no
+HTTP request.
+
+## Cedar's CLI allowed Ana's read and denied the rest before deploy
+
+Terraform sends the policy to AWS as a string and does not parse it, so a typo
+would surface only at apply. Cedar's own command-line tool can do better. The
+lab wrote three request contexts by hand, in the shape the policy guide
+documents for Identity Center: Ana, in order support, sending a `GET`; Ana
+sending a `DELETE`; and Ben, in marketing, sending a `GET`. This is the context
+for Ana's `DELETE`:
+
+```json
+{
+  "idc": {
+    "user": {
+      "user_id": "f4d8b4a8-0011-7001-2f1a-5b6c7d8e9f00",
+      "user_name": "ana",
+      "email": { "address": "ana@example.com", "verified": true }
+    },
+    "groups": {
+      "6f4e2c1a-7b3d-4e5f-8a9b-0c1d2e3f4a5b": { "group_name": "order-support" }
+    }
+  },
+  "http_request": {
+    "hostname": "admin.orders.example.com",
+    "http_method": "DELETE",
+    "path": "/orders/42",
+    "port": 443
+  }
+}
+```
+
+The other two change only the method or the group. The entities file is an empty
+list, `[]`, because the policy reads only the context. Then the lab asked
+cedar-policy-cli 4.14.1 for a decision on each:
+
+```text
+$ cedar authorize --policies orders-admin.cedar --entities entities.json \
+    --principal 'User::"x"' --action 'Action::"access"' \
+    --resource 'App::"orders-admin"' --context ana-get.json --verbose
+
+ALLOW
+
+note: this decision was due to the following policies:
+  policy0
+
+$ cedar authorize ... --context ana-delete.json --verbose
+
+DENY
+
+note: this decision was due to the following policies:
+  policy1
+
+$ cedar authorize ... --context ben-get.json --verbose
+
+DENY
+
+note: no policies applied to this request
+```
+
+The three answers match the intent: the `permit` allows Ana's read, the `forbid`
+stops her delete, and Ben is denied because no policy allows him. The lab
+differs from Verified Access in one way that matters. Verified Access builds the
+context from the trust provider's real claims; the lab supplies a hand-written
+context and placeholder entities. The test proves the policy's logic, not the
+claims AWS will send. Each context file can live next to the policy and run in
+CI, like the terraform test.
+
+## Verified Access logs each decision, while a VPN logs connections
+
+Both gates write logs, and the lab configures both to go to CloudWatch. They
+answer different questions. Client VPN's connection log records who connected,
+from where, when, and for how long. It says nothing about the requests made
+during those eight hours; for those, the flow logs
+of <InternalLink slug="aws-security-logging-siem">Part 7</InternalLink> show
+addresses and ports.
+
+Verified Access logs every request with its decision. With
+`include_trust_context = true`, each entry also carries the claims the policy
+saw, so a denied `DELETE` would appear with the user and groups that sent it:
+
+```hcl
+resource "aws_verifiedaccess_instance_logging_configuration" "staff" {
+  verifiedaccess_instance_id = aws_verifiedaccess_instance.staff.id
+
+  access_logs {
+    include_trust_context = true
+
+    cloudwatch_logs {
+      enabled   = true
+      log_group = aws_cloudwatch_log_group.verified_access.name
+    }
+  }
+}
+```
+
+The AWS Security Reference
+Architecture <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/network.html" preview="AWS Security Reference Architecture: the network account, including Verified Access requirements.">network account guidance</ExternalLink>
+makes Verified Access logging a requirement.
+
+## A stolen session can do less through Verified Access
+
+The opening question has a concrete answer here. A thief with a stolen laptop
+and a live VPN session reaches the admin load balancer on 443 for the rest of
+the eight hours. Nothing at that gate checks the HTTP method, so a `DELETE`
+reaches the admin page, which must refuse it on its own. With Verified Access,
+the thief reaches only the requests the policy allows, each one logged, and a
+device trust provider could refuse an unmanaged laptop outright. Neither gate
+survives a stolen session that is still valid; Verified Access limits what the
+session can do and records it.
+
+## Protocol support, not price, limits where Verified Access fits
+
+Verified Access is not always the answer. It started with HTTP applications, and
+its support for TCP endpoints such as databases, through the AWS Verified Access
+Connectivity Client, became generally available only in February 2025. Client
+VPN carries any IP protocol.
+
+The prices differ in shape more than in size. At list prices for US East (Ohio),
+two Client VPN subnet associations cost $0.10 an hour each, about $146 a month.
+Each connection-hour adds $0.05, from
+the <ExternalLink href="https://aws.amazon.com/vpn/pricing/" preview="AWS VPN pricing: Client VPN endpoint associations and connections.">AWS VPN pricing page</ExternalLink>.
+Ten staff connected eight hours a day for 22 days add about $88. One Verified
+Access HTTP application starts at $0.27 an hour, about $197 a month, plus $0.02
+per gigabyte, according
+to <ExternalLink href="https://aws.amazon.com/verified-access/pricing/" preview="AWS Verified Access pricing: per application-hour and per GB.">Verified Access pricing</ExternalLink>.
+For the lab's one page and ten staff:
+
+| A month, US East (Ohio) | Client VPN                                  | Verified Access                            |
+| ----------------------- | ------------------------------------------- | ------------------------------------------ |
+| Fixed                   | 2 associations at $0.10 an hour: about $146 | 1 application at $0.27 an hour: about $197 |
+| Usage                   | 1,760 connection-hours at $0.05: $88        | $0.02 per GB processed                     |
+| Total                   | about $234                                  | about $197, plus data                      |
+
+For a single web page used by one team, Verified Access gives a smaller reach
+and a better log for a similar price. For many internal tools that speak several
+protocols, a VPN with narrow authorization rules is still common. Before you
+choose, ask what a stolen session could reach through each gate, and pick the
+one with the shorter answer.
+
+## References
+
+- **Zero trust:**
+  NIST, <ExternalLink href="https://csrc.nist.gov/pubs/sp/800/207/final" preview="NIST SP 800-207.">SP 800-207, Zero Trust Architecture</ExternalLink>
+  (Rose, Borchert, Mitchell and Connelly, 2020).
+- **Client VPN:** AWS Client VPN Administrator
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-working-rules.html" preview="Authorization rules.">Authorization rules</ExternalLink>;
+  AWS, <ExternalLink href="https://aws.amazon.com/vpn/pricing/" preview="AWS VPN pricing.">AWS VPN pricing</ExternalLink>.
+- **Verified Access:** AWS Verified Access User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/verified-access/latest/ug/how-it-works.html" preview="How Verified Access works.">How Verified Access works</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/verified-access/latest/ug/auth-policies.html" preview="Verified Access policies.">Verified Access policies</ExternalLink>;
+  AWS, <ExternalLink href="https://aws.amazon.com/verified-access/pricing/" preview="Verified Access pricing.">AWS Verified Access pricing</ExternalLink>;
+  AWS Prescriptive
+  Guidance, <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/network.html" preview="SRA network account.">AWS Security Reference Architecture, Network account</ExternalLink>.
+- **Cedar:** <ExternalLink href="https://docs.cedarpolicy.com/" preview="Cedar policy language documentation.">Cedar policy language reference</ExternalLink>
+  and <ExternalLink href="https://github.com/cedar-policy/cedar" preview="The Cedar repository, including the cedar-policy-cli tool.">cedar-policy/cedar</ExternalLink>.
+- **Terraform:**
+  HashiCorp, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_endpoint" preview="aws_ec2_client_vpn_endpoint documentation.">aws_ec2_client_vpn_endpoint</ExternalLink>
+  and <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/verifiedaccess_endpoint" preview="aws_verifiedaccess_endpoint documentation.">aws_verifiedaccess_endpoint</ExternalLink>.

@@ -1,0 +1,193 @@
+---
+/**
+ * FirewallPath - One HTTPS call from the orders API to its payment
+ * provider, hop by hop. Four route tables send it out through the NAT
+ * gateway, the firewall endpoint and the internet gateway; the internet
+ * gateway's edge route table sends the reply back through the same
+ * firewall endpoint. Each hop carries data-step for the Stepper.
+ */
+const id = "firewall-path";
+
+const boxes = [
+  { x: 12, title: "orders API", sub: "app-a · 10.0.2.30" },
+  { x: 166, title: "NAT gateway", sub: "public-a" },
+  { x: 320, title: "firewall endpoint", sub: "firewall-a" },
+  { x: 474, title: "internet gateway", sub: "edge route table" },
+  { x: 628, title: "payment API", sub: "on the internet" },
+];
+
+const width = 118;
+const gapCenter = (i: number) => boxes[i].x + width + 18;
+
+const outbound = [
+  { step: 1, top: "app route table", bottom: "0.0.0.0/0 → NAT" },
+  { step: 2, top: "public route table", bottom: "0.0.0.0/0 → firewall" },
+  { step: 3, top: "firewall route table", bottom: "0.0.0.0/0 → igw" },
+  { step: 4, top: "as the Elastic IP", bottom: "to the provider" },
+];
+
+const inbound = [
+  { step: 6, top: "NAT restores", bottom: "10.0.2.30" },
+  { step: 6, top: "local route", bottom: "" },
+  { step: 5, top: "igw edge route table", bottom: "10.0.0.0/24 → firewall" },
+  { step: 5, top: "reply to the", bottom: "Elastic IP" },
+];
+---
+
+<svg
+  viewBox="0 0 760 270"
+  role="img"
+  aria-label="An HTTPS call from the orders API at 10.0.2.30 to its payment provider. Outbound, the app route table sends it to the NAT gateway, the public route table sends it to the firewall endpoint, the firewall route table sends it to the internet gateway, and it leaves as the Elastic IP. The firewall sees the NAT gateway's address 10.0.0.x as the source. The reply comes back to the internet gateway, whose edge route table sends traffic for 10.0.0.0/24 to the firewall endpoint, then the local route takes it to the NAT gateway, which restores the destination 10.0.2.30."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="12" y="20" class="legend">
+    outbound, above the boxes
+  </text>
+  <text x="748" y="20" class="legend end">
+    replies, below the boxes
+  </text>
+
+  {boxes.map((box) => (
+    <g>
+      <rect x={box.x} y="110" width={width} height="56" rx="4" class="box" />
+      <text x={box.x + width / 2} y="134" class="name mid">
+        {box.title}
+      </text>
+      <text x={box.x + width / 2} y="152" class="sub mid">
+        {box.sub}
+      </text>
+    </g>
+  ))}
+
+  {outbound.map((hop, i) => (
+    <g data-step={hop.step} class="hop">
+      <line
+        x1={boxes[i].x + width}
+        y1="120"
+        x2={boxes[i + 1].x - 2}
+        y2="120"
+        class="edge"
+        marker-end={`url(#${id}-arrow)`}
+      />
+      <line
+        x1={gapCenter(i)}
+        y1="100"
+        x2={gapCenter(i)}
+        y2="118"
+        class="tick"
+      />
+      <text x={gapCenter(i)} y="74" class="route mid">
+        {hop.top}
+      </text>
+      <text x={gapCenter(i)} y="92" class="route mid mono">
+        {hop.bottom}
+      </text>
+    </g>
+  ))}
+
+  {inbound.map((hop, i) => (
+    <g data-step={hop.step} class="hop">
+      <line
+        x1={boxes[i + 1].x}
+        y1="156"
+        x2={boxes[i].x + width + 2}
+        y2="156"
+        class="edge"
+        marker-end={`url(#${id}-arrow)`}
+      />
+      <line
+        x1={gapCenter(i)}
+        y1="158"
+        x2={gapCenter(i)}
+        y2="176"
+        class="tick"
+      />
+      <text x={gapCenter(i)} y="194" class="route mid">
+        {hop.top}
+      </text>
+      <text x={gapCenter(i)} y="212" class="route mid mono">
+        {hop.bottom}
+      </text>
+    </g>
+  ))}
+
+  <g data-step="2" class="hop">
+    <text x="379" y="248" class="route mid">
+      the firewall sees the source as 10.0.0.x, the NAT gateway
+    </text>
+  </g>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .sub {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .legend {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .end {
+    text-anchor: end;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .route {
+    fill: currentColor;
+    font-size: 11px;
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .tick {
+    stroke: currentColor;
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+  }
+</style>

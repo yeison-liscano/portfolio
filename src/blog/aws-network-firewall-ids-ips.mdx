@@ -1,0 +1,498 @@
+---
+lang: "en"
+title: "AWS Network Firewall with Terraform: An IDS/IPS Inspects Only the Traffic Your Route Tables Send It"
+pubDate: 2026-11-23
+description:
+  "Put AWS Network Firewall between an orders API and the internet with
+  Terraform: the route tables that send both directions through it, Suricata
+  rules that alert and then drop, a one-domain egress allow list, DNS Firewall,
+  and a test that fails when a route goes around the firewall."
+summary:
+  - "Network Firewall sees a packet only if a route table sends it to a
+    firewall endpoint, in both directions. A route around it raises no error,
+    so the lab tests the routes."
+  - "In strict order with drop established, the policy allows what its rules
+    pass and drops the rest after the handshake, which is what lets domain
+    rules read the TLS server name."
+  - "The same Suricata rule is an IDS with alert and an IPS with drop. A rule
+    group override runs drop rules as alerts while you tune them."
+  - "Domain filtering trusts the name the client sends. Resolved IP validation
+    and DNS Firewall close the two gaps that name leaves open."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Stepper from "../components/blog/Stepper.astro";
+import Term from "../components/blog/Term.astro";
+import AwsNetworkSeries from "./components/aws-network-series/AwsNetworkSeries.astro";
+import FirewallPath from "./components/aws-network-firewall-ids-ips/FirewallPath.astro";
+
+{/* cspell:ignore suricata tftest vpce NXDOMAIN rslvr frg CIDRs OISF */}
+
+Keywords: AWS Network Firewall, IDS, IPS, Suricata, route tables, egress
+filtering, SNI, DNS Firewall, DNS tunneling, Terraform
+
+In a VPC, a firewall is not a box on a cable. AWS Network Firewall is a set of
+endpoints in dedicated subnets, and it sees a packet only if a route table sends
+the packet there, in both directions. A missing route raises no error: traffic
+flows around the firewall and the dashboard stays green. So how do you know the
+firewall saw the traffic at all? This post puts Network Firewall between the
+orders API and the internet with Terraform. The same Suricata rules first alert,
+acting as an <Acronym title="Intrusion Detection System">IDS</Acronym>, then
+drop, acting as an <Acronym title="Intrusion Prevention System">IPS</Acronym>.
+Egress is limited to the one payment provider the API calls, and DNS Firewall
+covers the queries Network Firewall cannot see. A step-through diagram shows the
+route tables that make the inspection real, and a test checks them.
+
+<AwsNetworkSeries current={4} />
+
+## Network Firewall is Suricata behind an endpoint that routes must reach
+
+AWS describes Network Firewall as a "stateful, managed, network firewall and
+intrusion detection and prevention service", and its rules use the syntax of
+Suricata, the open-source IDS and IPS engine.
+Its <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/how-it-works.html" preview="AWS Network Firewall Developer Guide: how the firewall, its endpoints and your route tables fit together.">"how it works" page</ExternalLink>
+states the condition for all of it: "To enable the firewall's protection, you
+modify your Amazon VPC route tables to send your network traffic through the
+Network Firewall firewall endpoints." The firewall does not translate addresses;
+"the original source and destination IP addresses are preserved throughout
+inspection."
+
+Each Availability Zone gets a small subnet that holds only the firewall
+endpoint, because an endpoint cannot inspect traffic inside its own subnet.
+Terraform creates the subnets and the firewall, then reads each endpoint's ID
+from the firewall's status:
+
+```hcl
+locals {
+  firewall_subnets = {
+    a = "10.0.250.0/28"
+    b = "10.0.250.16/28"
+  }
+
+  # One endpoint per zone; routes must use the endpoint in their own zone.
+  firewall_endpoint = {
+    for s in aws_networkfirewall_firewall.perimeter.firewall_status[0].sync_states :
+    trimprefix(s.availability_zone, "us-east-1") => s.attachment[0].endpoint_id
+  }
+}
+
+resource "aws_networkfirewall_firewall" "perimeter" {
+  name                = "orders-perimeter"
+  vpc_id              = aws_vpc.orders.id
+  firewall_policy_arn = aws_networkfirewall_firewall_policy.perimeter.arn
+  delete_protection   = true
+
+  dynamic "subnet_mapping" {
+    for_each = aws_subnet.firewall
+    content {
+      subnet_id = subnet_mapping.value.id
+    }
+  }
+}
+```
+
+The lab follows
+AWS's <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/arch-igw-ngw.html" preview="AWS Network Firewall Developer Guide: architecture with an internet gateway and a NAT gateway.">architecture with an internet gateway and a NAT gateway</ExternalLink>:
+the endpoints sit between the NAT gateways and the internet gateway. Four route
+tables carry one call from the orders API to its payment provider, and the
+fourth, on the internet gateway itself, brings the reply back. The lab is
+plan-only: Terraform plans it with fake credentials, and `terraform test` runs
+it against a mocked provider. Nothing was deployed, so no packet crossed this
+firewall.
+
+<Figure caption="One HTTPS call from the orders API to its payment provider. Outbound, three route tables pass it through the NAT gateway, the firewall and the internet gateway; the internet gateway's own route table sends the reply back through the same firewall endpoint.">
+  <Stepper
+    label="Route tables on the path through the firewall"
+    steps={[
+      "The orders API calls the payment provider. The app route table sends 0.0.0.0/0 to the NAT gateway in its own zone.",
+      "The NAT gateway rewrites the source to its own address in 10.0.0.0/24, and the public route table sends 0.0.0.0/0 to the firewall endpoint. From here on, the firewall sees the NAT gateway as the client.",
+      "The firewall checks the packet against its rules. The firewall subnet's route table sends 0.0.0.0/0 to the internet gateway.",
+      "The internet gateway maps the NAT gateway's address to its Elastic IP, and the packet leaves for the provider.",
+      "The reply arrives at the internet gateway. Its edge route table sends traffic for 10.0.0.0/24 to the firewall endpoint, so the firewall sees the second half of the conversation.",
+      "The local route takes the reply to the NAT gateway, which restores the orders API's address, 10.0.2.30.",
+    ]}
+  >
+    <FirewallPath />
+  </Stepper>
+</Figure>
+
+Step 2 has a consequence worth stating. Because the firewall sits after the NAT
+gateway, every packet it sees comes from the NAT gateway's address. Its rules
+can tell the VPC from the internet, but not the orders API from the checkout
+app. Placing the endpoints between the app subnets and the NAT gateway would
+keep the original addresses, at the cost of another hop for traffic that only
+needs NAT.
+
+## Ingress inspection needs a route table on the internet gateway itself
+
+Outbound traffic is easy to steer: each subnet's route table picks the next hop.
+Inbound traffic arrives at the internet gateway, which has no subnet. AWS solves
+this with
+a <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/gateway-route-tables.html" preview="AWS VPC User Guide: gateway route tables associated with an internet gateway or virtual private gateway.">gateway route table</ExternalLink>,
+a route table associated with the gateway instead of a subnet, through
+an <Term title="Associating a route table with an internet gateway or virtual private gateway, so it routes traffic as it enters the VPC.">edge association</Term>.
+Its routes name a subnet's address range and send traffic for it to a firewall
+endpoint:
+
+```hcl
+# Ingress routing: traffic arriving at the internet gateway for a public
+# subnet goes to the firewall endpoint in that subnet's zone first.
+resource "aws_route_table" "igw_edge" {
+  vpc_id = aws_vpc.orders.id
+
+  dynamic "route" {
+    for_each = local.zones
+    content {
+      cidr_block      = local.subnets["public-${route.key}"].cidr
+      vpc_endpoint_id = local.firewall_endpoint[route.key]
+    }
+  }
+}
+
+resource "aws_route_table_association" "igw_edge" {
+  gateway_id     = aws_internet_gateway.orders.id
+  route_table_id = aws_route_table.igw_edge.id
+}
+```
+
+The plan shows the routes but not where they lead. Endpoint IDs exist only after
+AWS creates the firewall, so every target is unknown at plan time:
+
+```text
+  # aws_route_table.igw_edge will be created
+  + resource "aws_route_table" "igw_edge" {
+      ...
+      + route            = [
+          + {
+              + cidr_block                 = "10.0.0.0/24"
+              + vpc_endpoint_id            = (known after apply)
+            },
+          + {
+              + cidr_block                 = "10.0.10.0/24"
+              + vpc_endpoint_id            = (known after apply)
+            },
+        ]
+```
+
+A reviewer reading this plan cannot tell whether zone a's traffic reaches zone
+a's endpoint. The next section shows how the lab checks it anyway.
+
+One path never touches this table. CloudFront reaches the load balancer
+from <InternalLink slug="aws-edge-cloudfront-waf-shield">Part 3</InternalLink>
+through a VPC origin, and the VPC origins guide says the internet gateway "is
+not used for routing traffic to origins inside the subnet". That traffic arrives
+through CloudFront's own network interfaces in the web subnets, so this firewall
+never sees it. The web ACL at the edge is that path's inspection.
+
+## AWS accepts routes that bypass the firewall; a terraform test does not
+
+Two mistakes route around a firewall, and AWS accepts both. The first is the
+route table
+from <InternalLink slug="aws-vpc-segmentation-terraform">Part 2</InternalLink>,
+still pointing at the internet gateway. Outbound traffic then skips the firewall
+completely. The second is a missing return route: the requests go through the
+firewall, but the replies come straight back to the NAT gateway. A stateful
+engine that sees only half of a conversation cannot follow it. Neither mistake
+changes the plan's summary, which still reads "Plan: 143 to add, 0 to change, 0
+to destroy."
+
+The lab's terraform test makes the endpoint IDs known. Its mock provider
+overrides the firewall's status with one fake endpoint per zone:
+
+```hcl
+  override_resource {
+    target = aws_networkfirewall_firewall.perimeter
+    values = {
+      arn = "arn:aws:network-firewall:us-east-1:111122223333:firewall/orders-perimeter"
+      firewall_status = [{
+        sync_states = [
+          { availability_zone = "us-east-1a", attachment = [{ endpoint_id = "vpce-fw-a" }] },
+          { availability_zone = "us-east-1b", attachment = [{ endpoint_id = "vpce-fw-b" }] },
+        ]
+      }]
+    }
+  }
+```
+
+With those IDs, three assertions check the routes in both directions:
+
+- Only the firewall subnets route to the internet gateway.
+- Each public subnet routes to the endpoint in its own zone.
+- The edge route table sends each public subnet's replies to that same endpoint.
+
+On a copy of the lab with the Part 2 route table, the first two fail:
+
+```text
+Error: Test assertion failed
+  on tests/segmentation.tftest.hcl line 100, in run "segmentation":
+Only the firewall subnets may route to the internet gateway.
+
+Error: Test assertion failed
+  on tests/segmentation.tftest.hcl line 108, in run "segmentation":
+Public subnets must reach the internet through the firewall endpoint in their
+zone.
+```
+
+On a copy where zone b's return route was forgotten, the third fails:
+
+```text
+Error: Test assertion failed
+  on tests/segmentation.tftest.hcl line 150, in run "segmentation":
+Replies to the NAT gateways must come back through the firewall in their zone.
+```
+
+The same idea extends inside the VPC. A route more specific than the local route
+can send traffic between two subnets through a firewall endpoint, as
+the <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/route-table-options.html" preview="AWS VPC User Guide: route table options, including routes more specific than the local route.">route table options guide</ExternalLink>
+describes. The orders lab inspects only traffic to and from the internet.
+
+## Strict order reads like a firewall: allow what you know, drop the rest
+
+Suricata's default evaluation order groups rules by action: pass first, then
+drop, reject and alert. Network Firewall also offers strict order, where rules
+run in the order you write them, and AWS recommends it. With strict order, the
+policy reads like a classic firewall: a list of rules, then a default action for
+everything else.
+
+```hcl
+resource "aws_networkfirewall_firewall_policy" "perimeter" {
+  name = "orders-perimeter"
+
+  firewall_policy {
+    # Send every packet to the stateful (Suricata) engine.
+    stateless_default_actions          = ["aws:forward_to_sfe"]
+    stateless_fragment_default_actions = ["aws:forward_to_sfe"]
+
+    stateful_engine_options {
+      rule_order = "STRICT_ORDER"
+    }
+
+    # Whatever no rule passed is dropped once the connection is set up,
+    # and logged as an alert.
+    stateful_default_actions = ["aws:drop_established", "aws:alert_established"]
+
+    stateful_rule_group_reference {
+      priority     = 10
+      resource_arn = aws_networkfirewall_rule_group.signatures.arn
+    }
+
+    stateful_rule_group_reference {
+      priority     = 20
+      resource_arn = aws_networkfirewall_rule_group.egress_domains.arn
+    }
+  }
+}
+```
+
+The default action is the subtle part.
+AWS's <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-rule-evaluation-order.html" preview="AWS Network Firewall Developer Guide: action order, strict order and the default actions.">evaluation order page</ExternalLink>
+defines "drop established" as dropping "only the packets that are in established
+connections". It "allows the layer 3 and 4 connection establishment packets that
+are needed for the upper-layer connections to be established". That matters for
+the domain rule below: the server name travels in the TLS ClientHello, after the
+TCP handshake. "Drop all" would drop the SYN before any name was visible, so no
+domain rule could ever pass a connection. "Alert established" logs what the
+default action drops, which makes the dropped traffic visible in the alert log.
+
+## A rule that alerts is an IDS; the same rule with drop is an IPS
+
+NIST defines an intrusion prevention system as one that "can detect an intrusive
+activity and also attempt to stop the activity, ideally before it reaches its
+targets". In Suricata, the difference is the first word of a rule. The lab's
+signature group has one of each:
+
+```text
+# IDS: record attempts to reach remote-admin ports from outside.
+alert tcp $EXTERNAL_NET any -> $HOME_NET [22,3389] (msg:"Inbound remote admin attempt"; flow:to_server; sid:1000001; rev:1;)
+
+# IPS: drop anything on port 443 that is not TLS, such as a tunnel or plain HTTP.
+drop tcp $HOME_NET any -> $EXTERNAL_NET 443 (msg:"Non-TLS traffic to port 443"; flow:to_server,established; app-layer-protocol:!tls; sid:1000002; rev:1;)
+```
+
+The first rule changes nothing: the NAT gateways refuse inbound connections
+anyway, and the alert records who tried. The second follows the pattern of an
+AWS <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-examples.html" preview="AWS Network Firewall Developer Guide: examples of Suricata-compatible stateful rules.">example rule</ExternalLink>
+that rejects traffic on port 22 that is not SSH.
+The <ExternalLink href="https://docs.suricata.io/en/latest/rules/app-layer.html" preview="Suricata documentation: app-layer keywords, including app-layer-protocol and its negation.">Suricata documentation</ExternalLink>
+explains why it does not break TLS during the handshake: a negated protocol
+"will not match on the 'unknown' state in the flow", which lasts until Suricata
+has identified the protocol.
+
+The plan does not parse Suricata syntax, and this lab ran no Suricata engine.
+The rules string goes to AWS as text, and AWS validates it when it creates the
+rule group. A typo there fails the apply, not the plan. The rule group's
+`capacity` is also fixed at creation, so a later change to it replaces the
+group.
+
+A new drop rule can block traffic that someone needs. A rule group reference can
+run a group's drop rules as alerts while you watch the logs. This variant of the
+policy validates and plans with the override:
+
+```hcl
+    stateful_rule_group_reference {
+      priority     = 10
+      resource_arn = aws_networkfirewall_rule_group.signatures.arn
+
+      # IDS phase: every drop rule in this group only alerts.
+      override {
+        action = "DROP_TO_ALERT"
+      }
+    }
+```
+
+The override covers only the signature group: the allow list and the policy's
+default action still drop from the first apply. Removing the override is the
+change from IDS to IPS. In a pull request, it is a five-line diff that a
+reviewer can approve after reading the alert log.
+
+## Domain filtering reads SNI and Host, which the client controls
+
+The orders API needs one name on the internet, its payment provider. Part 2's
+security group allows HTTPS to any address, a rule Trivy flagged as critical,
+because a security group cannot match names. A domain list rule group can:
+
+```hcl
+resource "aws_networkfirewall_rule_group" "egress_domains" {
+  name     = "orders-egress-domains"
+  type     = "STATEFUL"
+  capacity = 100
+
+  rule_group {
+    rules_source {
+      rules_source_list {
+        generated_rules_type = "ALLOWLIST"
+        target_types         = ["TLS_SNI", "HTTP_HOST"]
+        targets              = [var.payment_provider_domain]
+      }
+    }
+
+    stateful_rule_options {
+      rule_order = "STRICT_ORDER"
+    }
+  }
+}
+```
+
+The <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/stateful-rule-groups-domain-names.html" preview="AWS Network Firewall Developer Guide: domain list rule groups, SNI and Host matching, and HOME_NET.">domain list guide</ExternalLink>
+says how the name is read. For HTTPS, "Network Firewall uses the Server Name
+Indication (SNI) extension in the TLS handshake", and for HTTP the Host header.
+It "doesn't pause connections to do out-of-band DNS lookups" and "uses the SNI
+or host header, not the IP addresses". As
+the <InternalLink slug="firewalls-osi-layers">firewall post</InternalLink>
+showed for SNI filters in general, that name is whatever the client writes.
+Malware on the orders API could open TLS to its own server's address with the
+payment provider's name in the SNI, and the allow list would pass it.
+
+Network Firewall can check where the address came from. Resolved IP validation
+"verifies that a connection's destination IP address is one that the Amazon
+Route 53 Resolver returned in a DNS response for a domain", according to
+its <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/APIReference/API_Route53ResolvedIPValidation.html" preview="AWS Network Firewall API Reference: Route53ResolvedIPValidation, its action, expiry policy and source ranges.">API reference</ExternalLink>.
+A connection to an address the VPC never resolved fails the check, whatever name
+it claims:
+
+```hcl
+    # The client chooses the SNI. Drop connections whose destination address
+    # the VPC's resolver never returned, whatever name they claim.
+    route53_resolved_ip_validation {
+      action                      = "DROP"
+      dns_firewall_rule_group_id  = aws_route53_resolver_firewall_rule_group.dns.id
+      dns_expiry_exception_policy = "CONTINUE" # long connections outlive DNS answers
+    }
+```
+
+The DNS Firewall rule group it names decides which VPCs' answers count; the next
+section creates it. With `CONTINUE`, a connection that outlives the DNS answer
+it was opened with is not dropped for that alone.
+
+## DNS exfiltration uses the resolver, which Network Firewall cannot see
+
+The orders API resolves names through the VPC's own resolver, and that traffic
+never crosses the route tables above.
+The <ExternalLink href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-dns-firewall.html" preview="Amazon Route 53 Developer Guide: Route 53 Resolver DNS Firewall.">DNS Firewall guide</ExternalLink>
+says it directly: Network Firewall "does not have visibility into queries made
+by Route 53 VPC Resolver". As Part 2 noted, security groups and network ACLs
+cannot filter that traffic either. A program that encodes stolen data in the
+names it looks up, such as `c3RvbGVu.attacker.example`, sends it out through the
+resolver, past every control so far.
+
+Route 53 Resolver DNS Firewall filters those queries. Besides allow and block
+lists of domains, it can detect tunneling patterns. The lab blocks queries it
+classifies as DNS tunneling with high confidence and answers them with
+`NXDOMAIN`:
+
+```hcl
+resource "aws_route53_resolver_firewall_rule_group" "dns" {
+  name = "orders-dns"
+}
+
+resource "aws_route53_resolver_firewall_rule" "tunneling" {
+  name                   = "block-dns-tunneling"
+  firewall_rule_group_id = aws_route53_resolver_firewall_rule_group.dns.id
+  priority               = 100
+  action                 = "BLOCK"
+  block_response         = "NXDOMAIN"
+  dns_threat_protection  = "DNS_TUNNELING"
+  confidence_threshold   = "HIGH"
+}
+
+resource "aws_route53_resolver_firewall_rule_group_association" "dns" {
+  name                   = "orders-dns"
+  firewall_rule_group_id = aws_route53_resolver_firewall_rule_group.dns.id
+  vpc_id                 = aws_vpc.orders.id
+  priority               = 101
+}
+```
+
+The two firewalls now depend on each other. DNS Firewall decides which names the
+VPC can resolve, and Network Firewall only lets the VPC connect to addresses
+those answers returned.
+
+## Each endpoint costs about $288 a month before the first gigabyte
+
+According
+to <ExternalLink href="https://aws.amazon.com/network-firewall/pricing/" preview="AWS Network Firewall pricing: endpoint hours, data processing and the NAT gateway discount.">Network Firewall pricing</ExternalLink>,
+an endpoint in us-east-1 costs $0.395 an hour, about $288 a month, and each
+gigabyte it processes costs $0.065. Deployed, the lab's two zones would cost
+about $577 a month before any traffic. When a NAT gateway sits in the same path
+as a firewall endpoint, "standard NAT gateway per-hour and data processing usage
+charges are waived", which offsets part of it. For comparison, the web ACL in
+Part 3 costs $9 a month.
+
+The price buys the only box in the diagram that reads outbound traffic by name
+and by signature.
+
+## Routes tested in both directions make the green dashboard mean something
+
+The opening question has a two-part answer. Before deployment, the route tables
+say what the firewall will see, and the test checks those routes in both
+directions. After deployment, the firewall's alert and flow logs, which Part 7
+collects, show what it did see. Write every route that should lead through a
+firewall as a test assertion, in both directions, and the green dashboard will
+mean what it says.
+
+## References
+
+- **Network Firewall:** AWS Network Firewall Developer
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/what-is-aws-network-firewall.html" preview="What is AWS Network Firewall.">What is AWS Network Firewall?</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/how-it-works.html" preview="How the firewall works with your route tables.">How AWS Network Firewall works</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/arch-igw-ngw.html" preview="Architecture with an internet gateway and NAT gateway.">Architecture with an internet gateway and a NAT gateway</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-rule-evaluation-order.html" preview="Evaluation order and default actions.">Evaluation order for stateful rules</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-examples.html" preview="Stateful rule examples.">Examples of stateful rules</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/developerguide/stateful-rule-groups-domain-names.html" preview="Domain list rule groups.">Stateful domain list rule groups</ExternalLink>;
+  AWS Network Firewall API
+  Reference, <ExternalLink href="https://docs.aws.amazon.com/network-firewall/latest/APIReference/API_Route53ResolvedIPValidation.html" preview="Resolved IP validation.">Route53ResolvedIPValidation</ExternalLink>;
+  AWS, <ExternalLink href="https://aws.amazon.com/network-firewall/pricing/" preview="Network Firewall pricing.">AWS Network Firewall pricing</ExternalLink>.
+- **Routing:** AWS VPC User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/gateway-route-tables.html" preview="Gateway route tables.">Gateway route tables</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/route-table-options.html" preview="Route table options.">Route table options</ExternalLink>;
+  CloudFront Developer
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-vpc-origins.html" preview="VPC origins.">Restrict access with VPC origins</ExternalLink>.
+- **DNS:** Amazon Route 53 Developer
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-dns-firewall.html" preview="Route 53 Resolver DNS Firewall.">Route 53 Resolver DNS Firewall</ExternalLink>.
+- **IDS and IPS:** NIST CSRC
+  Glossary, <ExternalLink href="https://csrc.nist.gov/glossary/term/intrusion_prevention_system" preview="NIST definition of an intrusion prevention system.">intrusion prevention system</ExternalLink>;
+  OISF, <ExternalLink href="https://docs.suricata.io/en/latest/rules/app-layer.html" preview="Suricata app-layer keywords.">Suricata rules: app-layer keywords</ExternalLink>.
+- **Terraform:**
+  HashiCorp, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/networkfirewall_firewall_policy" preview="aws_networkfirewall_firewall_policy documentation.">aws_networkfirewall_firewall_policy</ExternalLink>
+  and <ExternalLink href="https://developer.hashicorp.com/terraform/language/tests/mocking" preview="Terraform test mocks and overrides.">Tests: mocks</ExternalLink>.

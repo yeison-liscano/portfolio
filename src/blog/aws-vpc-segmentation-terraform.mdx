@@ -1,0 +1,646 @@
+---
+lang: "en"
+title: "AWS VPC Segmentation in Terraform: The Open Database Two Scanners Missed"
+pubDate: 2026-11-23
+description:
+  "Build a segmented VPC for an orders API in Terraform: route tables, security
+  groups that reference each other, a stateless ACL, an emptied default group,
+  an S3 endpoint and Block Public Access. Then watch two scanners miss an open
+  database that a terraform test catches."
+summary:
+  - "A subnet is public when its route table sends traffic to an internet
+    gateway. The name, and even a public address on an instance, decide
+    nothing."
+  - "Security groups that reference other groups describe who may talk to whom
+    and survive scaling. Network ACLs add a coarse, stateless fence that must
+    allow the clients' ephemeral ports."
+  - "Defaults matter: the default security group allows traffic nobody wrote,
+    and Block Public Access overrides every route in the Region."
+  - "Checkov and Trivy flagged SSH open to the internet but not Postgres open
+    to the internet. A terraform test that states the database's one allowed
+    client caught it."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import AwsNetworkSeries from "./components/aws-network-series/AwsNetworkSeries.astro";
+import TierRoutes from "./components/aws-vpc-segmentation-terraform/TierRoutes.astro";
+
+{/* cspell:ignore tftest Checkov checkov Trivy trivy i5o8icxg */}
+
+Keywords: AWS VPC, network segmentation, subnet, route table, security group,
+network ACL, VPC endpoint, Block Public Access, Terraform, terraform test
+
+The orders database should answer the orders API and nothing else. In AWS that
+one sentence depends on four settings. Three belong to the database: its
+subnet's route table, its network interface's security group and its subnet's
+network <Acronym title="Access Control List">ACL</Acronym>. The fourth covers
+the Region: whether internet traffic may enter any VPC at all. Get one wrong and
+the database faces the internet, where attackers do not wait. In a 2021 honeypot
+study by Palo Alto Networks' Unit 42, one attacker compromised 96% of 80 exposed
+Postgres honeypots within 30 seconds. This post builds the private network for
+the orders API in Terraform and shows which setting controls each path. It then
+checks the result before deployment with a plan, two scanners and a test, and
+the scanners miss the mistake that matters most here. Nothing is deployed: the
+lab runs `terraform plan` with fake credentials, the scanners read the code, and
+the test uses a mocked provider.
+
+<AwsNetworkSeries current={2} />
+
+## A subnet is public only if its route table points at an internet gateway
+
+AWS has no "public" switch on a subnet.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html" preview="AWS VPC User Guide: how an internet gateway gives a subnet internet access, and what makes a subnet public.">internet gateway documentation</ExternalLink>
+states the rule: "If a subnet is associated with a route table that has a route
+to an internet gateway, it's known as a public subnet."
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html" preview="AWS VPC User Guide: subnet types are decided by routing.">subnet guide</ExternalLink>
+defines every other type, from private to isolated, by its routes as well.
+
+The rule cuts both ways. A subnet named `private` becomes public the moment
+someone adds a route to the internet gateway. And an instance with a public
+address still cannot talk to the internet from a subnet without that route: such
+instances "can't communicate with the internet, even if they have public IP
+addresses". Addresses and routes are separate decisions, and Terraform keeps the
+first one off by default: `map_public_ip_on_launch` defaults to `false`.
+
+Two details catch people coming from a default VPC. AWS creates
+a <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html" preview="AWS VPC User Guide: the default VPC, its public default subnets and internet gateway.">default VPC</ExternalLink>
+in each Region with an internet gateway, a `0.0.0.0/0` route and public
+addresses for new instances, so anything launched there is public unless someone
+changes it. A VPC you create has none of those. And IPv6 is routed separately: a
+route for `0.0.0.0/0` does not cover `::/0`, and outbound-only IPv6 uses an
+egress-only internet gateway instead of a NAT gateway. The orders VPC uses IPv4
+only.
+
+## Each tier gets its own route table, and the main table routes nowhere
+
+The orders VPC uses the addresses from the earlier posts. The checkout app at
+`10.0.1.20` lives in a web tier, and the orders API at `10.0.2.30` in an app
+tier. The database, which sat at `10.0.2.40` in the API's subnet in
+the <InternalLink slug="firewalls-osi-layers">firewall post</InternalLink>,
+moves to a data tier of its own. A public tier holds only the NAT gateways. Each
+tier has a subnet in two Availability Zones, because an internal load balancer
+needs two:
+
+```hcl
+locals {
+  zones = toset(["a", "b"])
+
+  subnets = {
+    public-a = { cidr = "10.0.0.0/24", zone = "a", tier = "public" }
+    public-b = { cidr = "10.0.10.0/24", zone = "b", tier = "public" }
+    web-a    = { cidr = "10.0.1.0/24", zone = "a", tier = "web" }
+    web-b    = { cidr = "10.0.11.0/24", zone = "b", tier = "web" }
+    app-a    = { cidr = "10.0.2.0/24", zone = "a", tier = "app" }
+    app-b    = { cidr = "10.0.12.0/24", zone = "b", tier = "app" }
+    data-a   = { cidr = "10.0.3.0/24", zone = "a", tier = "data" }
+    data-b   = { cidr = "10.0.13.0/24", zone = "b", tier = "data" }
+  }
+}
+
+resource "aws_vpc" "orders" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+}
+
+resource "aws_subnet" "tier" {
+  for_each = local.subnets
+
+  vpc_id                  = aws_vpc.orders.id
+  cidr_block              = each.value.cidr
+  availability_zone       = "us-east-1${each.value.zone}"
+  map_public_ip_on_launch = false
+
+  tags = { Name = each.key, tier = each.value.tier }
+}
+```
+
+Each tier then gets the routes its job needs. The public tier reaches the
+internet gateway. The app tier must call a payment provider, so it reaches the
+internet through
+a <Term title="A managed AWS service that lets instances in private subnets open connections to the internet while refusing connections that start outside.">NAT gateway</Term>,
+where "external services can't initiate a connection", in the words of
+the <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html" preview="AWS VPC User Guide: NAT gateways allow outbound connections and refuse inbound ones.">NAT gateway guide</ExternalLink>.
+The web tier needs no route out at all: Part 3 lets CloudFront reach its load
+balancer from inside the VPC. The data tier needs nothing but
+the <Term title="The route every VPC route table has for the VPC's own address range; it lets subnets of the same VPC reach each other.">local route</Term>:
+
+```hcl
+# The main route table keeps only the local route. A subnet that nobody
+# associates with a table lands here and reaches nothing outside the VPC.
+resource "aws_default_route_table" "main" {
+  default_route_table_id = aws_vpc.orders.default_route_table_id
+  route                  = []
+}
+
+# Public tier: the only tables with a route to the internet gateway.
+resource "aws_route_table" "public" {
+  for_each = local.zones
+  vpc_id   = aws_vpc.orders.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.orders.id
+  }
+}
+
+# App tier: outbound only, through the NAT gateway in the same zone.
+resource "aws_route_table" "app" {
+  for_each = local.zones
+  vpc_id   = aws_vpc.orders.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.egress[each.key].id
+  }
+}
+
+# Web and data tiers: no route out of the VPC at all.
+resource "aws_route_table" "isolated" {
+  for_each = toset(["web", "data"])
+  vpc_id   = aws_vpc.orders.id
+  route    = []
+}
+```
+
+The empty `route = []` is deliberate. For these resources, Terraform reads a
+missing `route` argument as "ignore whatever routes exist", while an empty list
+means "remove any route that is not written here". The main route table matters
+because a subnet with no explicit association uses it.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/subnet-route-tables.html" preview="AWS VPC User Guide: main and custom route tables, the local route, and why to leave the main table in its default state.">route table guide</ExternalLink>
+recommends exactly this: "leave the main route table in its original default
+state", and associate every subnet with a custom table explicitly. A forgotten
+association then fails closed.
+
+<Figure caption="Each tier's route table decides whether it can leave the VPC. Only the public tier reaches the internet gateway, the app tier leaves through a NAT gateway, and the data tier has no way out at all.">
+  <TierRoutes />
+</Figure>
+
+Routes decide which networks a packet can reach. They say nothing about which
+machine inside the VPC may talk to which, because the local route connects every
+subnet of the VPC to every other. That job belongs to security groups.
+
+## Security groups decide which interface may talk to which, by reference
+
+A <Term title="A stateful set of allow rules attached to a network interface; AWS evaluates all of its rules before deciding.">security group</Term>
+is attached to a network interface, holds only allow rules and is stateful:
+replies to an allowed connection return without a rule. Its strongest feature is
+that a rule can name another security group instead of an address. Such a rule
+allows "the private IP addresses of the network interfaces" that use the
+referenced group, according to
+the <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html" preview="AWS VPC User Guide: security group rules, referencing, defaults and rule counting.">security group rules guide</ExternalLink>,
+and it counts as one rule however many interfaces join that group.
+The <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec05-bp02.html" preview="AWS Well-Architected SEC05-BP02: control traffic flow within your network layers.">Well-Architected Framework</ExternalLink>
+recommends references "so rules stay stable as resources come and go".
+
+The orders VPC chains four groups: the load balancer may reach the checkout app
+on 8443, the checkout app may reach the orders API on 443, and the orders API
+may reach the database on 5432. Each hop is a pair of rules, one egress and one
+ingress:
+
+```hcl
+resource "aws_vpc_security_group_egress_rule" "api_to_db" {
+  security_group_id            = aws_security_group.orders_api.id
+  referenced_security_group_id = aws_security_group.db.id
+  ip_protocol                  = "tcp"
+  from_port                    = 5432
+  to_port                      = 5432
+  description                  = "Queries to the orders database"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "db_from_api" {
+  security_group_id            = aws_security_group.db.id
+  referenced_security_group_id = aws_security_group.orders_api.id
+  ip_protocol                  = "tcp"
+  from_port                    = 5432
+  to_port                      = 5432
+  description                  = "Queries from the orders API only"
+}
+```
+
+Remember `db_from_api`. The last section changes this one rule, and neither
+scanner notices.
+
+The rules are separate resources on purpose.
+HashiCorp's <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group" preview="Terraform AWS provider: aws_security_group, with the note recommending separate rule resources.">documentation for `aws_security_group`</ExternalLink>
+calls `aws_vpc_security_group_ingress_rule` and its egress twin "the current
+best practice". Inline rules "struggle with managing multiple CIDR blocks", and
+mixing both styles "may cause rule conflicts, perpetual differences, and result
+in rules being overwritten". One more Terraform detail: when it creates a
+security group, it removes the allow-all egress rule that AWS adds by default.
+The database group therefore has no egress rule at all, and needs none, because
+its replies travel on the API's connections.
+
+One rule names an address range instead of a group. The orders API must reach
+its payment provider on 443, and a security group only understands addresses:
+
+```hcl
+resource "aws_vpc_security_group_egress_rule" "api_to_payments" {
+  security_group_id = aws_security_group.orders_api.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
+  description       = "HTTPS out; names filtered by Network Firewall"
+}
+```
+
+The payment provider's addresses can change without notice, so the rule allows
+443 to any address and leaves the choice of name to the firewall in Part 4.
+Trivy flags this rule as critical, and it is right that a security group cannot
+do better. The rule is a known gap with a named owner, not an oversight.
+
+## Network ACLs are a stateless second fence, and ephemeral ports trip them
+
+A network ACL guards a whole subnet.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/infrastructure-security.html" preview="AWS VPC User Guide: infrastructure security, with the security group versus network ACL comparison.">VPC infrastructure security page</ExternalLink>
+compares the two controls:
+
+| Property       | Security group                   | Network ACL                           |
+| -------------- | -------------------------------- | ------------------------------------- |
+| Scope          | A network interface              | A subnet                              |
+| Rules          | Allow only                       | Allow and deny                        |
+| Evaluation     | All rules, then a decision       | In number order; the first match wins |
+| Return traffic | Allowed automatically (stateful) | Needs its own rule (stateless)        |
+
+AWS's advice is to use security groups "as the primary mechanism" and network
+ACLs for "stateless, coarse-grain network control". A network ACL is also a
+fallback "in case an instance is ever launched without the correct security
+group". The orders VPC puts one around the data tier and repeats the security
+group's rule in coarse form: 5432 from the app subnets, nothing else.
+
+Because the ACL keeps no state, the database's replies need an outbound rule,
+and the replies go to whatever source port the client picked.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/custom-network-acl.html" preview="AWS VPC User Guide: custom network ACLs, example rules and ephemeral port ranges by client.">custom network ACL guide</ExternalLink>
+lists the ranges: Linux kernels use 32768 to 61000, Windows Server 2008 and
+later 49152 to 65535, and Elastic Load Balancing, NAT gateways and Lambda 1024
+to 65535. An outbound rule written for the orders API's Linux range would work
+until a Lambda function queried the database and waited forever for replies sent
+to port 2000. AWS suggests allowing 1024 to 65535 and placing any deny rules
+before it:
+
+```hcl
+resource "aws_network_acl" "data" {
+  vpc_id     = aws_vpc.orders.id
+  subnet_ids = local.tier_subnet_ids["data"]
+}
+
+resource "aws_network_acl_rule" "data_in_postgres" {
+  for_each = { for i, cidr in local.app_cidrs : i => cidr }
+
+  network_acl_id = aws_network_acl.data.id
+  rule_number    = 100 + each.key
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = each.value
+  from_port      = 5432
+  to_port        = 5432
+}
+
+# Replies go back to the client's ephemeral port. Stateless rules must
+# allow the whole range the clients may pick.
+resource "aws_network_acl_rule" "data_out_replies" {
+  for_each = { for i, cidr in local.app_cidrs : i => cidr }
+
+  network_acl_id = aws_network_acl.data.id
+  rule_number    = 100 + each.key
+  egress         = true
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = each.value
+  from_port      = 1024
+  to_port        = 65535
+}
+```
+
+The two controls also behave differently when a rule changes. Removing a
+security group rule does not cut connections that are already tracked,
+the <ExternalLink href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-connection-tracking.html" preview="Amazon EC2 User Guide: how security groups track connections, and which flows are untracked.">connection tracking guide</ExternalLink>
+explains, while a network ACL change applies to the next packet. During an
+incident, the ACL is the faster way to cut a live session. Network ACLs are
+evaluated only when traffic enters or leaves a subnet, never between two hosts
+in the same subnet, and neither control can filter traffic to the VPC's DNS
+resolver or the instance metadata service. Parts 4 and 5 handle those.
+
+## The default security group allows traffic nobody wrote, so empty it
+
+Every VPC comes with a default security group that cannot be deleted. According
+to
+the <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/default-security-group.html" preview="AWS VPC User Guide: the default security group's rules, and why it cannot be deleted.">default security group page</ExternalLink>,
+its rules allow all inbound traffic from other members of the same group and all
+outbound traffic, and any resource launched without a group gets it. Two
+forgotten instances in the default group can talk to each other on every port.
+
+Terraform can adopt the group instead of creating one.
+`aws_default_security_group` removes every rule it finds and keeps only the
+rules written in the configuration. Written with no rules, it leaves the group
+allowing nothing:
+
+```hcl
+# Adopt the default security group and leave it with no rules, so anything
+# launched without a group gets no traffic at all.
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.orders.id
+}
+```
+
+Security Hub reports a default group that allows traffic as control EC2.2. The
+default network ACL is different: it allows everything, and the orders VPC
+leaves it that way for the tiers whose security groups do the work. Adopting it
+with no rules would cut every subnet that has no custom ACL.
+
+## Gateway endpoints keep S3 traffic inside the VPC, and policies narrow it
+
+The orders API reads build artifacts from S3. Without an endpoint, those
+requests would leave through the NAT gateway. A gateway endpoint adds a route
+for S3's address ranges to the app route tables, costs nothing, and carries an
+endpoint policy. The default policy allows full access.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html" preview="AWS PrivateLink guide: endpoint policies, their default and how they combine with other policies.">endpoint policy guide</ExternalLink>
+warns that a policy "does not override or replace identity-based policies or
+resource-based policies": it only adds a limit on what passes through the
+endpoint. The orders endpoint allows two actions on one bucket:
+
+```hcl
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.orders.id
+  service_name      = "com.amazonaws.us-east-1.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [for rt in aws_route_table.app : rt.id]
+  policy            = data.aws_iam_policy_document.s3_endpoint.json
+}
+
+data "aws_iam_policy_document" "s3_endpoint" {
+  statement {
+    sid       = "OnlyOrdersBuckets"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["arn:aws:s3:::orders-artifacts-111122223333/*"]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+  }
+}
+```
+
+The other direction matters more for stolen credentials. A bucket policy can
+refuse every request that does not arrive through this endpoint, using the
+`aws:SourceVpce` condition. Credentials copied off an instance then fail from
+anywhere else, the
+case <InternalLink slug="aws-network-security-map">Part 1</InternalLink> raised
+about Capital One:
+
+```hcl
+data "aws_iam_policy_document" "artifacts" {
+  statement {
+    sid       = "OnlyThroughTheVpcEndpoint"
+    effect    = "Deny"
+    actions   = ["s3:*"]
+    resources = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    condition {
+      test     = "StringNotEquals"
+      variable = "aws:SourceVpce"
+      values   = [aws_vpc_endpoint.s3.id]
+    }
+
+    condition {
+      test     = "ArnNotLike"
+      variable = "aws:PrincipalArn"
+      values   = ["arn:aws:iam::*:role/network-pipeline"]
+    }
+  }
+}
+```
+
+The second condition keeps one deployment role able to manage the bucket from
+outside the VPC. Without such an exception, a deny on `s3:*` would also lock out
+the pipeline that applies this very policy.
+
+## Block Public Access overrides every route you write
+
+Route tables are per subnet, and anyone allowed to edit one can open a path. VPC
+Block Public Access (BPA), launched in November 2024, sets the answer for a
+whole Region. According to
+the <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/security-vpc-bpa-basics.html" preview="AWS VPC User Guide: what VPC Block Public Access blocks and what it leaves alone.">BPA basics page</ExternalLink>,
+it "supersedes any other setting". In ingress-only mode it blocks traffic from
+the internet into every VPC in the Region but lets NAT gateways keep their
+outbound connections:
+
+```hcl
+resource "aws_vpc_block_public_access_options" "region" {
+  internet_gateway_block_mode = "block-ingress"
+}
+
+# BPA also blocks CloudFront VPC origins (Part 3) and Network Firewall
+# (Part 4) unless their subnets are excluded.
+resource "aws_vpc_block_public_access_exclusion" "edge_and_firewall" {
+  for_each = {
+    web-a      = aws_subnet.tier["web-a"].id
+    web-b      = aws_subnet.tier["web-b"].id
+    firewall-a = aws_subnet.firewall["a"].id
+    firewall-b = aws_subnet.firewall["b"].id
+  }
+
+  subnet_id                       = each.value
+  internet_gateway_exclusion_mode = "allow-bidirectional"
+}
+```
+
+The exclusions are the surprise. The same page lists CloudFront VPC origins
+among the services BPA blocks, and Network Firewall too, unless the subnets that
+hold the firewall endpoints are excluded. Turning BPA on after Parts 3 and 4
+would take the shop offline. It leaves private connectivity alone: transit
+gateways, Site-to-Site and Client VPN, and Verified Access keep working. This
+lab uses the widest exclusion mode for both subnet pairs; after deployment, the
+`reject-reason` field of the flow logs shows whether a narrower mode would do.
+
+## Segmentation between VPCs is a routing decision
+
+Subnets are a weak boundary. The Well-Architected
+practice <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec05-bp01.html" preview="AWS Well-Architected SEC05-BP01: create network layers; subnets, VPCs and accounts as boundaries of increasing strength.">SEC05-BP01</ExternalLink>
+ranks them: subnets "share the same account boundary and routing domain",
+separate VPCs give "stronger separation and independent routing", and separate
+accounts give "the strongest boundary". It rates putting "all resources in a
+single VPC or subnet" as a high-risk anti-pattern. NSA and CISA list "lack of
+network segmentation" fourth among the ten most common misconfigurations in
+advisory <ExternalLink href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-278a" preview="NSA and CISA, October 2023: the ten most common cybersecurity misconfigurations, with network segmentation at number four.">AA23-278A</ExternalLink>,
+and recommend separate VPCs for essential cloud systems.
+
+Between VPCs, a transit gateway is the usual hub, and its route tables decide
+which VPC may reach which. The Terraform defaults make the network flat: every
+attachment joins one default route table and propagates its routes into it. In
+AWS's <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-isolated.html" preview="AWS Transit Gateway guide: isolated VPCs, where attachments share a route table that has no routes between them.">isolated VPCs example</ExternalLink>,
+packets between VPCs are "blocked because there is no route". Getting there in
+Terraform starts by turning the defaults off:
+
+```hcl
+resource "aws_ec2_transit_gateway" "hub" {
+  description = "Hub for the organization's VPCs"
+
+  # The defaults put every attachment in one shared route table: a flat network.
+  default_route_table_association = "disable"
+  default_route_table_propagation = "disable"
+}
+
+resource "aws_ec2_transit_gateway_route_table" "prod" {
+  transit_gateway_id = aws_ec2_transit_gateway.hub.id
+}
+
+resource "aws_ec2_transit_gateway_vpc_attachment" "prod" {
+  transit_gateway_id = aws_ec2_transit_gateway.hub.id
+  vpc_id             = var.prod_vpc_id
+  subnet_ids         = var.prod_attachment_subnets
+
+  transit_gateway_default_route_table_association = false
+  transit_gateway_default_route_table_propagation = false
+}
+```
+
+Each attachment is then associated with one route table on purpose, and gets
+routes only to the VPCs it needs. This snippet plans on its own (4 resources)
+but is not part of the orders lab, which has a single VPC.
+
+## Write each path as a test, because scanners only know common ports
+
+With every setting in place, the lab plans without errors. Plans prove that
+Terraform and the AWS provider accept the configuration, not that AWS would, and
+not that it is right. Scanners compare it with generic rules, so they were the
+next check. Checkov 3.3.26 reported 319 passed and 44 failed checks on the full
+lab, mostly missing encryption keys, access logs and RDS resilience settings.
+None of them was about who may talk to whom. Trivy 0.76.2 reported 23 findings.
+
+Then one line changed. The database's ingress rule stopped naming the orders
+API's group and allowed `0.0.0.0/0` on 5432 instead, a plausible shortcut during
+a late-night migration. Both scanners returned exactly the same results as
+before: 44 Checkov failures and 23 Trivy findings, none of them about the
+database. Adding a second rule that opened SSH to the internet produced one new
+finding in each, Checkov's `CKV_AWS_24` and Trivy's `AWS-0107`:
+
+```text
+Check: CKV_AWS_24: "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22"
+	FAILED for resource: aws_vpc_security_group_ingress_rule.api_ssh_anywhere
+	File: /security_groups.tf:102-109
+```
+
+The scanners know SSH and RDP, the ports every network has. They do not know
+that this network has a database and who its one client is. After deployment,
+Security Hub's control EC2.19 would flag 5432 open to the internet, but by then
+the database is already exposed.
+
+A `terraform test` file can hold the rules only this network has. Terraform's
+test framework runs the configuration against
+a <Term title="A stand-in for a real Terraform provider that returns generated values instead of calling the cloud, so tests run without credentials.">mocked provider</Term>,
+so it needs no credentials, and each `assert` states one path:
+
+```hcl
+run "segmentation" {
+  command = apply # against the mock provider, not AWS
+
+  assert {
+    condition     = length(aws_route_table.isolated["data"].route) == 0
+    error_message = "The data tier must have no route out of the VPC."
+  }
+
+  assert {
+    condition = (
+      aws_vpc_security_group_ingress_rule.db_from_api.referenced_security_group_id
+      == aws_security_group.orders_api.id
+    )
+    error_message = "The database must admit the orders API's group, and only by reference."
+  }
+
+  assert {
+    condition = (
+      length(aws_default_security_group.default.ingress) == 0 &&
+      length(aws_default_security_group.default.egress) == 0
+    )
+    error_message = "The default security group must allow nothing."
+  }
+}
+```
+
+The full test file also asserts later parts, such as the firewall routes of Part
+4, so it passes only on the lab as the series leaves it. On a copy of that lab
+with the open database, it fails, and the message names the broken promise:
+
+```text
+$ terraform test
+tests/segmentation.tftest.hcl... in progress
+  run "segmentation"... fail
+
+Error: Test assertion failed
+
+  on tests/segmentation.tftest.hcl line 116, in run "segmentation":
+ 116:     condition = (
+ 117:       aws_vpc_security_group_ingress_rule.db_from_api.referenced_security_group_id
+ 118:       == aws_security_group.orders_api.id
+ 119:     )
+    ├────────────────
+    │ aws_security_group.orders_api.id is "i5o8icxg"
+    │ aws_vpc_security_group_ingress_rule.db_from_api.referenced_security_group_id is null
+
+The database must admit the orders API's group, and only by reference.
+...
+Failure! 0 passed, 1 failed.
+```
+
+A mocked test checks the configuration's intent, not AWS's behavior. After
+deployment, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/reachability/how-reachability-analyzer-works.html" preview="AWS: how Reachability Analyzer builds a model of the network configuration and finds or rules out a path.">Reachability Analyzer</ExternalLink>
+answers the same kind of question against the real configuration. It builds "a
+model of the network configuration" and "does not send packets", and it names
+the component that blocks a path, for $0.10 per analysis. The lab declares one
+path, from the internet gateway to the orders API on port 443, whose expected
+answer is "not reachable".
+
+The opening sentence, "the orders database should answer the orders API and
+nothing else", is now three facts the configuration must keep. The data tier has
+no route out of the VPC. One security group reference lets the orders API in.
+The default group allows nothing. The network ACL and Block Public Access remain
+backstops that the test does not assert. Write the paths of your own network as
+`assert` blocks and run them on every pull request. A generic scanner will catch
+the generic mistakes. Only your tests know which database is yours.
+
+## References
+
+- **Subnets and routing:** AWS VPC User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html" preview="Internet gateways and public subnets.">Enable internet access using an internet gateway</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html" preview="Subnet types.">Subnets for your VPC</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/subnet-route-tables.html" preview="Subnet route tables.">Subnet route tables</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html" preview="NAT gateways.">NAT gateways</ExternalLink>.
+- **Security groups and ACLs:** AWS VPC User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/infrastructure-security.html" preview="Security groups versus network ACLs.">Infrastructure security in Amazon VPC</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html" preview="Security group rules.">Security group rules</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/default-security-group.html" preview="Default security groups.">Default security groups</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/custom-network-acl.html" preview="Custom network ACLs and ephemeral ports.">Custom network ACLs</ExternalLink>;
+  Amazon EC2 User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-connection-tracking.html" preview="Security group connection tracking.">Security group connection tracking</ExternalLink>.
+- **Endpoints and Block Public Access:** AWS PrivateLink
+  guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html" preview="Endpoint policies.">Control access to VPC endpoints using endpoint policies</ExternalLink>;
+  AWS VPC User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/security-vpc-bpa-basics.html" preview="What BPA blocks.">VPC BPA basics</ExternalLink>.
+- **Segmentation guidance:** AWS Well-Architected Framework (November
+  2026), <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec05-bp01.html" preview="Create network layers.">SEC05-BP01</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec05-bp02.html" preview="Control traffic flow within network layers.">SEC05-BP02</ExternalLink>;
+  AWS Transit Gateway
+  guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-isolated.html" preview="Isolated VPCs.">Example: isolated VPCs</ExternalLink>;
+  NSA and
+  CISA, <ExternalLink href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-278a" preview="Top ten cybersecurity misconfigurations (2023).">AA23-278A</ExternalLink>
+  (2023); Palo Alto Networks Unit
+  42, <ExternalLink href="https://unit42.paloaltonetworks.com/exposed-services-public-clouds/" preview="Unit 42, November 2021: honeypots running exposed services in public clouds and how fast they were compromised.">Observing Attacks Against Hundreds of Exposed Services in Public Clouds</ExternalLink>
+  (2021).
+- **Terraform and checks:**
+  HashiCorp, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table" preview="aws_route_table documentation, including how an empty route list removes routes.">aws_route_table</ExternalLink>, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group" preview="aws_security_group documentation.">aws_security_group</ExternalLink>, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_security_group" preview="aws_default_security_group documentation.">aws_default_security_group</ExternalLink>
+  and <ExternalLink href="https://developer.hashicorp.com/terraform/language/tests/mocking" preview="Terraform test mocks: mock providers, mock resources and overrides.">Tests: mocks</ExternalLink>;
+  AWS, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/reachability/how-reachability-analyzer-works.html" preview="How Reachability Analyzer works.">How Reachability Analyzer works</ExternalLink>;
+  AWS Security
+  Hub, <ExternalLink href="https://docs.aws.amazon.com/securityhub/latest/userguide/ec2-controls.html" preview="Security Hub CSPM controls for Amazon EC2, including EC2.2 and EC2.19.">Security Hub CSPM controls for Amazon EC2</ExternalLink>; <ExternalLink href="https://www.checkov.io/" preview="Checkov: static analysis for infrastructure as code.">Checkov</ExternalLink>
+  and <ExternalLink href="https://trivy.dev/" preview="Trivy: a security scanner for containers, code and infrastructure as code.">Trivy</ExternalLink>.

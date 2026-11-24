@@ -1,0 +1,319 @@
+---
+lang: "en"
+title: "AWS Network Security Map with Terraform: A Box on the Diagram Is Not a Control"
+pubDate: 2026-11-23
+description:
+  "A common cloud security diagram draws a CDN, a perimeter firewall, access
+  management, a segmented network and a SIEM. Map each box to AWS services,
+  see what AWS secures and what you configure, and set up a Terraform lab that
+  plans 143 resources without an AWS account."
+summary:
+  - "Each box of the reference diagram answers one question, and AWS has a
+    service for it: CloudFront, WAF and Network Firewall, IAM, the VPC, and
+    CloudTrail with GuardDuty."
+  - "AWS secures the network the boxes run on. Every rule inside the boxes,
+    from a route to a security group, is the customer's configuration."
+  - "Capital One had the WAF box in 2019. The court record says the intrusion
+    occurred through that firewall's misconfiguration."
+  - "Terraform turns each box into a plan that can be reviewed, tested and
+    scanned before anything exists, which is how this series checks its code."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import AwsNetworkSeries from "./components/aws-network-series/AwsNetworkSeries.astro";
+import ReferenceMap from "./components/aws-network-series/ReferenceMap.astro";
+
+{/* cspell:ignore Krebs ModSecurity Madnick Kabanov tfvars tftest */}
+
+Keywords: cloud security, AWS, network security, shared responsibility,
+reference architecture, Terraform, infrastructure as code, Capital One
+
+A common slide on cloud security shows
+a <Acronym title="Content Delivery Network">CDN</Acronym>, a perimeter firewall
+with intrusion detection and prevention, an access-management wall, a private
+network split into segments, and
+a <Acronym title="Security Information and Event Management">SIEM</Acronym>. In
+2019 Capital One had a web application firewall in front of its AWS workloads.
+The U.S. Department of Justice still describes the intrusion that exposed the
+data of about 106 million people as one that "occurred through a misconfigured
+web application firewall". A box on a diagram is a promise. Its configuration is
+the control. This post maps each box to the AWS services that fill it and
+separates what AWS secures from what you configure. It also sets up the
+Terraform lab that the next six posts build, one box at a time.
+
+<AwsNetworkSeries current={1} />
+
+## The diagram draws five boxes and three ways in
+
+<Figure caption="The reference diagram, redrawn in English, with the AWS services that fill each box in this series highlighted. Only the CDN sits at the edge, before traffic reaches the VPC.">
+  <ReferenceMap />
+</Figure>
+
+The diagram reads from left to right. External users cross a CDN, then a
+perimeter that holds a firewall,
+an <Acronym title="Intrusion Detection System">IDS</Acronym> and
+an <Acronym title="Intrusion Prevention System">IPS</Acronym>. Then they cross
+an access-management wall into a private network, where segments separate the
+workloads. Authorized users take a second path that skips the CDN. A cloud
+administrator comes in from above, through access management only. The private
+network sends its records to a SIEM through an internal integration. In the
+original drawing, clouds mark the external network and the cloud provider's
+perimeter and network. The redraw keeps one dashed line around the AWS Region
+where the <Acronym title="Virtual Private Cloud">VPC</Acronym> runs; the CDN
+sits at the edge, before traffic reaches it.
+
+The drawing raises three questions that the series answers. Why do authorized
+users skip the CDN, and what stops them at the perimeter instead? Why does the
+administrator's arrow never cross the perimeter at all? And when the database
+answers someone on the internet, which box failed?
+
+## AWS secures the network the boxes run on; every box is yours
+
+AWS describes the split as security "of" the cloud and security "in" the cloud.
+In
+its <ExternalLink href="https://aws.amazon.com/compliance/shared-responsibility-model/" preview="AWS's description of what AWS secures and what the customer secures, by service type.">shared responsibility model</ExternalLink>,
+AWS protects "the infrastructure that runs all of the services offered in the
+AWS Cloud". For a virtual machine
+on <Acronym title="Amazon Elastic Compute Cloud">EC2</Acronym>, the customer
+handles, among other things, "the configuration of the AWS-provided firewall
+(called a security group) on each instance".
+
+The current Well-Architected Framework is more direct. It lists "Service and
+Communications Protection or Zone Security" among the controls the customer
+alone owns, with an example: "PCI-DSS requirements mandate network segmentation.
+Customers must implement network segmentation". That sentence is in
+the <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec-shared-responsibility.html" preview="AWS Well-Architected Framework (November 2026): inherited, shared and customer-specific controls.">framework's page on the shared responsibility model</ExternalLink>.
+
+So AWS runs the cables, the hypervisors, the internet gateway and the firewall
+engine. You decide what the boxes contain: which subnet routes where, which port
+a security group opens, which requests the web application firewall blocks,
+which role may change any of it, and which logs exist. A few protections are on
+without any configuration, such as Shield Standard and CloudTrail's 90-day event
+history. A few defaults work against you: Part 2 shows that the default security
+group allows traffic nobody wrote.
+
+The administrator's arrow answers the second question. An administrator does not
+change the network by sending packets to it. They call the
+AWS <Acronym title="Application Programming Interface">API</Acronym>, which AWS
+calls
+the <Term title="The part of a cloud service that creates, changes and deletes resources through API calls, as opposed to the data plane that carries the traffic.">control plane</Term>.
+An <ExternalLink href="https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/control-planes-and-data-planes.html" preview="AWS whitepaper on fault isolation: control-plane APIs create and change resources; the data plane is the running service.">AWS whitepaper</ExternalLink>
+gives the example: launching an instance is a control-plane call, and the
+running instance is the data plane. Firewalls filter the data plane. Only access
+management stands between an administrator and the control plane, which is why
+the diagram draws that arrow through the wall and nowhere else.
+
+## Each box answers one question, and AWS has a service for it
+
+A firewall can only enforce a rule about the fields it reads, as
+the <InternalLink slug="firewalls-osi-layers">post on firewalls by OSI layer</InternalLink>
+argued. The same test sorts the AWS services: write the question each box must
+answer, then pick the service that can read what the question names.
+
+| Box               | The question it answers                                      | AWS services in this series                                            | Part |
+| ----------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- | ---- |
+| CDN               | Can the edge absorb and filter traffic before the origin?    | CloudFront, Shield Standard, AWS WAF                                   | 3    |
+| Perimeter         | Which packets and requests may cross into or out of the VPC? | AWS Network Firewall (Suricata IDS and IPS), Route 53 DNS Firewall     | 4    |
+| Access management | Who may change the network, and who may reach the instances? | IAM Identity Center, service control policies, Session Manager, IMDSv2 | 5    |
+| Authorized users  | How do staff reach a private app without the public edge?    | AWS Client VPN, AWS Verified Access                                    | 6    |
+| Private network   | Which network interface may talk to which?                   | VPC, subnets, route tables, security groups, network ACLs, endpoints   | 2    |
+| SIEM              | What happened, when, and who did it?                         | CloudTrail, VPC Flow Logs, GuardDuty, Security Hub                     | 7    |
+
+The table places AWS <Acronym title="Web Application Firewall">WAF</Acronym> at
+the CDN, not at the perimeter. For a site behind CloudFront, that is where it
+runs: a web ACL with the `CLOUDFRONT` scope inspects requests at the edge,
+before they reach the VPC. The diagram's perimeter then holds the layers that
+WAF cannot read, from <Acronym title="Internet Protocol">IP</Acronym> addresses
+and ports to <Acronym title="Domain Name System">DNS</Acronym> queries.
+
+Some boxes need several services, and some services serve several boxes.
+Security groups appear in every part, because every other control ends at a
+network interface that one of them guards.
+
+## Capital One had the WAF box; its configuration decided the outcome
+
+The best-documented cloud breach shows why a box is not a control.
+The <ExternalLink href="https://www.justice.gov/usao-wdwa/united-states-v-paige-thompson" preview="U.S. Attorney's Office, Western District of Washington: the case page for United States v. Paige Thompson.">Justice Department's case page</ExternalLink>
+states that "the intrusion occurred through a misconfigured web application
+firewall that enabled access to the data", and that a GitHub user alerted
+Capital One on July 17, 2019. The bank's regulator,
+the <Acronym title="Office of the Comptroller of the Currency">OCC</Acronym>, <ExternalLink href="https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html" preview="OCC news release 2020-101: an $80 million civil money penalty against Capital One for cloud risk management failures.">fined it $80 million</ExternalLink>
+in 2020 for "failure to establish effective risk assessment processes prior to
+migrating significant information technology operations to the public cloud
+environment".
+
+The technical path comes from reporting, not from the court record. Brian
+Krebs <ExternalLink href="https://krebsonsecurity.com/2019/08/what-we-can-learn-from-the-capital-one-hack/" preview="KrebsOnSecurity, August 2019: a source describes an SSRF attack through a misconfigured ModSecurity WAF that reached the EC2 metadata service.">reported</ExternalLink>,
+citing a source, that the attacker used
+a <Term title="Server-side request forgery: tricking a server into sending a request of the attacker's choosing, often to an internal address it can reach and the attacker cannot.">server-side request forgery</Term>
+through a misconfigured ModSecurity firewall. The forged request reached the EC2
+instance metadata service and returned the credentials of the firewall's role.
+That role, he wrote, had too many permissions. Amazon told him the cause was the
+firewall's misconfiguration, "not the underlying infrastructure". Krebs counted
+about 100 million affected people in the U.S. and 6 million in Canada.
+
+Read against the diagram, that reported path crosses four boxes:
+
+- **Perimeter.** The firewall existed. Its configuration let a request reach an
+  internal address.
+- **Access management.** The credentials it exposed belonged to a role that
+  could list and read far more than a firewall needs. Part 5 removes the
+  metadata path with IMDSv2 and caps such roles with policies.
+- **Private network.** Stolen credentials work from anywhere unless a policy
+  ties them to the network they belong to. Part 2 writes such a policy for an S3
+  endpoint.
+- **SIEM.** The alert came from outside, through an email. Part 7 turns on the
+  logs and the detections that could have raised it from inside.
+
+No single box would have been enough, and every box was a configuration
+question. That is the reason to keep the configuration where it can be read,
+reviewed and tested.
+
+## Terraform turns each box into a plan you can review before it exists
+
+The Well-Architected
+practice <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec05-bp04.html" preview="AWS Well-Architected SEC05-BP04: define network protection as code and detect drift.">SEC05-BP04, "Automate network protection"</ExternalLink>,
+asks for network protection defined as code, with drift detection. Terraform
+does that: each box becomes a file, each change becomes a diff in a pull
+request, and `terraform plan` shows what AWS would create before it creates it.
+
+This series checks its code without an AWS account. The provider block below
+uses fake keys and skips every account lookup, so Terraform builds the full plan
+and never calls AWS. To deploy the lab, delete the five lines after the comment
+and use real credentials.
+
+```hcl
+terraform {
+  required_version = ">= 1.10"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.73"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+
+  # Plan-only lab: fake keys and no account lookups, so nothing reaches AWS.
+  # Remove these five lines and use your own credentials to apply.
+  access_key                  = "plan-only"
+  secret_key                  = "plan-only"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
+
+  default_tags {
+    tags = {
+      project    = "orders"
+      managed-by = "terraform"
+    }
+  }
+}
+```
+
+The lab is one Terraform root module with a file per box. With Terraform 1.17.1
+and version 6.73.0 of the AWS provider, the complete lab, as the last part
+leaves it, plans 143 resources:
+
+```text
+$ terraform plan -out=plan.out
+...
+  # aws_subnet.tier["data-a"] will be created
+  + resource "aws_subnet" "tier" {
+      + availability_zone       = "us-east-1a"
+      + cidr_block              = "10.0.3.0/24"
+      + map_public_ip_on_launch = false
+      + tags                    = {
+          + "Name" = "data-a"
+          + "tier" = "data"
+        }
+      + vpc_id                  = (known after apply)
+      ...
+    }
+
+Plan: 143 to add, 0 to change, 0 to destroy.
+```
+
+| File                                           | Box               | Part |
+| ---------------------------------------------- | ----------------- | ---- |
+| `network.tf`, `security_groups.tf`, `nacls.tf` | Private network   | 2    |
+| `compute.tf`                                   | The workloads     | 2    |
+| `edge.tf`                                      | CDN               | 3    |
+| `firewall.tf`, `policies/signatures.rules`     | Perimeter         | 4    |
+| `access.tf`                                    | Access management | 5    |
+| `users.tf`, `policies/orders-admin.cedar`      | Authorized users  | 6    |
+| `logging.tf`                                   | SIEM              | 7    |
+| `tests/segmentation.tftest.hcl`                | All of them       | 2    |
+
+A plan is evidence about the configuration, not about the running network. AWS
+checks some things only when it creates a resource: whether a certificate
+exists, whether a Suricata rule parses, whether a quota allows one more
+endpoint. Where a post's claim depends on such a check, the post says so.
+
+Two more tools read the plan before AWS does. Scanners such as Checkov and Trivy
+compare the code with generic rules, such as "no SSH from anywhere". `terraform
+test` checks it against your own rules, such as "the database admits only the
+orders API". Part 2 shows a change that both scanners miss and the test catches.
+
+## Following one request through the boxes answers the three questions
+
+The workload is the orders API from
+the <InternalLink slug="osi-layers-one-request">OSI post</InternalLink>, moved
+to AWS. A customer buys from `shop.example.com`, and each part adds the box that
+request, or a neighbor of it, crosses:
+
+1. **Part 2, private network.** The checkout app at `10.0.1.20`, the orders API
+   at `10.0.2.30` and the database in `10.0.3.0/24` get their own subnets, and
+   each subnet gets the routes it needs and no more.
+2. **Part 3, CDN.** CloudFront and WAF answer the customer. The load balancer
+   behind them has no public address.
+3. **Part 4, perimeter.** The orders API calls its payment provider through a
+   firewall that alerts, then drops, and allows one domain.
+4. **Part 5, access management.** Administrators get one-hour sessions, and
+   service control policies forbid the changes that would undo parts 2 to 4.
+5. **Part 6, authorized users.** Order support staff reach a private admin page
+   through a VPN or through a check on every request.
+6. **Part 7, SIEM.** Every layer leaves evidence in an account the workload
+   cannot change, and two detections run on it.
+
+The three questions now have short answers. Authorized users skip the CDN
+because the page they need is not public, and a gate made for staff replaces it.
+The administrator's arrow avoids the perimeter because administrators work
+through the control plane, where only access management can stop them. And when
+the database answers the internet, look first in the private network box: a
+route, a security group, or both. Part 2 tests that box before anything exists.
+
+Before you draw a box on a cloud diagram, write the question it must answer and
+the test that proves it does. A box with no test behind it is only a promise.
+
+## References
+
+- **Shared responsibility:**
+  AWS, <ExternalLink href="https://aws.amazon.com/compliance/shared-responsibility-model/" preview="AWS's shared responsibility model page.">Shared Responsibility Model</ExternalLink>;
+  AWS Well-Architected Framework (November
+  2026), <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec-shared-responsibility.html" preview="Inherited, shared and customer-specific controls.">The shared responsibility model for security</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/wellarchitected/latest/framework/sec05-bp04.html" preview="Network protection as code, with drift detection.">SEC05-BP04 Automate network protection</ExternalLink>;
+  AWS, <ExternalLink href="https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/control-planes-and-data-planes.html" preview="Control planes and data planes, with EC2 examples.">Control planes and data planes</ExternalLink>.
+- **Reference architecture:** AWS Prescriptive
+  Guidance, <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/network.html" preview="The AWS Security Reference Architecture's network account: edge, inspection and access services.">AWS Security Reference Architecture, Network account</ExternalLink>.
+- **Capital One:** U.S. Attorney's Office, Western District of
+  Washington, <ExternalLink href="https://www.justice.gov/usao-wdwa/united-states-v-paige-thompson" preview="Case page for United States v. Paige Thompson.">United States v. Paige Thompson</ExternalLink>;
+  OCC, <ExternalLink href="https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html" preview="OCC news release 2020-101 (August 2020).">News Release 2020-101</ExternalLink>
+  (2020);
+  Krebs, <ExternalLink href="https://krebsonsecurity.com/2019/08/what-we-can-learn-from-the-capital-one-hack/" preview="KrebsOnSecurity, August 2, 2019.">"What We Can Learn from the Capital One Hack"</ExternalLink>
+  and <ExternalLink href="https://krebsonsecurity.com/2019/07/capital-one-data-theft-impacts-106m-people/" preview="KrebsOnSecurity, July 30, 2019.">"Capital One Data Theft Impacts 106M People"</ExternalLink>
+  (2019); Khan, Kabanov, Madnick and
+  Hua, <ExternalLink href="https://dspace.mit.edu/handle/1721.1/146397" preview="ACM Transactions on Privacy and Security, 2023: a systematic analysis of the breach.">"A Systematic Analysis of the Capital One Data Breach"</ExternalLink>
+  (ACM TOPS, 2023).
+- **Tools:**
+  HashiCorp, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs" preview="Terraform Registry documentation for the hashicorp/aws provider.">AWS provider documentation</ExternalLink>
+  and <ExternalLink href="https://developer.hashicorp.com/terraform/language/tests" preview="Terraform's test framework: run blocks, assertions and mocked providers.">Terraform tests</ExternalLink>.

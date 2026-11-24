@@ -1,0 +1,234 @@
+---
+/**
+ * SideDoor - Three ways to make the load balancer answer only CloudFront,
+ * tested against three senders: your distribution, an attacker's
+ * distribution, and a direct request. The prefix list admits the
+ * attacker's distribution; that arrow carries the accent.
+ */
+const id = "side-door";
+
+type Outcome = "pass" | "stop" | "leak";
+
+const panels: {
+  title: string;
+  barrier: string;
+  outcomes: [Outcome, Outcome, Outcome];
+  stops: [string, string, string];
+}[] = [
+  {
+    title: "Secret header",
+    barrier: "listener rule",
+    outcomes: ["pass", "stop", "stop"],
+    stops: ["", "403", "403"],
+  },
+  {
+    title: "Prefix list",
+    barrier: "security group",
+    outcomes: ["pass", "leak", "stop"],
+    stops: ["", "", "dropped"],
+  },
+  {
+    title: "VPC origin",
+    barrier: "no public address",
+    outcomes: ["pass", "stop", "stop"],
+    stops: ["", "no access", "no route"],
+  },
+];
+
+const senders = [
+  ["your", "CloudFront"],
+  ["attacker's", "CloudFront"],
+  ["direct", "request"],
+];
+
+const senderY = [60, 120, 180];
+const albY = [116, 136, 156];
+const panelX = [8, 258, 508];
+---
+
+<svg
+  viewBox="0 0 760 290"
+  role="img"
+  aria-label="Three ways to lock a load balancer to CloudFront, each tested with three senders. Secret header: your distribution passes; an attacker's distribution and a direct request get a 403 from the listener rule, unless the secret leaks. Prefix list: your distribution passes, an attacker's distribution also passes because the list holds every distribution's addresses, and a direct request is dropped by the security group. VPC origin: only your distribution passes; an attacker's distribution cannot use your VPC origin, and a direct request finds no public address."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  {panels.map((panel, p) => {
+    const x = panelX[p];
+    const barrierX = x + 156;
+    return (
+      <g>
+        <rect x={x} y="8" width="244" height="262" rx="6" class="panel" />
+        <text x={x + 12} y="30" class="title">
+          {panel.title}
+        </text>
+
+        <line x1={barrierX} y1="44" x2={barrierX} y2="222" class="barrier" />
+        <text x={barrierX} y="240" class="note mid">
+          {panel.barrier}
+        </text>
+
+        <rect x={x + 184} y="104" width="52" height="64" rx="4" class="box" />
+        <text x={x + 210} y="140" class="name mid">
+          ALB
+        </text>
+
+        {senders.map((label, s) => {
+          const y = senderY[s];
+          const cy = y + 18;
+          const outcome = panel.outcomes[s];
+          return (
+            <g>
+              <rect
+                x={x + 10}
+                y={y}
+                width="80"
+                height="36"
+                rx="4"
+                class="box"
+              />
+              <text x={x + 50} y={y + 15} class="small mid">
+                {label[0]}
+              </text>
+              <text x={x + 50} y={y + 29} class="small mid">
+                {label[1]}
+              </text>
+              {outcome === "stop" ? (
+                <g>
+                  <line
+                    x1={x + 90}
+                    y1={cy}
+                    x2={barrierX - 4}
+                    y2={cy}
+                    class="edge muted-edge"
+                  />
+                  <text x={barrierX} y={cy + 4} class="cross mid">
+                    ✕
+                  </text>
+                  <text x={barrierX - 6} y={cy - 6} class="stop">
+                    {panel.stops[s]}
+                  </text>
+                </g>
+              ) : (
+                <line
+                  x1={x + 90}
+                  y1={cy}
+                  x2={x + 182}
+                  y2={albY[s]}
+                  class={outcome === "leak" ? "edge leak" : "edge"}
+                  marker-end={`url(#${id}-arrow)`}
+                />
+              )}
+            </g>
+          );
+        })}
+      </g>
+    );
+  })}
+
+  <text x="20" y="262" class="note">
+    unless the secret leaks
+  </text>
+  <text x="270" y="262" class="note accent-text">
+    every distribution's addresses
+  </text>
+  <text x="520" y="262" class="note">
+    only this account's origins
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 640px;
+    color: var(--text-color);
+    font-family: var(--font-sans);
+  }
+
+  .panel {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .title {
+    fill: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .small {
+    fill: var(--text-color);
+    font-size: 11px;
+  }
+
+  .note {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .stop {
+    fill: var(--muted);
+    font-size: 10px;
+    text-anchor: end;
+  }
+
+  .cross {
+    fill: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .barrier {
+    stroke: var(--text-color);
+    stroke-width: 2;
+    stroke-dasharray: 4 3;
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .muted-edge {
+    stroke: var(--muted);
+  }
+
+  .leak {
+    stroke: var(--contrast);
+    stroke-width: 2.5;
+  }
+
+  .accent-text {
+    fill: var(--contrast);
+  }
+</style>

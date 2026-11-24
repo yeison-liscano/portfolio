@@ -1,0 +1,554 @@
+---
+lang: "en"
+title: "CloudFront, AWS WAF and Shield with Terraform: The Edge Protects the Origin Only if the Origin Refuses Everyone Else"
+pubDate: 2026-11-23
+description:
+  "Put CloudFront, AWS WAF and Shield in front of an orders shop with Terraform:
+  TLS at the edge, managed rules in count mode, a rate limit, and three ways to
+  stop requests that skip the edge. The most common one admits every CloudFront
+  distribution, including an attacker's."
+summary:
+  - "CloudFront drops malformed and slow connections at the edge, and AWS WAF
+    for CloudFront runs in us-east-1. New managed rules belong in count mode
+    until the logs show what they would block."
+  - "WAF inspects only the first 16 KB of a body on CloudFront by default and
+    lets the rest pass. Rate-based rules estimate rates and can take minutes to
+    react."
+  - "A security group that admits CloudFront's managed prefix list admits every
+    distribution in every account. On 2026-11-23 that list held 52 IPv4
+    ranges."
+  - "VPC origins put the load balancer in a private subnet, where only this
+    account's distributions can reach it, and a terraform test keeps it there."
+tags: ["security", "networking"]
+isDraft: true
+---
+
+import Acronym from "../components/blog/Acronym.astro";
+import ExternalLink from "../components/blog/ExternalLink.astro";
+import Figure from "../components/blog/Figure.astro";
+import InternalLink from "../components/blog/InternalLink.astro";
+import Term from "../components/blog/Term.astro";
+import AwsNetworkSeries from "./components/aws-network-series/AwsNetworkSeries.astro";
+import SideDoor from "./components/aws-edge-cloudfront-waf-shield/SideDoor.astro";
+
+{/* cspell:ignore Slowloris tftest CLOUDFRONT ACLs */}
+
+Keywords: Amazon CloudFront, AWS WAF, AWS Shield, CDN, web application firewall,
+DDoS, origin protection, VPC origins, managed prefix list, Terraform
+
+CloudFront ends <Acronym title="Transport Layer Security">TLS</Acronym> at the
+edge, drops malformed connections and absorbs floods before they reach the
+shop's checkout load balancer.
+AWS <Acronym title="Web Application Firewall">WAF</Acronym> reads each request
+there, and Shield Standard is already on. An attacker who finds the load
+balancer's own address skips all three. The most common fix, a security group
+that admits CloudFront's address list, admits every CloudFront distribution,
+including one the attacker creates. So who, besides your own distribution, can
+reach the load balancer? This post puts the edge in front of the orders shop
+with Terraform, then compares three ways to close that side door: a secret
+header, the managed prefix list and VPC origins.
+
+<AwsNetworkSeries current={3} />
+
+## The edge ends TLS and drops malformed traffic before the origin sees it
+
+In the reference diagram
+from <InternalLink slug="aws-network-security-map">Part 1</InternalLink>,
+the <Acronym title="Content Delivery Network">CDN</Acronym> box stands before
+the VPC for a reason: it absorbs what should never reach the network at all.
+AWS's <ExternalLink href="https://docs.aws.amazon.com/whitepapers/latest/aws-best-practices-ddos-resiliency/cloudfront.html" preview="AWS whitepaper on DDoS resiliency: how CloudFront validates connections and absorbs attacks at the edge.">DDoS resiliency whitepaper</ExternalLink>
+describes the checks: "Each request must establish a proper TCP or UDP (for QUIC
+and HTTP/3) session, complete a TLS handshake (for HTTPS), and provide a
+well-formed HTTP gRPC request." CloudFront also "automatically closes
+connections from slow reading or slow writing attackers (for example,
+Slowloris), or novel attacks such as HTTP/2 rapid reset". Floods at the network
+and transport layers get "automatic, always-on mitigation" at every edge
+location.
+
+Those checks need no configuration, but TLS does. In Terraform,
+`minimum_protocol_version` defaults to `TLSv1`, and the default
+`*.cloudfront.net` certificate forces it. The AWS Security Reference
+Architecture's <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/network.html" preview="AWS Security Reference Architecture: requirements for the network account, edge services and inspection.">network account guidance</ExternalLink>
+asks for TLS 1.2 or later at the edge. The shop's distribution therefore uses
+its own certificate and the `TLSv1.2_2021` policy:
+
+```hcl
+resource "aws_cloudfront_distribution" "shop" {
+  enabled         = true
+  aliases         = [var.shop_domain]
+  web_acl_id      = aws_wafv2_web_acl.edge.arn
+  http_version    = "http2and3"
+  is_ipv6_enabled = true
+
+  origin {
+    origin_id   = "checkout-alb"
+    domain_name = aws_lb.checkout.dns_name
+
+    vpc_origin_config {
+      vpc_origin_id = aws_cloudfront_vpc_origin.checkout.id
+    }
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "checkout-alb"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods         = ["GET", "HEAD"]
+
+    # AWS managed policies: CachingDisabled and AllViewerExceptHostHeader.
+    cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+  }
+
+  viewer_certificate {
+    acm_certificate_arn      = var.edge_certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+}
+```
+
+The checkout pages are dynamic, so the cache is off and the origin receives
+every viewer header except `Host`. The `origin` block points at a VPC origin,
+the third lockdown below. The certificate for a CloudFront alias must come
+from <Acronym title="AWS Certificate Manager">ACM</Acronym> in us-east-1,
+whatever Region holds the load balancer.
+
+Every control in the next four sections sits on this distribution. A request
+that reaches the load balancer without passing through it meets none of them.
+
+## A WAF for CloudFront lives in us-east-1, and new rules start in count mode
+
+AWS WAF evaluates rules in
+a <Term title="The AWS WAF resource that holds an ordered list of rules and a default action; the console now calls it a protection pack.">web ACL</Term>.
+A web ACL for CloudFront must have the scope `CLOUDFRONT` and live in us-east-1.
+In version 6 of the Terraform AWS provider, a stack in another Region can set
+`region = "us-east-1"` on the web ACL alone. The lab's provider is already in
+us-east-1, as the plan shows:
+
+```text
+  # aws_wafv2_web_acl.edge will be created
+  + resource "aws_wafv2_web_acl" "edge" {
+      ...
+      + name                        = "orders-edge"
+      + region                      = "us-east-1"
+      + scope                       = "CLOUDFRONT"
+```
+
+The distribution takes the web
+ACL's <Acronym title="Amazon Resource Name">ARN</Acronym> in `web_acl_id`. The
+`aws_wafv2_web_acl_association` resource is for Regional resources, such as a
+load balancer, and does not apply here.
+
+The web ACL holds four rules. Three are AWS managed rule groups from
+the <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-baseline.html" preview="AWS WAF Developer Guide: baseline managed rule groups, their rules and their capacity units.">baseline set</ExternalLink>:
+the Amazon IP reputation list, known bad inputs such as Log4j exploit strings,
+and the core rule set. The core rule set covers common attacks such as
+cross-site scripting and requests for the EC2 metadata service. A managed group
+can block legitimate traffic it was never tuned for, so
+AWS's <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-testing.html" preview="AWS WAF Developer Guide: testing and tuning protections, starting in count mode.">testing guide</ExternalLink>
+says to "test and tune the rules in count mode with your production traffic
+before enabling them". In Terraform, `override_action { count {} }` does that
+for a whole group:
+
+```hcl
+  # New rules start in count mode: they label and log, but block nothing,
+  # until the logs show which legitimate requests they would stop.
+  rule {
+    name     = "core-rule-set"
+    priority = 2
+
+    override_action {
+      count {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesCommonRuleSet"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "core-rule-set"
+      sampled_requests_enabled   = true
+    }
+  }
+```
+
+Count mode only helps if someone reads the result, so the web ACL logs to a
+CloudWatch log group. Its name must start with `aws-waf-logs-`, and for
+CloudFront it must be in us-east-1 as well. The cost is small but not
+zero: <ExternalLink href="https://aws.amazon.com/waf/pricing/" preview="AWS WAF pricing: per web ACL, per rule and per million requests.">AWS WAF pricing</ExternalLink>
+is $5 per web ACL and $1 per rule each month, plus $0.60 per million requests.
+This web ACL costs $9 a month before traffic.
+
+## WAF inspects the first 16 KB of a body and lets the rest through
+
+A web application firewall can only judge the bytes it reads.
+The <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/waf-oversize-request-components.html" preview="AWS WAF Developer Guide: body and header inspection limits, and how oversize components are handled.">oversize components guide</ExternalLink>
+sets the limits: "For CloudFront [...] by default, AWS WAF can inspect the first
+16 KB", and for an Application Load Balancer "the first 8 KB of the body". What
+happens past the limit depends on each rule's oversize handling, and "outside
+the console, the default option is Continue": the rule inspects the first 16 KB
+as if they were the whole body.
+
+An injection string placed after 16 KB of padding is therefore invisible to
+every rule that inspects the body. Two settings close the gap. The core rule
+set's `SizeRestrictions_BODY` rule matches any body over 8 KB, but in count mode
+it only labels the request, so tuning the core rule set includes deciding when
+to enforce that rule. The web ACL can also raise the limit to 64 KB. This
+fragment validates and plans against provider 6.73:
+
+```hcl
+  # Inspect up to 64 KB of each body instead of the default 16 KB.
+  association_config {
+    request_body {
+      cloudfront {
+        default_size_inspection_limit = "KB_64"
+      }
+    }
+  }
+```
+
+WAF on CloudFront also sees the client as CloudFront sees it. A request from
+behind a corporate proxy or a carrier-grade NAT carries the proxy's address, so
+the IP reputation list and any rate limit judge the proxy, not the person.
+
+## Rate-based rules stop a sustained flood, not a burst
+
+A rate-based rule counts requests per key, here the client address, and blocks a
+key that goes over its limit. The shop allows each address 300 requests to
+`/checkout` in any five minutes, about one per second:
+
+```hcl
+  # At most 300 requests to /checkout per client address in any 5-minute window.
+  rule {
+    name     = "checkout-rate"
+    priority = 3
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit                 = 300
+        evaluation_window_sec = 300
+        aggregate_key_type    = "IP"
+
+        scope_down_statement {
+          byte_match_statement {
+            search_string         = "/checkout"
+            positional_constraint = "STARTS_WITH"
+
+            field_to_match {
+              uri_path {}
+            }
+
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "checkout-rate"
+      sampled_requests_enabled   = true
+    }
+  }
+```
+
+The window can be 60, 120, 300 or 600 seconds, and the lowest limit is 10. The
+count is an estimate. AWS
+WAF's <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/waf-rule-statement-type-rate-based-caveats.html" preview="AWS WAF Developer Guide: caveats of rate-based rules, including estimation and detection delays.">caveats page for rate-based rules</ExternalLink>
+says it "estimates the current request rate using an algorithm that gives more
+importance to more recent requests", and "does not guarantee an exact limit
+match". It also warns that requests can arrive "at too high a rate for up to
+several minutes before AWS WAF detects and rate limits them".
+
+A rate rule therefore stops a sustained flood, not a burst. Size the limit from
+what a real customer does in five minutes, with room for the shared addresses of
+the previous section, and expect the first minutes of an attack to get through.
+Rate rules add a cost to abuse; they do not end it.
+
+## Shield Standard is already on; Advanced buys a response team, not a filter
+
+Every AWS account has Shield Standard, at no cost and with nothing to configure.
+For CloudFront, Route 53 and Global Accelerator,
+the <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/ddos-standard-summary.html" preview="AWS Shield Developer Guide: what Shield Standard protects automatically.">Shield Standard summary</ExternalLink>
+promises "comprehensive availability protection against all known network and
+transport layer attacks". That covers the floods of packets. Floods of valid
+HTTP requests are application traffic, which is why the web ACL above exists.
+
+Shield Advanced
+costs <ExternalLink href="https://aws.amazon.com/shield/pricing/" preview="AWS Shield pricing: Shield Advanced subscription and usage fees.">$3,000 a month with a one-year commitment</ExternalLink>,
+plus data transfer fees, and it protects only the resources you name. It adds
+the Shield Response Team, which needs a Business or Enterprise support plan,
+protection against the cost of scaling during an attack, and automatic
+application-layer mitigation that writes WAF rules for you. AWS WAF charges for
+protected resources are included. For one shop, the decision is about having
+experts on call during an attack. The filtering itself is the same CloudFront
+and WAF configured here.
+
+## The CloudFront prefix list admits every distribution, even an attacker's
+
+Everything above protects requests that come through CloudFront. A load balancer
+with a public address also answers requests that do not. The CloudFront guide
+on <ExternalLink href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/restrict-access-to-load-balancer.html" preview="CloudFront Developer Guide: restricting access to Application Load Balancers with a custom header and the managed prefix list.">restricting access to a load balancer</ExternalLink>
+offers two tools: a security group that admits CloudFront's addresses, and a
+secret header that only your distribution sends.
+
+The addresses come from an AWS-managed prefix list,
+`com.amazonaws.global.cloudfront.origin-facing`. In Terraform it is a data
+source and one security group rule:
+
+```hcl
+# AWS maintains this list. It holds the addresses CloudFront uses to reach
+# any origin, for every customer's distribution.
+data "aws_ec2_managed_prefix_list" "cloudfront" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_from_cloudfront_ranges" {
+  security_group_id = var.public_alb_security_group_id
+  prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront.id
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
+  description       = "Any CloudFront distribution, not only ours"
+}
+```
+
+This snippet validates, but it cannot plan without an AWS account, because the
+data source reads the list from AWS. With the lab's fake keys, AWS refuses:
+
+```text
+Error: reading EC2 Managed Prefix List: operation error EC2:
+DescribeManagedPrefixLists, https response error StatusCode: 401, [...]
+api error AuthFailure: AWS was not able to validate the provided access
+credentials
+```
+
+The same ranges are public in
+AWS's <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html" preview="AWS VPC User Guide: the published ip-ranges.json file and its service names.">ip-ranges.json</ExternalLink>
+file, under the service name `CLOUDFRONT_ORIGIN_FACING`. The copy published at
+20:37 UTC on 2026-11-23 held 52 IPv4 prefixes, 344,928 addresses, plus 37 IPv6
+prefixes. They belong to CloudFront, not to any customer. An attacker who learns
+the load balancer's name can create a distribution in their own account with
+that name as its origin. Their requests then leave CloudFront from the same
+addresses as yours, skip your web ACL, and pass your security group.
+
+The list has a second cost.
+The <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/working-with-aws-managed-prefix-lists.html" preview="AWS VPC User Guide: AWS-managed prefix lists, their names and their weights.">managed prefix lists page</ExternalLink>
+gives it a weight of 55 rules, against a default quota of 60 rules per security
+group, which "leaves room for only 5 additional rules".
+
+## A secret header guards the door, but it is a shared password
+
+AWS's guide pairs the list with the header. CloudFront adds a custom header with
+a secret value to every origin request, and the load balancer forwards only
+requests that carry it. Everything else gets a fixed 403:
+
+```hcl
+resource "aws_lb_listener" "checkout" {
+  load_balancer_arn = var.public_alb_arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.origin_certificate_arn
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Forbidden"
+      status_code  = "403"
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "from_cloudfront" {
+  listener_arn = aws_lb_listener.checkout.arn
+  priority     = 1
+
+  condition {
+    http_header {
+      http_header_name = "X-Origin-Verify"
+      values           = [var.origin_secret]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = var.checkout_target_group_arn
+  }
+}
+```
+
+On the distribution, a `custom_header` block inside `origin` sends the same
+value. This version plans with fake keys (3 resources, with the secret marked
+sensitive). The header is a shared password. It must be rotated, and it can show
+up in any log that records request headers. Terraform stores it in plain text in
+the state file, so the state needs the same protection as the secret.
+
+## VPC origins remove the public address entirely
+
+The third option, launched on 2024-11-20, removes the door instead of guarding
+it. With
+a <Term title="A CloudFront origin that points at a load balancer or EC2 instance in a private subnet, reached through network interfaces that CloudFront creates in your VPC.">VPC origin</Term>,
+CloudFront reaches an internal load balancer through network interfaces it
+creates in the load balancer's subnets. According to
+the <ExternalLink href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-vpc-origins.html" preview="CloudFront Developer Guide: VPC origins, their requirements, security groups and limits.">VPC origins guide</ExternalLink>,
+"you can move your origins to private subnets with no public access". The
+checkout load balancer
+from <InternalLink slug="aws-vpc-segmentation-terraform">Part 2</InternalLink>
+is already internal and sits in the web tier, which has no route to the
+internet.
+
+CloudFront creates a security group named `CloudFront-VPCOrigins-Service-SG` for
+those interfaces. Admitting that group, rather than the prefix list, "is further
+restrictive as it restricts the traffic only to your CloudFront distributions".
+The group appears only after the VPC origin exists, so the lab reads it with a
+dependency:
+
+```hcl
+resource "aws_cloudfront_vpc_origin" "checkout" {
+  vpc_origin_endpoint_config {
+    name                   = "checkout-alb"
+    arn                    = aws_lb.checkout.arn
+    http_port              = 80
+    https_port             = 443
+    origin_protocol_policy = "https-only"
+
+    origin_ssl_protocols {
+      items    = ["TLSv1.2"]
+      quantity = 1
+    }
+  }
+}
+
+# CloudFront creates this group when it creates the VPC origin. Reading it
+# after the origin exists lets the load balancer admit only this origin.
+data "aws_security_group" "cloudfront_vpc_origins" {
+  vpc_id     = aws_vpc.orders.id
+  name       = "CloudFront-VPCOrigins-Service-SG"
+  depends_on = [aws_cloudfront_vpc_origin.checkout]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_from_cloudfront" {
+  security_group_id            = aws_security_group.alb.id
+  referenced_security_group_id = data.aws_security_group.cloudfront_vpc_origins.id
+  ip_protocol                  = "tcp"
+  from_port                    = 443
+  to_port                      = 443
+  description                  = "Only this account's CloudFront VPC origins"
+}
+```
+
+The dependency is why this part of the lab plans without an account: Terraform
+defers the read until apply, and the plan says so:
+
+```text
+  # data.aws_security_group.cloudfront_vpc_origins will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_security_group" "cloudfront_vpc_origins" {
+      + arn         = (known after apply)
+      ...
+      + name        = "CloudFront-VPCOrigins-Service-SG"
+```
+
+Four details from the guide shape the rest of the network. The VPC needs an
+internet gateway, which "is not used for routing traffic to origins inside the
+subnet". Inbound network ACL rules "are not evaluated for traffic from
+CloudFront", but outbound rules are, so they must allow the ephemeral ports 1024
+to 65535. A few Availability Zones are not supported, such as `use1-az3` in
+us-east-1. And VPC Block Public Access blocks VPC origins unless their subnets
+are excluded, which is why Part 2 excluded the web subnets. VPC origins cost
+nothing extra.
+
+<Figure caption="Three ways to make the load balancer answer only CloudFront, tested with three senders. The prefix list lets an attacker's own distribution through; a VPC origin leaves nothing to reach from outside the account.">
+  <SideDoor />
+</Figure>
+
+## Test the side door before deployment, and again after
+
+The side door is a property of the configuration, so the lab's terraform test
+from Part 2 holds one more assertion:
+
+```hcl
+  assert {
+    condition     = aws_lb.checkout.internal
+    error_message = "The checkout load balancer must have no public address."
+  }
+```
+
+With `internal = false` in a copy of the lab, the test fails on exactly that
+line:
+
+```text
+Error: Test assertion failed
+
+  on tests/segmentation.tftest.hcl line 145, in run "segmentation":
+    │ aws_lb.checkout.internal is false
+
+The checkout load balancer must have no public address.
+...
+Failure! 0 passed, 1 failed.
+```
+
+Another assertion from Part 2 already requires every workload ingress rule,
+including `alb_from_cloudfront`, to name a security group, with no address range
+and no prefix list. A copy of the lab whose rule admits the CloudFront prefix
+list instead fails on line 124 with "Workload security groups admit groups,
+never address ranges."
+
+After deployment, the check is a request from outside, and this lab, which never
+deployed, did not run it. The load balancer's DNS name should resolve only to
+private `10.0.1.x` and `10.0.11.x` addresses, a direct request from the internet
+should time out, and the shop's own domain should answer through CloudFront.
+Reachability Analyzer, from Part 2, can confirm the same thing from the
+configuration with a path from the internet gateway to the load balancer.
+
+Who else can reach the load balancer? An attacker who finds it can only skip the
+edge if it answers them, and the prefix list makes sure it does. A VPC origin
+answers only this account's distributions. For every origin behind a CDN, write
+down who else can reach it, then test that answer from outside the account. If
+the answer is "every CloudFront customer", the edge protects only the users who
+choose to use it.
+
+## References
+
+- **CloudFront:**
+  AWS, <ExternalLink href="https://docs.aws.amazon.com/whitepapers/latest/aws-best-practices-ddos-resiliency/cloudfront.html" preview="DDoS resiliency whitepaper, CloudFront section.">AWS Best Practices for DDoS Resiliency: Amazon CloudFront</ExternalLink>;
+  CloudFront Developer
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/restrict-access-to-load-balancer.html" preview="Custom headers and the managed prefix list.">Restrict access to Application Load Balancers</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-vpc-origins.html" preview="VPC origins.">Restrict access with VPC origins</ExternalLink>;
+  AWS Prescriptive
+  Guidance, <ExternalLink href="https://docs.aws.amazon.com/prescriptive-guidance/latest/security-reference-architecture/network.html" preview="SRA network account.">AWS Security Reference Architecture, Network account</ExternalLink>.
+- **AWS WAF:** AWS WAF Developer
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-baseline.html" preview="Baseline managed rule groups.">Baseline rule groups</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-testing.html" preview="Testing in count mode.">Testing and tuning your protections</ExternalLink>, <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/waf-oversize-request-components.html" preview="Oversize request components.">Oversize web request components</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/waf-rule-statement-type-rate-based-caveats.html" preview="Rate-based rule caveats.">Rate-based rule caveats</ExternalLink>;
+  AWS, <ExternalLink href="https://aws.amazon.com/waf/pricing/" preview="AWS WAF pricing.">AWS WAF pricing</ExternalLink>.
+- **Shield:**
+  AWS, <ExternalLink href="https://docs.aws.amazon.com/waf/latest/developerguide/ddos-standard-summary.html" preview="Shield Standard summary.">AWS Shield Standard overview</ExternalLink>
+  and <ExternalLink href="https://aws.amazon.com/shield/pricing/" preview="Shield pricing.">AWS Shield pricing</ExternalLink>.
+- **Addresses:** AWS VPC User
+  Guide, <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/working-with-aws-managed-prefix-lists.html" preview="AWS-managed prefix lists and their weights.">Work with AWS-managed prefix lists</ExternalLink>
+  and <ExternalLink href="https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html" preview="AWS IP address ranges.">AWS IP address ranges</ExternalLink>
+  (ip-ranges.json, createDate 2026-11-23-20-37-05).
+- **Terraform:**
+  HashiCorp, <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_vpc_origin" preview="aws_cloudfront_vpc_origin documentation.">aws_cloudfront_vpc_origin</ExternalLink>
+  and <ExternalLink href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl" preview="aws_wafv2_web_acl documentation.">aws_wafv2_web_acl</ExternalLink>.

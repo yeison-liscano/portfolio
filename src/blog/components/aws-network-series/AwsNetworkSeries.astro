@@ -1,0 +1,86 @@
+---
+import InternalLink from "../../../components/blog/InternalLink.astro";
+
+interface Props {
+  current: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+}
+
+const { current } = Astro.props;
+const parts = [
+  {
+    slug: "aws-network-security-map",
+    title: "The map: a box is not a control",
+  },
+  {
+    slug: "aws-vpc-segmentation-terraform",
+    title: "Private network: VPC segmentation",
+  },
+  {
+    slug: "aws-edge-cloudfront-waf-shield",
+    title: "CDN: CloudFront, WAF and Shield",
+  },
+  {
+    slug: "aws-network-firewall-ids-ips",
+    title: "Perimeter: Network Firewall as IDS and IPS",
+  },
+  {
+    slug: "aws-iam-network-administrators",
+    title: "Access management: IAM for administrators",
+  },
+  {
+    slug: "aws-client-vpn-verified-access",
+    title: "Authorized users: Client VPN or Verified Access",
+  },
+  {
+    slug: "aws-security-logging-siem",
+    title: "SIEM: the evidence each layer leaves",
+  },
+];
+---
+
+<nav class="aws-series" aria-label="Cloud network security on AWS series">
+  <p>
+    Cloud network security on AWS · Part {current} of {parts.length}
+  </p>
+  <ol>
+    {parts.map((part, index) => (
+      <li>
+        {index + 1 === current ? (
+          <span aria-current="page">{part.title}</span>
+        ) : (
+          <InternalLink slug={part.slug}>{part.title}</InternalLink>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .aws-series {
+    margin-block: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+
+  p {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+
+  ol {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding-left: 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  [aria-current="page"] {
+    color: var(--contrast);
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,235 @@
+---
+/**
+ * TierRoutes - Each tier of the orders VPC gets its own route table, and
+ * the route table alone decides whether the tier can reach the internet.
+ * Public subnets route to the internet gateway, the app tier routes out
+ * through a NAT gateway, and the web and data tiers keep only the local
+ * route.
+ */
+const id = "tier-routes";
+
+const rows = [
+  {
+    y: 60,
+    tier: "public",
+    cidrs: "10.0.0.0/24 · 10.0.10.0/24",
+    holds: "NAT gateways",
+    route: "0.0.0.0/0 → internet gw",
+  },
+  {
+    y: 140,
+    tier: "web",
+    cidrs: "10.0.1.0/24 · 10.0.11.0/24",
+    holds: "load balancer, checkout",
+    route: "local only",
+  },
+  {
+    y: 220,
+    tier: "app",
+    cidrs: "10.0.2.0/24 · 10.0.12.0/24",
+    holds: "orders API",
+    route: "0.0.0.0/0 → NAT gateway",
+  },
+  {
+    y: 300,
+    tier: "data",
+    cidrs: "10.0.3.0/24 · 10.0.13.0/24",
+    holds: "orders database",
+    route: "local only",
+  },
+];
+---
+
+<svg
+  viewBox="0 0 720 410"
+  role="img"
+  aria-label="Four tiers of the orders VPC and their route tables. The public tier routes 0.0.0.0/0 to the internet gateway. The web tier keeps only the local route. The app tier routes 0.0.0.0/0 to a NAT gateway in the public tier, which reaches the internet gateway. The data tier keeps only the local route and has no way out of the VPC. The main route table also holds only the local route."
+  class="diagram"
+>
+  <defs>
+    <marker
+      id={`${id}-arrow`}
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+    </marker>
+  </defs>
+
+  <text x="16" y="30" class="zone">
+    VPC 10.0.0.0/16
+  </text>
+  <rect x="8" y="40" width="528" height="336" rx="8" class="boundary"></rect>
+
+  {rows.map((row) => (
+    <g class={row.tier === "data" ? "accent" : ""}>
+      <rect x="16" y={row.y} width="284" height="56" rx="4" class="box" />
+      <text x="28" y={row.y + 22} class="name">
+        {row.tier}
+      </text>
+      <text x="288" y={row.y + 22} class="holds">
+        {row.holds}
+      </text>
+      <text x="28" y={row.y + 42} class="cidr">
+        {row.cidrs}
+      </text>
+      <line x1="300" y1={row.y + 28} x2="328" y2={row.y + 28} class="edge" />
+      <rect x="328" y={row.y} width="196" height="56" rx="4" class="box" />
+      <text x="340" y={row.y + 20} class="label">
+        route table
+      </text>
+      <text x="340" y={row.y + 40} class="route">
+        {row.route}
+      </text>
+    </g>
+  ))}
+
+  <!-- Targets -->
+  <rect x="560" y="60" width="144" height="56" rx="4" class="box"></rect>
+  <text x="632" y="84" class="target">
+    internet
+  </text>
+  <text x="632" y="100" class="target">
+    gateway
+  </text>
+  <line
+    x1="524"
+    y1="88"
+    x2="556"
+    y2="88"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+
+  <rect x="560" y="220" width="144" height="56" rx="4" class="box"></rect>
+  <text x="632" y="244" class="target">
+    NAT gateway
+  </text>
+  <text x="632" y="260" class="note mid">
+    in a public subnet
+  </text>
+  <line
+    x1="524"
+    y1="248"
+    x2="556"
+    y2="248"
+    class="edge"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <line
+    x1="632"
+    y1="220"
+    x2="632"
+    y2="120"
+    class="edge dashed"
+    marker-end={`url(#${id}-arrow)`}
+  ></line>
+  <text x="640" y="176" class="note">
+    outbound only
+  </text>
+
+  <text x="560" y="332" class="stay accent-text">
+    no route out
+  </text>
+  <text x="560" y="348" class="stay accent-text">
+    of the VPC
+  </text>
+
+  <text x="16" y="398" class="note">
+    main route table: local only, for any subnet nobody associates
+  </text>
+</svg>
+
+<style>
+  .diagram {
+    min-width: 600px;
+    color: var(--text-color);
+    font-family: var(--font-mono);
+  }
+
+  .zone {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .boundary {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 5;
+  }
+
+  .box {
+    fill: var(--code-background);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .accent .box {
+    stroke: var(--contrast);
+    stroke-width: 2;
+  }
+
+  .name {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .holds {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    text-anchor: end;
+  }
+
+  .cidr,
+  .route {
+    fill: var(--text-color);
+    font-size: 11px;
+  }
+
+  .label,
+  .note {
+    fill: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11px;
+  }
+
+  .mid {
+    text-anchor: middle;
+  }
+
+  .target {
+    fill: var(--text-color);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .stay {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .accent-text {
+    fill: var(--contrast);
+  }
+
+  .edge {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .dashed {
+    stroke-dasharray: 5 4;
+  }
+</style>
